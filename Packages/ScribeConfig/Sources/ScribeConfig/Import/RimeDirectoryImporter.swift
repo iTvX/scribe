@@ -57,10 +57,6 @@ public struct RimeDirectoryImporter: Sendable {
                     Self.snapshots(in: snapshotFolder.appending(path: $0, directoryHint: .isDirectory))
                 } ?? []
             )
-            var notices = copier.notices
-            if !userDictionaries.dictionaries.isEmpty && userDictionaries.snapshots.isEmpty {
-                notices.append(.userDictionariesNotSynced(userDictionaries.dictionaries))
-            }
 
             let backup = try Self.moveIntoPlace(staging, at: target, now: now)
             return MigrationReport(
@@ -74,7 +70,7 @@ public struct RimeDirectoryImporter: Sendable {
                 squirrelInstallationID: squirrelInstallationID,
                 syncDirectory: syncDirectory,
                 userDictionaries: userDictionaries,
-                notices: notices
+                notices: copier.notices
             )
         } catch {
             try? fileManager.removeItem(at: staging)

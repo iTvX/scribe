@@ -109,6 +109,7 @@ targets:
       - path: Settings/Resources
     dependencies:
       - package: ScribeConfig
+      - package: ScribeCore
     settings:
       base:
         PRODUCT_NAME: ScribeSettings

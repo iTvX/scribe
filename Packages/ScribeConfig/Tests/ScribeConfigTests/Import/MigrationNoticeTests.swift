@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 struct MigrationNoticeTests {
-    @Test func flagsFrontendChecksOtherFrontendsAndUnsyncedDictionaries() throws {
+    @Test func flagsFrontendChecksAndOtherFrontends() throws {
         let fake = try FakeRimeDirectory()
         defer { fake.remove() }
 
@@ -15,7 +15,6 @@ struct MigrationNoticeTests {
             .luaChecksFrontend(file: "lua/cold_word_drop/processor.lua", line: 8,
                                text: "if rime_api.get_distribution_name() == '鼠鬚管' then"),
             .otherFrontendConfig(file: "weasel.yaml"),
-            .userDictionariesNotSynced(["rime_ice", "wubi86"]),
         ])
     }
 

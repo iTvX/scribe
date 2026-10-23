@@ -17,7 +17,7 @@ public struct MigrationReport: Sendable, Equatable {
     /// The custom `sync_dir` carried over, or nil for librime's default.
     public var syncDirectory: String?
     public var userDictionaries: UserDictionaryImport
-    /// In path and line order; a missing user dictionary snapshot comes last.
+    /// In path and line order.
     public var notices: [MigrationNotice]
 }
 
@@ -40,8 +40,8 @@ public struct SkippedItem: Sendable, Equatable {
 public enum SkipReason: String, Sendable, CaseIterable {
     /// `build/` at the root; Scribe deploys its own.
     case buildOutput
-    /// `*.userdb`, `*.userdb.kct` and `*.userdb.txt` at the root; they come
-    /// over through a sync snapshot instead.
+    /// `*.userdb`, `*.userdb.kct` and `*.userdb.txt` at the root. Their words
+    /// are exported from a copy and merged into Scribe's own dictionaries.
     case userDictionary
     /// `sync/` at the root, or a custom `sync_dir` inside the source.
     case syncDirectory
@@ -51,13 +51,20 @@ public enum SkipReason: String, Sendable, CaseIterable {
     case systemFile
 }
 
-/// The user dictionaries found in the source and the snapshots that bring
-/// their words into Scribe.
+/// The user dictionaries found in the source, and the snapshots Squirrel
+/// last synced of them.
 public struct UserDictionaryImport: Sendable, Equatable {
     /// Names from `<name>.userdb` and `<name>.userdb.kct`, sorted.
     public var dictionaries: [String]
-    /// `<sync dir>/<Squirrel installation ID>/*.userdb.txt`, sorted.
+    /// `<sync dir>/<Squirrel installation ID>/*.userdb.txt`, sorted. Used for
+    /// dictionaries that cannot be exported, and as they are for names
+    /// without a dictionary.
     public var snapshots: [URL]
+
+    public init(dictionaries: [String], snapshots: [URL]) {
+        self.dictionaries = dictionaries
+        self.snapshots = snapshots
+    }
 }
 
 /// Something in the imported directory that may not work the way it did in Squirrel.
@@ -67,8 +74,6 @@ public enum MigrationNotice: Sendable, Equatable {
     case luaChecksFrontend(file: String, line: Int, text: String)
     /// The configuration of another Rime frontend, which Scribe never reads.
     case otherFrontendConfig(file: String)
-    /// User dictionaries exist but Squirrel has not synced a snapshot of them.
-    case userDictionariesNotSynced([String])
     /// A symbolic link with an absolute target, or a relative one that leaves the source.
     case symbolicLink(path: String, target: String)
 }

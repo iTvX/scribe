@@ -9,7 +9,7 @@ struct ImportView: View {
     var body: some View {
         Group {
             if case .finished(let report) = model.phase {
-                MigrationReportView(report: report, onDone: model.reset)
+                MigrationReportView(report: report, userWords: model.userWords, onDone: model.reset)
             } else {
                 form
             }
@@ -45,8 +45,8 @@ struct ImportView: View {
             Section {
                 Text("""
                     方案、词库、补丁、Lua 脚本、OpenCC 数据、squirrel.yaml 和 .git 仓库都会原样复制。\
-                    部署生成的 build 文件夹、用户词库、sync 同步文件夹、trash 和 .DS_Store 不复制：\
-                    中书部署时会重新生成，用户词通过鼠须管的同步快照合并。\
+                    部署生成的 build 文件夹、sync 同步文件夹、trash 和 .DS_Store 不复制，中书部署时会重新生成。\
+                    用户词库不直接复制：先从它的副本导出鼠须管学到的词，再合并进中书的词库。\
                     installation.yaml 会重新生成，中书有自己的安装 ID，沿用原来的同步目录。\
                     鼠须管的目录只读不写。
                     """)
@@ -61,10 +61,10 @@ struct ImportView: View {
                             .textSelection(.enabled)
                     }
                     Spacer()
-                    if model.isImporting {
+                    if case .importing(let progress) = model.phase {
                         ProgressView()
                             .controlSize(.small)
-                        Text("正在导入…")
+                        Text(progress)
                             .foregroundStyle(.secondary)
                     }
                     Button(isFailed ? "重试" : "一键导入", action: model.requestImport)
