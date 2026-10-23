@@ -69,7 +69,45 @@ func snapshot(_ theme: Theme) -> String {
     return lines.sorted().joined(separator: "\n") + "\n"
 }
 
-func describe(_ color: ThemeColor) -> String {
+/// Settings as sorted "key = value" lines, with each theme's lines under
+/// "appearance.light." and "appearance.dark.".
+func snapshot(_ settings: ScribeSettings) -> String {
+    var lines: [String] = []
+    func add(_ key: String, _ value: String) {
+        lines.append("\(key) = \(value)")
+    }
+    add("configVersion", settings.configVersion.map(quoted) ?? "nil")
+    switch settings.keyboardLayout {
+    case .last: add("keyboardLayout", "last")
+    case .named(let name): add("keyboardLayout", quoted(name))
+    }
+    add("chordDuration", "\(settings.chordDuration)")
+    add("notificationPolicy", settings.notificationPolicy.rawValue)
+    add("showsStatusIcon", "\(settings.showsStatusIcon)")
+    add("reportsBundleID", "\(settings.reportsBundleID)")
+    for (bundleID, options) in settings.appOptions.byBundleID {
+        if options.isEmpty {
+            add("appOptions.\(bundleID)", "[:]")
+        }
+        for (option, value) in options {
+            add("appOptions.\(bundleID).\(option)", "\(value)")
+        }
+    }
+    add("appearance.forcesLightAppearance", "\(settings.appearance.forcesLightAppearance)")
+    let themes = [("light", settings.appearance.light), ("dark", settings.appearance.dark)]
+    for (name, theme) in themes {
+        guard let theme else {
+            add("appearance.\(name)", "nil")
+            continue
+        }
+        for line in snapshot(theme).split(separator: "\n") {
+            lines.append("appearance.\(name).\(line)")
+        }
+    }
+    return lines.sorted().joined(separator: "\n") + "\n"
+}
+
+private func describe(_ color: ThemeColor) -> String {
     switch color {
     case .rgba(let rgba):
         describe(rgba)
@@ -80,17 +118,17 @@ func describe(_ color: ThemeColor) -> String {
     }
 }
 
-func describe(_ color: RGBAColor) -> String {
+private func describe(_ color: RGBAColor) -> String {
     color.colorSpace == .sRGB ? color.hex : "\(color.hex) displayP3"
 }
 
-func describe(_ face: FontFace) -> String {
+private func describe(_ face: FontFace) -> String {
     guard let family = face.family, let style = face.style else { return quoted(face.name) }
     return "\(quoted(face.name)) (\(quoted(family)) \(quoted(style)))"
 }
 
 /// Double-quoted, with quotes, backslashes and invisible characters escaped.
-func quoted(_ string: String) -> String {
+private func quoted(_ string: String) -> String {
     var result = "\""
     for scalar in string.unicodeScalars {
         switch scalar {
