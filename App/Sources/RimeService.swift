@@ -6,15 +6,6 @@ import ScribeUI
 
 extension CandidatePanel: CandidatePresenting {}
 
-/// How Scribe names itself to librime. Schemas and Lua scripts may check the
-/// code name; a compatibility setting will let users report "Squirrel".
-struct DistributionIdentity: Equatable {
-    var name: String
-    var codeName: String
-
-    static let scribe = DistributionIdentity(name: "Scribe", codeName: "Scribe")
-}
-
 extension RimeService: MaintenanceEngine {
     var isInMaintenance: Bool {
         engine.isInMaintenance
@@ -57,8 +48,9 @@ final class RimeService {
 
     private init() {}
 
-    /// The distribution librime reports to schemas and plugins.
-    var identity = DistributionIdentity.scribe
+    /// The distribution librime reports to schemas and plugins, as the last
+    /// deploy's scribe.yaml chose it.
+    var identity = DistributionIdentity.stored(in: .standard)
 
     /// Starts librime and deploys if the user's files changed. After a crash
     /// at startup it starts without librime, so the user can still type and
@@ -81,6 +73,7 @@ final class RimeService {
             case "deploy":
                 RimeService.shared.resumeMaintenance()
                 if notification.value != "start" {
+                    RimeService.shared.updateIdentity()
                     // Schemas, and their styles, are deployed now.
                     RimeService.shared.loadAppearance()
                 }
@@ -126,6 +119,22 @@ final class RimeService {
         for adapter in adapters.compactMap(\.adapter) {
             adapter.configuration = configuration
         }
+    }
+
+    /// Applies scribe.yaml's `compatibility/report_as_squirrel` after a
+    /// deploy. librime takes the names when it starts, so a change is kept
+    /// for the next launch and librime starts again now; clients start new
+    /// sessions on their next keys.
+    private func updateIdentity() {
+        guard let compatibility = ScribeCompatibility.load(from: engine) else { return }
+        let identity = DistributionIdentity(compatibility)
+        guard identity != self.identity else { return }
+        Log.app.notice("Restarting librime as \(identity.codeName, privacy: .public)")
+        identity.store(in: .standard)
+        self.identity = identity
+        engine.stop()
+        engine.start(Self.configuration(identity: identity))
+        startMaintenance(fullCheck: false)
     }
 
     private func schemaChanged(to schemaID: String) {
