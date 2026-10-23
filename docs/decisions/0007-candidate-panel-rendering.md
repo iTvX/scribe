@@ -30,6 +30,18 @@
 - 失败时期望图、实际图和差异图写到 `$SCRIBE_SNAPSHOT_ARTIFACTS`（默认 `build/snapshot-failures`），CI 失败时把这个目录作为 artifact 上传。新加的快照还没有基准图时，CI 渲染的图也在里面。
 - 以 CI（GitHub 托管的 xcode-27 runner）为准：本机和 CI 的结果超出容差时，从 CI 上传的实际图里取基准图。
 
+## 鼠须管对照
+
+- `Tools/squirrel-oracle` 用鼠须管 46962d2 自己的 `SquirrelTheme`、`SquirrelView`、`SquirrelPanel`（构建时下载，不进仓库）画出同样的用例，参考图在 `Tests/Fixtures/snapshots/squirrel/`。用法见那里的 README。
+- 用例都在 `Tests/Fixtures/snapshots/cases.json`，中书的快照和鼠须管的参考图共用：排版和功能的组合、`SharedSupport/squirrel.yaml` 的全部 21 个预设、Max 风格的部署样本（亮、暗，以及按应用不内嵌时带预编辑）。真实配置先经 librime 读出（样本用 librime 实际部署），扁平化存在 `configs/`，两边从同一份配置出发；`SnapshotConfigTests` 保证它和 YAML 一致，并和 ScribeConfig 记录的部署结果一致。
+- `SquirrelReferenceTests` 在 CI 上比较中书的渲染和鼠须管的参考图。容差只覆盖抗锯齿：每个通道相差不超过 32/255，或者和对方相邻的像素一致；不同的像素不超过 0.2%，或者不超过 64 个（小面板的圆角）。`SnapshotHarnessTests` 证明这个容差仍然抓得住整体移动 1 点、标签字号小 1 点和明显的颜色错误；更小的偏差由中书自己的逐像素快照把关。
+- 对照查出并修掉的问题：面板最外一圈像素被抗锯齿了三次（多了一次按视图边界的裁剪），比鼠须管淡；窗口把内容视图取整到像素，面板在取整变小时会被切掉不到一个像素的一边，渲染器现在也这样切，快照和屏幕上一致。
+- wechat_light 的高亮在左边被面板的圆角裁掉（左上、左下是圆角，右边是直角），鼠须管和中书一样。
+
+### 已知差异
+
+- **竖排文字的亚像素位置**：TextKit 把鼠须管的行图层对齐到窗口的像素网格，而竖排面板在窗口里差几分之一点才对齐，所以鼠须管的竖排字形和面板背景之间有最多约三分之一点的偏移。中书的文字跟着面板画，没有这个偏移。差别只在字形边缘的抗锯齿上，竖排用例的容差放宽到 3% 的像素。屏幕上中书的竖排面板也有同样的窗口偏移，只是文字和背景一起偏。
+
 ## 发现
 
 - TextKit 2 会抵消整行统一的 `baselineOffset`：行的基线跟着下移同样的距离，字形位置不变。用真正的 `NSTextView` 实测也是这样，所以单独调 `base_offset` 看不出变化，鼠须管也一样。中书照样保留这个行为。

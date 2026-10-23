@@ -193,9 +193,11 @@ private final class Recorder: CandidatePanelDelegate {
             data: nil, width: Int((size.width * scale).rounded(.up)), height: Int((size.height * scale).rounded(.up)),
             bitsPerComponent: 8, bytesPerRow: 0, space: PanelRenderer.colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ))
-        // The view is flipped, and so is its layer's geometry.
+        // The view is flipped, and so is its layer's geometry. The window
+        // cuts the panel where AppKit rounds its content view.
         context.translateBy(x: 0, y: CGFloat(context.height))
         context.scaleBy(x: scale, y: -scale)
+        context.clip(to: PanelRenderer.windowClip(viewSize: size, screenSize: size, vertical: false, scale: scale))
         layer.render(in: context)
         let window = try #require(context.makeImage())
         let expected = try #require(PanelRenderer.render(
