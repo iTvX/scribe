@@ -20,3 +20,7 @@
 ## 测试
 
 回放 `Tests/Fixtures/replays/inline-*.replay`、`app-option*.replay`、`layout-options.replay` 同时跑假引擎和真 librime，新增的 `@style`、`@app` 指令和 `panel-preedit` 断言见 `Replay.swift`。
+
+## 插件的保留属性
+
+和鼠须管一样（rime/squirrel#1124），插件可以通过 librime 的属性通知前端：`_comment_highlight`、`_comment_warning` 标出本页哪些候选的注释用强调色、警告色，值是逗号分隔的序号，或者带 `value` 字段的查询串；`_refresh_ui` 让候选窗重画。标记保存在会话里，重画时带上，下一次正常更新（比如按键）就清掉。标记通过 `CandidateSnapshot.accentCommentIndices`、`warningCommentIndices` 交给候选窗。

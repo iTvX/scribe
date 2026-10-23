@@ -250,6 +250,17 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls == ["mark 　|0", "caret", "show "])
     }
 
+    @Test func aPluginsRefreshRedrawsTheWindow() throws {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        log.calls.removeAll()
+        let sessionID = try #require(session.currentSessionID)
+        for value in ["_comment_highlight=1", "_refresh_ui=1"] {
+            adapter.handle(RimeNotification(sessionID: sessionID, type: "property", value: value), notifications: .appropriate, messageType: .mix)
+        }
+        #expect(log.calls == ["caret", "show 你 泥 呢 尼 逆"])
+    }
+
     @Test func pageDownUpdatesOnlyTheWindow() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)

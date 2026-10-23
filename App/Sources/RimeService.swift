@@ -80,7 +80,7 @@ final class RimeService {
             switch notification.type {
             case "deploy":
                 RimeService.shared.resumeMaintenance()
-            case "option", "schema":
+            case "option", "schema", "property":
                 RimeService.shared.announce(notification)
             default:
                 break

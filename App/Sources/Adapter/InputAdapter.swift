@@ -152,10 +152,14 @@ final class InputAdapter {
         apply(session.commitComposition(), to: client)
     }
 
-    /// Announces an option or schema change of this adapter's session.
+    /// Announces an option or schema change of this adapter's session, or
+    /// takes a property a plugin set in it.
     func handle(_ notification: RimeNotification, notifications: NotificationPolicy, messageType: StatusMessageType) {
         guard session.owns(notification.sessionID), let client else { return }
-        apply(session.status(for: notification, notifications: notifications, messageType: messageType), to: client)
+        let actions = notification.type == "property"
+            ? session.handleProperty(notification.value)
+            : session.status(for: notification, notifications: notifications, messageType: messageType)
+        apply(actions, to: client)
     }
 
     /// Turns ASCII mode on or off, as `Scribe --ascii` and `--nascii` ask.
