@@ -1,0 +1,25 @@
+appearance/theme = "purity_of_form_custom"
+appearance/dark_theme = "purity_of_form_custom"
+app_options/co.zeit.hyper = {}
+app_options/com.alfredapp.Alfred = {}
+app_options/com.apple.Spotlight = {}
+app_options/com.apple.Terminal = {}
+app_options/com.apple.dt.Xcode = {}
+app_options/com.barebones.textwrangler = {}
+app_options/com.blacktree.Quicksilver = {}
+app_options/com.github.atom = {}
+app_options/com.google.Chrome = {}
+app_options/com.googlecode.iterm2 = {}
+app_options/com.macromates.TextMate.preview = {}
+app_options/com.microsoft.VSCode = {}
+app_options/com.microsoft.edgemac = {}
+app_options/com.runningwithcrayons.Alfred-2 = {}
+app_options/com.sublimetext.2 = {}
+app_options/org.alacritty = {}
+app_options/org.gnu.Aquamacs = {}
+app_options/org.gnu.Emacs = {}
+app_options/org.vim.MacVim = {}
+app_options/ru.keepcoder.Telegram = {}
+themes/purity_of_form_custom = {"author": "雨過之後、佛振", "color_space": "srgb", "light": {"background": "#545554", "candidate_text": "#EEEEEE", "comment": "#808080", "highlight_background": "#E3E3E3", "highlight_comment": "#808080", "highlight_label": "#4C4C4C", "highlight_text": "#000000", "label": "#BBBBBB", "preedit_highlight_text": "#EEEEEE", "preedit_text": "#808080"}, "name": "純粹的形式／Purity of Form Custom", "style": {"alpha": "1", "baseline_offset": "0", "comment_font": {"face": "Helvetica", "size": "16"}, "corner_radius": "10", "font": {"face": "", "size": "18"}, "highlight_corner_radius": "0", "highlight_expansion": "0", "inline_candidate": "false", "inline_preedit": "true", "label_font": {"face": "Helvetica", "size": "12"}, "line_spacing": "5", "mutual_exclusive": "false", "padding": {"horizontal": "0", "vertical": "0"}, "preedit_spacing": "10", "shadow_size": "0", "translucency": "false"}}
+themeID "purity_of_form_custom" -> "purity_of_form_custom"
+unconverted status_icon/show -> status_icon (absentFromSquirrelConfig)

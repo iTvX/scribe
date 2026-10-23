@@ -48,3 +48,18 @@ extension ScribeCompatibility {
         engine.withConfig(.deployed("scribe")) { ScribeCompatibility(scribe: $0) }
     }
 }
+
+extension ScribeConversion {
+    /// The conversion of the deployed squirrel.yaml against `baselineYAML`
+    /// (Scribe's own squirrel.yaml), keeping what the deployed scribe.yaml
+    /// already sets. Nil if librime cannot open squirrel.yaml or parse the
+    /// baseline.
+    @MainActor
+    public static func load(from engine: LibrimeEngine, baselineYAML: String) -> ScribeConversion? {
+        engine.withSquirrelAndScribe { user, scribe in
+            engine.withConfig(.yaml(baselineYAML)) { baseline in
+                ScribeConverter.convert(user: user, baseline: baseline, scribe: scribe)
+            }
+        } ?? nil
+    }
+}

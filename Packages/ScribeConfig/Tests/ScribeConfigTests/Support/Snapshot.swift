@@ -107,6 +107,33 @@ func snapshot(_ settings: ScribeSettings) -> String {
     return lines.sorted().joined(separator: "\n") + "\n"
 }
 
+/// A conversion as lines: its entries in order, then the theme IDs and the
+/// unconverted settings, sorted.
+func snapshot(_ conversion: ScribeConversion) -> String {
+    var lines = conversion.entries.map { "\($0.key) = \(render($0.value))" }
+    lines += conversion.themeIDs.map { "themeID \(quoted($0.key)) -> \(quoted($0.value))" }.sorted()
+    lines += conversion.unconverted.map { item in
+        "unconverted \(item.squirrelPath) -> \(item.scribePath) (\(item.reason))"
+    }.sorted()
+    return lines.joined(separator: "\n") + "\n"
+}
+
+/// A config tree on one line, map keys in librime's order.
+func render(_ node: ConfigNode) -> String {
+    switch node {
+    case .null:
+        "~"
+    case .scalar(let value):
+        quoted(value)
+    case .list(let items):
+        "[" + items.map(render).joined(separator: ", ") + "]"
+    case .map(let map):
+        "{" + map.keys.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+            .map { "\(quoted($0)): \(render(map[$0]!))" }
+            .joined(separator: ", ") + "}"
+    }
+}
+
 private func describe(_ color: ThemeColor) -> String {
     switch color {
     case .rgba(let rgba):
