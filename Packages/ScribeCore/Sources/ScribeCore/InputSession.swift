@@ -262,6 +262,14 @@ public final class InputSession {
         return label.isEmpty ? (ascii ? "Ａ" : "中") : label
     }
 
+    /// Switches the session to a schema, as the schema menu does. Returns
+    /// whether the session now uses it.
+    @discardableResult
+    public func selectSchema(_ schemaID: String) -> Bool {
+        guard let session = activeSession(), engine.selectSchema(schemaID, in: session) else { return false }
+        return engine.status(in: session)?.schemaID == schemaID
+    }
+
     /// The value of a Rime option, such as "ascii_mode", or nil while there
     /// is no session.
     public func option(_ name: String) -> Bool? {

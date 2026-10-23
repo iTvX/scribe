@@ -1,6 +1,7 @@
-# 雾凇拼音 smoke test for the M1 gate. Not run in CI, which has no rime-ice:
-# after Scripts/install-rime-ice.sh, play it against ~/Library/Scribe with
-#   "$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/rime-ice.replay
+# 雾凇拼音 (full pinyin) smoke test for the gate. Scripts/check-gate.sh plays
+# it, in CI too, against rime-ice at its pinned release in a temporary
+# directory.
+@schema rime_ice
 n
 i
 h

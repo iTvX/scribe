@@ -1,0 +1,29 @@
+# The gate words in 小鹤双拼 (rime-ice's double_pinyin_flypy), as Max types.
+# Scripts/check-gate.sh plays it, in CI too, against rime-ice at its pinned
+# release in a temporary directory.
+@schema double_pinyin_flypy
+n
+i
+h
+c       => marked "ni hao"; candidates "你好"    # shown as full pinyin
+space   => commit "你好"; marked ""; candidates none
+v
+s
+w
+f       => candidates "中文"
+1       => commit "中文"
+u
+u
+r
+u
+f
+a       => candidates "输入法"
+space   => commit "输入法"
+
+# OpenCC with the bundled data: traditionalization converts with s2t.json.
+@option traditionalization true
+h
+j
+z
+i       => candidates "漢字"
+Escape  => marked ""

@@ -68,6 +68,15 @@ import Testing
         #expect(session.modeIndicator == "A")
     }
 
+    @Test func selectingASchema() throws {
+        var schemas: [String] = []
+        session.onSchemaChange = { schemas.append($0) }
+        #expect(session.selectSchema("scribe_test"))
+        #expect(!session.selectSchema("no_such_schema"))
+        _ = type("n")
+        #expect(schemas == ["scribe_test"])
+    }
+
     // The client app, as Squirrel handles it.
 
     @Test func appOptionsAreSetWhenTheSessionStarts() throws {

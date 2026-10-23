@@ -223,6 +223,10 @@ public final class LibrimeEngine: RimeEngine {
         return String(decoding: value.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 
+    public func selectSchema(_ schemaID: String, in session: RimeSessionID) -> Bool {
+        api.pointee.select_schema(RimeSessionId(session.rawValue), schemaID)
+    }
+
     public func setProperty(_ name: String, _ value: String, in session: RimeSessionID) {
         api.pointee.set_property(RimeSessionId(session.rawValue), name, value)
     }
