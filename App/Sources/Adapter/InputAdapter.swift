@@ -2,6 +2,7 @@ import AppKit
 import RimeKit
 import ScribeConfig
 import ScribeCore
+import ScribeUI
 
 /// The text field Scribe types into.
 @MainActor
@@ -15,17 +16,15 @@ protocol TextClient {
     func caretRect() -> NSRect
 }
 
+/// The candidate window, which every client shares.
 @MainActor
-protocol CandidatePresenting {
+protocol CandidatePresenting: AnyObject {
+    /// Gets the clicks and scrolls in the window; held weakly.
+    var delegate: (any CandidatePanelDelegate)? { get set }
     func show(_ snapshot: CandidateSnapshot, near caretRect: NSRect)
     func hide()
     /// Shows a short message, such as a mode change, that hides by itself.
     func showStatus(_ message: String, near caretRect: NSRect)
-}
-
-extension CandidatePresenting {
-    /// Until the candidate window can show statuses, they are not shown.
-    func showStatus(_ message: String, near caretRect: NSRect) {}
 }
 
 /// The parts of a key event the adapter uses, copied out of the `NSEvent`
@@ -166,26 +165,6 @@ final class InputAdapter {
         session.option("ascii_mode")
     }
 
-    // Requests from the candidate window.
-
-    func selectCandidate(at index: Int) {
-        if let client {
-            apply(session.selectCandidate(at: index), to: client)
-        }
-    }
-
-    func changePage(_ direction: PageDirection) {
-        if let client {
-            apply(session.changePage(direction), to: client)
-        }
-    }
-
-    func moveCaret(_ move: CaretMove) {
-        if let client {
-            apply(session.moveCaret(move), to: client)
-        }
-    }
-
     /// The input method is no longer active for this client.
     func deactivate(client: TextClient) {
         commitComposition(client: client)
@@ -209,12 +188,37 @@ final class InputAdapter {
                 // The preedit is shown inline, so there is nothing to show.
                 candidates.hide()
             case .showCandidates(let snapshot):
+                // The window shows this client's candidates, so clicks in it
+                // are for this client.
+                candidates.delegate = self
                 candidates.show(snapshot, near: client.caretRect())
             case .hideCandidates:
                 candidates.hide()
             case .showStatus(let message):
                 candidates.showStatus(message, near: client.caretRect())
             }
+        }
+    }
+}
+
+/// Requests from the candidate window, while it shows this adapter's
+/// candidates.
+extension InputAdapter: CandidatePanelDelegate {
+    func candidatePanel(_ panel: CandidatePanel, didSelectCandidateAt index: Int) {
+        if let client {
+            apply(session.selectCandidate(at: index), to: client)
+        }
+    }
+
+    func candidatePanel(_ panel: CandidatePanel, didRequestPage direction: PageDirection) {
+        if let client {
+            apply(session.changePage(direction), to: client)
+        }
+    }
+
+    func candidatePanel(_ panel: CandidatePanel, didRequestCaretMove direction: CaretMove) {
+        if let client {
+            apply(session.moveCaret(direction), to: client)
         }
     }
 }
