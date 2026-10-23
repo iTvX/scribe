@@ -1,3 +1,4 @@
+import Foundation
 import RimeKit
 import Testing
 
@@ -89,6 +90,18 @@ import Testing
         engine.type("ni", in: session)
         #expect(engine.commitComposition(in: session))
         #expect(engine.consumeCommit(in: session) == "你")
+    }
+
+    /// glog keeps the app name librime passes it and names log files it
+    /// opens later, such as for the first warning, after it.
+    @Test func logFilesAreNamedAfterTheApp() throws {
+        defer { engine.destroySession(session) }
+        let files = try FileManager.default.contentsOfDirectory(atPath: TestEngine.logDirectory.path(percentEncoded: false))
+        // Deploying the test schema warns that user.yaml does not exist.
+        #expect(files.contains { $0.contains(".log.WARNING.") })
+        for file in files {
+            #expect(file.hasPrefix(TestEngine.appName + "."), "log file \(file)")
+        }
     }
 
     @Test func preeditOffsetsCountUTF16() throws {

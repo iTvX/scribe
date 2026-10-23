@@ -55,6 +55,10 @@ public final class LibrimeEngine: RimeEngine {
     /// librime's C API, for extensions in this module.
     let api: UnsafeMutablePointer<RimeApi_stdbool>
     private var isSetUp = false
+    /// The strings passed to librime's setup. glog keeps the app name for
+    /// the life of the process and names log files it opens later after it,
+    /// so these are never freed.
+    private var setupStrings: [UnsafeMutablePointer<CChar>?] = []
 
     private init() {
         api = rime_get_api_stdbool()
@@ -64,12 +68,15 @@ public final class LibrimeEngine: RimeEngine {
     /// `configuration`. Does not deploy.
     public func start(_ configuration: RimeConfiguration) {
         precondition(!isRunning, "librime is already running")
-        withTraits(configuration) { traits in
-            if !isSetUp {
+        if !isSetUp {
+            setupStrings = withTraits(configuration, freeingStrings: false) { traits in
                 api.pointee.setup(traits)
-                api.pointee.set_notification_handler(handleNotification, nil)
-                isSetUp = true
             }
+            api.pointee.set_notification_handler(handleNotification, nil)
+            isSetUp = true
+        }
+        // librime copies the directories it is initialized with.
+        _ = withTraits(configuration, freeingStrings: true) { traits in
             api.pointee.initialize(traits)
         }
         isRunning = true
@@ -192,7 +199,13 @@ public final class LibrimeEngine: RimeEngine {
         notificationHandler?(notification)
     }
 
-    private func withTraits(_ configuration: RimeConfiguration, _ body: (UnsafeMutablePointer<RimeTraits>) -> Void) {
+    /// Calls `body` with traits for `configuration` and returns the strings
+    /// they point to, already freed unless `freeingStrings` is false.
+    private func withTraits(
+        _ configuration: RimeConfiguration,
+        freeingStrings: Bool,
+        _ body: (UnsafeMutablePointer<RimeTraits>) -> Void
+    ) -> [UnsafeMutablePointer<CChar>?] {
         let strings = [
             configuration.sharedDataDirectory.path(percentEncoded: false),
             configuration.userDataDirectory.path(percentEncoded: false),
@@ -202,7 +215,11 @@ public final class LibrimeEngine: RimeEngine {
             configuration.appName,
             configuration.logDirectory?.path(percentEncoded: false) ?? "",
         ].map { strdup($0) }
-        defer { strings.forEach { free($0) } }
+        defer {
+            if freeingStrings {
+                strings.forEach { free($0) }
+            }
+        }
 
         var traits = RimeTraits()
         traits.data_size = dataSize(of: RimeTraits.self)
@@ -215,6 +232,7 @@ public final class LibrimeEngine: RimeEngine {
         traits.log_dir = UnsafePointer(strings[6])
         traits.min_log_level = Int32(configuration.minimumLogLevel)
         body(&traits)
+        return freeingStrings ? [] : strings
     }
 
     private func composition(from composition: RimeComposition) -> Composition? {
