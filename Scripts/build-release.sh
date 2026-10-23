@@ -17,7 +17,8 @@
 #                           run time and never printed
 #   SIGN_IDENTITY           default: Developer ID Application: Zijie Yu (AW54C93V4H)
 #   INSTALLER_IDENTITY      default: Developer ID Installer: Zijie Yu (AW54C93V4H)
-#   NOTARY_PROFILE          notarytool keychain profile (default: mac-switch-notary)
+#   NOTARY_PROFILE          notarytool keychain profile (required unless
+#                           SKIP_NOTARIZATION=1)
 #   NOTARY_KEYCHAIN         keychain holding that profile (default: the search list)
 #   SKIP_NOTARIZATION=1     sign without notarizing, for local checks only
 #   BUILD_NUMBER            CFBundleVersion (default: UTC timestamp)
@@ -42,7 +43,9 @@ if [[ "${SIGNED}" == 1 ]]; then
   : "${KEYCHAIN_DB:?set KEYCHAIN_DB to the keychain holding the Developer ID identities}"
   SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: Zijie Yu (AW54C93V4H)}"
   INSTALLER_IDENTITY="${INSTALLER_IDENTITY:-Developer ID Installer: Zijie Yu (AW54C93V4H)}"
-  NOTARY_PROFILE="${NOTARY_PROFILE:-mac-switch-notary}"
+  if [[ "${SKIP_NOTARIZATION:-0}" != 1 ]]; then
+    : "${NOTARY_PROFILE:?set NOTARY_PROFILE to the notarytool keychain profile, or SKIP_NOTARIZATION=1}"
+  fi
   NOTARY_KEYCHAIN="${NOTARY_KEYCHAIN:-}"
 
   if [[ -n "${KEYCHAIN_PASSWORD_FILE:-}" ]]; then

@@ -24,7 +24,7 @@ jobs:
   release:
     name: Build, sign and notarize
     if: github.repository == 'iTvX/scribe'
-    runs-on: [self-hosted, macOS, ARM64, scribe-release]
+    runs-on: [self-hosted, macOS, ARM64, scribe-local]
     timeout-minutes: 60
 
     steps:
