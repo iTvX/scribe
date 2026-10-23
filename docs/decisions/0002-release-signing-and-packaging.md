@@ -38,4 +38,5 @@
 - 以 root 运行：装好的 app 属于 root，普通用户写不进去，鼠须管也是这样。
 - 失败不影响安装；设了 `RIME_NO_PREBUILD` 就跳过，和鼠须管相同。
 - 预编译会在 app 里新增文件（`build/`、`installation.yaml`、`user.yaml`），所以装好之后 `codesign --verify` 会报资源封印不符。已安装的鼠须管 1.1.2 也是这样；用安装包装的 app 不带隔离属性，不经 Gatekeeper 检查，librime 和插件各自的签名不受影响。发布包本身在安装前由 `check-release.sh` 检查，签名完整。
-- `check-release.sh` 在展开的副本里运行同样的 `--build`，确认能预编译出 `build/`。
+- macOS 的 App Management 不让一般进程改已签名 app 的内容（发布 runner 上在临时目录里展开的副本也改不了），安装器以 root 运行的 postinstall 不受这个限制，鼠须管也是这样装的。万一哪天被拦下，预编译失败不影响安装，第一次部署时照常编译。
+- 所以 `check-release.sh` 把展开的 `SharedSupport` 复制出来，在副本里运行同样的 `--build`，确认能预编译出 `build/`。
