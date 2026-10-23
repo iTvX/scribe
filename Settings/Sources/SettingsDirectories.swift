@@ -5,8 +5,9 @@ import ScribeConfig
 /// types with.
 ///
 /// `-ScribeUserDirectory <path>` and `-ScribeSharedDirectory <path>` override
-/// the two directories for testing. With either set, Settings never looks
-/// for, or notifies, the installed Scribe.
+/// the two directories for testing. With the user directory overridden,
+/// Settings never looks for, or notifies, the installed Scribe; a shared
+/// override only replaces the shared data.
 struct SettingsDirectories {
     static let scribeBundleIdentifier = "io.github.itvx.inputmethod.Scribe"
 
@@ -14,7 +15,7 @@ struct SettingsDirectories {
     var user: URL
     /// Scribe's shared data, or nil when the Scribe app cannot be found.
     var shared: URL?
-    /// No overrides: the directories are the installed Scribe's.
+    /// The user directory is the installed Scribe's.
     var isLive: Bool
 
     @MainActor
@@ -22,11 +23,12 @@ struct SettingsDirectories {
         func directory(_ key: String) -> URL? {
             defaults.string(forKey: key).map { URL(filePath: $0, directoryHint: .isDirectory) }
         }
-        let userOverride = directory("ScribeUserDirectory")
-        let sharedOverride = directory("ScribeSharedDirectory")
-        user = userOverride ?? UserDirectories(home: home).scribe
-        isLive = userOverride == nil && sharedOverride == nil
-        shared = sharedOverride ?? (isLive ? Self.installedSharedData() : nil)
+        let location = SettingsLocation(home: home, userOverride: directory("ScribeUserDirectory"),
+                                         sharedOverride: directory("ScribeSharedDirectory"),
+                                         installedSharedData: Self.installedSharedData)
+        user = location.userDirectory
+        shared = location.sharedDirectory
+        isLive = location.isLive
     }
 
     /// Whether the installed Scribe is running. Always false unless live.
