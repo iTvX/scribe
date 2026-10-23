@@ -1,0 +1,31 @@
+# Max's sample in Scribe's format, the same skins as squirrel.custom.yaml next
+# to this file: one theme with a light and a dark palette. The values match
+# maxSampleScribe in Packages/ScribeConfig/Tests/ScribeConfigTests/Support/MaxSample.swift.
+patch:
+  appearance/theme: wechat
+  app_options/com.googlecode.iterm2:
+    ascii_mode: false
+  themes/wechat:
+    name: 微信键盘
+    style:
+      layout: linear
+      padding: { horizontal: 8, vertical: 0 }
+      corner_radius: 5
+      font: { face: PingFangSC-Regular, size: 16 }
+      label_font: { size: 12 }
+      inline_preedit: true
+      candidate_format: "%c %@ "
+    light:
+      background: "#FFFFFF"
+      preedit_text: "#424242"
+      highlight_background: "#00B175"
+      highlight_text: "#FFFFFF"
+      comment: "#999999"
+    dark:
+      background: "#2D2D2D"
+      preedit_text: "#BDBDBD"
+      candidate_text: "#E0E0E0"
+      label: "#8C8C8C"
+      highlight_background: "#00B175"
+      highlight_text: "#FFFFFF"
+      comment: "#8C8C8C"

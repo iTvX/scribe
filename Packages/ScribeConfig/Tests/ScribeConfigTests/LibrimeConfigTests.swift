@@ -254,6 +254,59 @@ struct LibrimeConfigTests {
         #expect(engine.withConfig(.deployed("scribe")) { $0.string(at: "config_version") } == "0.1")
     }
 
+    @Test func scribeFormatDeploys() throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        try fileManager.copyItem(
+            at: ConfigFixtures.directory.appending(path: "max-sample/scribe.custom.yaml"),
+            to: user.appending(path: "scribe.custom.yaml")
+        )
+
+        engine.start(Self.configuration(shared: shared, user: user))
+        defer { engine.stop() }
+        #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+        #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+
+        let settings = try #require(ScribeSettings.load(from: engine))
+        let expected = ScribeSettings(squirrel: maxSample).appearance
+        #expect(settings.appearance.light.colorSchemeID == "wechat")
+        #expect(settings.appearance.dark?.colorSchemeID == "wechat:dark")
+        #expect(withoutID(settings.appearance.light) == withoutID(expected.light))
+        #expect(try withoutID(#require(settings.appearance.dark)) == withoutID(#require(expected.dark)))
+        #expect(Appearance.load(from: engine, schemaID: "") == settings.appearance)
+
+        // squirrel.yaml's per-app table, with iTerm2's replaced by scribe.yaml's.
+        #expect(settings.appOptions.options(for: "com.googlecode.iterm2") == ["ascii_mode": false])
+        #expect(settings.appOptions.options(for: "com.apple.Terminal") == ["ascii_mode": true, "no_inline": true])
+        #expect(ScribeCompatibility.load(from: engine) == ScribeCompatibility(reportsAsSquirrel: false))
+
+        let themes = try #require(engine.withConfig(.deployed("squirrel")) { squirrel in
+            engine.withConfig(.deployed("scribe")) { availableThemes(scribe: $0, squirrel: squirrel) }
+        } ?? nil)
+        #expect(themes.count == 22)
+        #expect(themes.prefix(2).map(\.id) == ["native", "wechat"])
+        #expect(themes[1].hasDark)
+    }
+
+    @Test func unquotedColorIsNull() throws {
+        let yaml = """
+            themes:
+              wechat:
+                light:
+                  background: #FFFFFF
+                  highlight_background: "#00B175"
+            """
+        let diagnostics = try #require(engine.withConfig(.yaml(yaml)) { scribe in
+            #expect(scribe.mapKeys(at: "themes/wechat/light") == ["background", "highlight_background"])
+            #expect(scribe.string(at: "themes/wechat/light/background") == nil)
+            return ConfigDiagnostics.check(scribe: scribe, squirrel: ConfigNode.null)
+        })
+        #expect(diagnostics == [ConfigDiagnostic(path: "themes/wechat/light/background", problem: .missingColor)])
+    }
+
     @Test func noConfigWhileStopped() {
         #expect(!engine.isRunning)
         #expect(engine.withConfig(.deployed("squirrel")) { _ in true } == nil)

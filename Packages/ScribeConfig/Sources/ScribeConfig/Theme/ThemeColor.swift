@@ -1,5 +1,5 @@
 /// The colour space a colour scheme's values are given in.
-public enum ColorSpace: String, Sendable {
+public enum ColorSpace: String, CaseIterable, Sendable {
     case sRGB, displayP3
 
     /// A scheme's `color_space`: only "display_p3" selects Display P3.
@@ -45,6 +45,22 @@ public struct RGBAColor: Hashable, Sendable {
         )
     }
 
+    /// Scribe's colour literal: "#RRGGBB" or "#RRGGBBAA" in either case. The
+    /// whole string must match.
+    public init?(scribe value: String, colorSpace: ColorSpace) {
+        guard let match = value.wholeMatch(of: /#([A-Fa-f0-9]{6})([A-Fa-f0-9]{2})?/),
+              let rgb = UInt32(match.output.1, radix: 16)
+        else { return nil }
+        let alpha = match.output.2.flatMap { UInt8($0, radix: 16) } ?? 255
+        self.init(
+            red: UInt8(truncatingIfNeeded: rgb >> 16),
+            green: UInt8(truncatingIfNeeded: rgb >> 8),
+            blue: UInt8(truncatingIfNeeded: rgb),
+            alpha: alpha,
+            colorSpace: colorSpace
+        )
+    }
+
     public var redComponent: Double { Double(red) / 255 }
     public var greenComponent: Double { Double(green) / 255 }
     public var blueComponent: Double { Double(blue) / 255 }
@@ -52,7 +68,21 @@ public struct RGBAColor: Hashable, Sendable {
 
     /// "#RRGGBBAA", for snapshots and the settings UI.
     public var hex: String {
-        "#" + [red, green, blue, alpha].map { byte in
+        "#" + Self.hexDigits([red, green, blue, alpha])
+    }
+
+    /// Squirrel's "0xAABBGGRR".
+    public var squirrelLiteral: String {
+        "0x" + Self.hexDigits([alpha, blue, green, red])
+    }
+
+    /// Scribe's "#RRGGBB", or "#RRGGBBAA" when the colour is not opaque.
+    public var scribeLiteral: String {
+        "#" + Self.hexDigits(alpha == 255 ? [red, green, blue] : [red, green, blue, alpha])
+    }
+
+    private static func hexDigits(_ bytes: [UInt8]) -> String {
+        bytes.map { byte in
             let digits = String(byte, radix: 16, uppercase: true)
             return digits.count == 1 ? "0" + digits : digits
         }.joined()

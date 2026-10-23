@@ -39,4 +39,15 @@ public struct Appearance: Equatable, Sendable {
             self.init(squirrel: squirrel)
         }
     }
+
+    /// The themes of squirrel.yaml with scribe.yaml on top (see `MergedConfigSource`).
+    public init(squirrel: some ConfigSource, scribe: some ConfigSource) {
+        self.init(squirrel: MergedConfigSource(squirrel: squirrel, scribe: scribe))
+    }
+
+    /// As `init(squirrel:schema:)`, with scribe.yaml on top of squirrel.yaml
+    /// and the schema's `style` still on top of both.
+    public init(squirrel: some ConfigSource, scribe: some ConfigSource, schema: some ConfigSource) {
+        self.init(squirrel: MergedConfigSource(squirrel: squirrel, scribe: scribe), schema: schema)
+    }
 }

@@ -24,7 +24,7 @@ public enum KeyboardLayout: Equatable, Sendable {
 
 /// When to post notifications, from `show_notifications_when`. Squirrel only
 /// distinguishes `never` from the rest.
-public enum NotificationPolicy: String, Sendable {
+public enum NotificationPolicy: String, CaseIterable, Sendable {
     case always, appropriate, never
 }
 
@@ -90,5 +90,17 @@ public struct ScribeSettings: Equatable, Sendable {
         reportsBundleID = squirrel.bool(at: "unsafe/report_bundleid") ?? false
         appOptions = AppOptions(source: squirrel)
         appearance = Appearance(squirrel: squirrel)
+    }
+
+    /// The settings of squirrel.yaml with scribe.yaml on top, key by key (see
+    /// `MergedConfigSource`). Each app under scribe.yaml's `app_options`
+    /// replaces Squirrel's options for that app as a whole.
+    public init(squirrel: some ConfigSource, scribe: some ConfigSource) {
+        self.init(squirrel: MergedConfigSource(squirrel: squirrel, scribe: scribe))
+        var appOptions = AppOptions(source: squirrel)
+        for (bundleID, options) in AppOptions(source: scribe).byBundleID {
+            appOptions.byBundleID[bundleID] = options
+        }
+        self.appOptions = appOptions
     }
 }

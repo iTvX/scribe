@@ -39,6 +39,14 @@ public struct FontFace: Equatable, Sendable {
     }
 }
 
+extension FontFace {
+    /// The names joined with ",": the inverse of `list(squirrel:)` for faces
+    /// whose names are trimmed, not empty and free of commas.
+    public static func squirrelString(_ faces: [FontFace]) -> String {
+        faces.map(\.name).joined(separator: ",")
+    }
+}
+
 /// A font setting: a list of faces and a size.
 public struct ThemeFont: Equatable, Sendable {
     public var faces: [FontFace]
