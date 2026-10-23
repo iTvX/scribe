@@ -13,6 +13,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "ScribeUI", dependencies: ["ScribeConfig", "ScribeCore"]),
-        .testTarget(name: "ScribeUITests", dependencies: ["ScribeUI"]),
+        .testTarget(name: "ScribeUITests", dependencies: ["ScribeUI", "ScribeConfig", "ScribeCore"]),
     ]
 )
