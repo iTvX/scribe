@@ -74,5 +74,5 @@
 | octagram 语法数据 | 完成 | check-release 检查 `grammar.yaml`、`zh-hant-t-essay-bgc.gram`、`zh-hant-t-essay-bgw.gram` | 和 mainline 的 `SQUIRREL_BUNDLED_RECIPES` 一致：默认分支的 `grammar.yaml` 加 hant 分支的语言模型。mainline 不打包 hans 分支的模型，中书也不带（决定 0010） |
 | OpenCC 数据 | 完成 | check-release（`s2t.json`、`STCharacters.ocd2`） | 来自 librime 1.17.0 的 rime-deps，和 mainline 相同 |
 | `squirrel.yaml` 原样（版本 1.0） | 完成 | check-release；Config `LibrimeConfigTests.presetsInSharedSupport`（21 套预设） | 和 mainline 一致；比鼠须管 1.1.2 多 `status_icon` 和 Alacritty 的 `app_options` |
-| 预编译 `SharedSupport/build` | 完成 | check-release 在展开的副本里运行 `--build`，检查 `build/` 里的二进制 | postinstall 以 root 运行 `Scribe --build`，失败不影响安装，`RIME_NO_PREBUILD` 可跳过（决定 0002） |
+| 预编译 `SharedSupport/build` | 完成 | check-release 把发布包里的 `SharedSupport` 复制出来运行 `--build`，检查 `build/` 里的二进制 | postinstall 经安装器以 root 运行 `Scribe --build`，失败不影响安装，`RIME_NO_PREBUILD` 可跳过（决定 0002）。签名发布包上验证过 |
 | 命令行工具 | 完成 | check-release | 同上「自带 `rime_deployer`…」 |
