@@ -72,6 +72,17 @@ jobs:
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             build
 
+      - name: Test app
+        run: |
+          xcodebuild \
+            -project Scribe.xcodeproj \
+            -scheme Scribe \
+            -derivedDataPath build/DerivedData \
+            -destination "platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            test
+
       # Checks the release packaging without credentials: an ad hoc signed app
       # in an unsigned package. Signing and notarization run in release.yml.
       - name: Build unsigned package

@@ -1,30 +1,71 @@
 import AppKit
 import InputMethodKit
 
-/// The InputMethodKit controller, one per client text input session.
+/// The InputMethodKit controller, one per client text input session. A thin
+/// shell: the work happens in `InputAdapter`.
 ///
-/// Scribe cannot type yet: every event goes back to the client unhandled.
+/// InputMethodKit calls these methods on the main thread. They hand the main
+/// actor only Sendable values: the copied key, the client, and `state`.
 @objc(ScribeInputController)
 final class ScribeInputController: IMKInputController {
+    private let state = ControllerState()
+
     override func recognizedEvents(_ sender: Any!) -> Int {
         Int(NSEvent.EventTypeMask([.keyDown, .flagsChanged]).rawValue)
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
-        guard let event else { return false }
-        Log.input.debug("Passing event through: type \(event.type.rawValue), key code \(event.keyCode, privacy: .private)")
-        return false
+        guard let event, let client = IMKTextClient(sender) else { return false }
+        let input = KeyInput(event)
+        let state = state
+        return MainActor.assumeIsolated {
+            state.adapter.handle(input, client: client)
+        }
     }
 
     override func activateServer(_ sender: Any!) {
-        Log.input.info("Activated for \(Self.clientIdentifier(sender), privacy: .public)")
+        Log.input.info("Activated for \(IMKTextClient(sender)?.bundleIdentifier ?? "unknown client", privacy: .public)")
     }
 
     override func deactivateServer(_ sender: Any!) {
-        Log.input.info("Deactivated for \(Self.clientIdentifier(sender), privacy: .public)")
+        guard let client = IMKTextClient(sender) else { return }
+        Log.input.info("Deactivated for \(client.bundleIdentifier, privacy: .public)")
+        let state = state
+        MainActor.assumeIsolated {
+            state.deactivate(client: client)
+        }
     }
 
-    private static func clientIdentifier(_ sender: Any?) -> String {
-        (sender as? any IMKTextInput)?.bundleIdentifier() ?? "unknown client"
+    override func commitComposition(_ sender: Any!) {
+        guard let client = IMKTextClient(sender) else { return }
+        let state = state
+        MainActor.assumeIsolated {
+            state.existingAdapter?.commitComposition(client: client)
+        }
+    }
+}
+
+/// A controller's adapter, created on first use.
+@MainActor
+private final class ControllerState: Sendable {
+    private(set) var existingAdapter: InputAdapter?
+
+    nonisolated init() {}
+
+    var adapter: InputAdapter {
+        if let existingAdapter {
+            return existingAdapter
+        }
+        let adapter = RimeService.shared.makeAdapter()
+        existingAdapter = adapter
+        return adapter
+    }
+
+    /// The Rime session ends with the activation; the next key starts a new
+    /// one.
+    func deactivate(client: TextClient) {
+        existingAdapter?.deactivate(client: client)
+        existingAdapter?.close()
+        existingAdapter = nil
     }
 }
