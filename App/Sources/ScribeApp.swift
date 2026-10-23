@@ -29,6 +29,8 @@ enum ScribeApp {
             exit(0)
         case .selfTest:
             exit(SelfTest.run() ? 0 : 1)
+        case .replay(let file):
+            exit(ReplayCommand.run(file: file) ? 0 : 1)
         case .help:
             print(Command.usage)
             exit(0)

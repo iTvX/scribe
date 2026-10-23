@@ -13,7 +13,11 @@ func parsesOptions(arguments: [String], command: Command) {
     #expect(Command(arguments: ["Scribe"] + arguments) == command)
 }
 
-@Test(arguments: [["--bogus"], ["reload"], ["--reload", "extra"], ["-x"]])
+@Test func parsesReplayWithItsFile() {
+    #expect(Command(arguments: ["Scribe", "--replay", "typing.replay"]) == .replay(file: "typing.replay"))
+}
+
+@Test(arguments: [["--bogus"], ["reload"], ["--reload", "extra"], ["-x"], ["--replay"], ["--replay", "a", "b"]])
 func rejectsUnknownArguments(arguments: [String]) {
     #expect(Command(arguments: ["Scribe"] + arguments) == .invalid(arguments.joined(separator: " ")))
 }
@@ -26,7 +30,7 @@ func ignoresLaunchArguments(arguments: [String]) {
 }
 
 @Test func usageNamesEveryOption() {
-    for option in ["--install", "--quit", "--reload", "--sync", "--self-test", "--help"] {
+    for option in ["--install", "--quit", "--reload", "--sync", "--self-test", "--replay", "--help"] {
         #expect(Command.usage.contains(option))
     }
 }
