@@ -41,6 +41,7 @@ final class RimeService {
 
     let engine = LibrimeEngine.shared
     let candidatePanel = CandidatePanel()
+    private let modeStatusItem = ModeStatusItem()
 
     private lazy var maintenance = MaintenanceQueue(engine: self)
     /// Checks for finished maintenance while tasks wait in the queue.
@@ -211,8 +212,6 @@ final class RimeService {
         }
     }
 
-    let modeStatusItem = ModeStatusItem()
-
     /// Sets ASCII mode in every client's session, as Squirrel does.
     private func setASCIIMode(_ on: Bool) {
         adapters.removeAll { $0.adapter == nil }
@@ -307,7 +306,7 @@ final class RimeService {
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
             adapter.handle(notification)
-            if notification.type == "option", notification.value.hasSuffix("ascii_mode"),
+            if notification.type == "option", ["ascii_mode", "!ascii_mode"].contains(notification.value),
                adapter.owns(notification), let indicator = adapter.modeIndicator {
                 modeStatusItem.title = indicator
             }
