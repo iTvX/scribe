@@ -12,6 +12,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "ScribeConfig", dependencies: ["RimeKit"]),
-        .testTarget(name: "ScribeConfigTests", dependencies: ["ScribeConfig"]),
+        .testTarget(name: "ScribeConfigTests", dependencies: ["ScribeConfig", "RimeKit"]),
     ]
 )

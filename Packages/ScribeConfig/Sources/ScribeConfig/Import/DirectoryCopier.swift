@@ -105,7 +105,10 @@ struct DirectoryCopier {
             return .trash
         default:
             for suffix in [".userdb", ".userdb.kct"] where name.hasSuffix(suffix) {
-                userDictionaryNames.insert(String(name.dropLast(suffix.count)))
+                // Hidden ones, such as .temp.userdb, are librime's scratch space.
+                if !name.hasPrefix(".") {
+                    userDictionaryNames.insert(String(name.dropLast(suffix.count)))
+                }
                 return .userDictionary
             }
             return name.hasSuffix(".userdb.txt") ? .userDictionary : nil
