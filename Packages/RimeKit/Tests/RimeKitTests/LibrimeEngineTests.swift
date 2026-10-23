@@ -115,6 +115,30 @@ import Testing
         #expect(built.contains("color_scheme: patched"))
     }
 
+    /// As in Squirrel, a user copy of a frontend config file that is not
+    /// newer than the shipped one, by its config_version, is moved to the
+    /// trash and the shipped one is deployed.
+    @Test func anOutdatedUserCopyIsReplaced() throws {
+        defer { engine.destroySession(session) }
+        let fileManager = FileManager.default
+        let userCopy = TestEngine.userDirectory.appending(path: "scribe_frontend_test.yaml")
+        let trash = TestEngine.userDirectory.appending(path: "trash", directoryHint: .isDirectory)
+        try "config_version: \"0.9\"\nstyle:\n  color_scheme: outdated\n".write(to: userCopy, atomically: true, encoding: .utf8)
+        defer {
+            try? fileManager.removeItem(at: userCopy)
+            try? fileManager.removeItem(at: trash)
+        }
+
+        #expect(engine.deployConfigFile("scribe_frontend_test.yaml", versionKey: "config_version"))
+        #expect(!fileManager.fileExists(atPath: userCopy.path(percentEncoded: false)))
+        #expect(fileManager.fileExists(atPath: trash.appending(path: "scribe_frontend_test.yaml").path(percentEncoded: false)))
+        let built = try String(
+            contentsOf: TestEngine.userDirectory.appending(path: "build/scribe_frontend_test.yaml"),
+            encoding: .utf8
+        )
+        #expect(built.contains("color_scheme: native"))
+    }
+
     /// scribe.yaml may be missing from older or trimmed shared data.
     @Test func deployingAMissingConfigFileBuildsNothing() {
         defer { engine.destroySession(session) }
