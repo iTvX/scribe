@@ -25,9 +25,10 @@ concurrency:
 
 env:
   SPARKLE_FEED_URL: https://github.com/iTvX/scribe/releases/download/appcast/appcast.xml
-  # Public half of Scribe's update signing key. Empty until Max approves creating
-  # the key; publishing refuses to run while it is empty.
-  SPARKLE_PUBLIC_KEY: ""
+  # Public half of Scribe's update signing key; the private half is in the
+  # release keychain (docs/releasing.md). Publishing refuses to run while this
+  # is empty, and validation then uses a throwaway key.
+  SPARKLE_PUBLIC_KEY: "nBYW/psmTQAaiCQm1nSf0/Oxv3A+OM5VYEZFhPZ/xuY="
   SPARKLE_KEY_ACCOUNT: io.github.itvx.inputmethod.Scribe
 
 jobs:
@@ -129,8 +130,9 @@ jobs:
           swift test --package-path Tools/scribe-release
           echo "::endgroup::"
 
-      # Until the real key exists, the app this run builds trusts a throwaway
-      # key, which signs the appcast below and is deleted at the end.
+      # Only when SPARKLE_PUBLIC_KEY is empty: the app this run builds then
+      # trusts a throwaway key, which signs the appcast below and is deleted at
+      # the end.
       - name: Make a throwaway update key
         id: throwaway
         if: env.SPARKLE_PUBLIC_KEY == ''

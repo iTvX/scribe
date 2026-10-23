@@ -2,7 +2,7 @@
 
 发布由 `.github/workflows/release.yml` 完成：推送 `v*` 标签就发布，手动运行只验证。为什么这样设计见 [`decisions/0011-releases-and-updates.md`](decisions/0011-releases-and-updates.md)。
 
-> 现状：更新签名密钥还没有生成（要等 Max 同意），`release.yml` 里的 `SPARKLE_PUBLIC_KEY` 是空的，所以现在只能验证，推送标签会在第一步失败。生成密钥的步骤见最后一节。
+> 现状：更新签名密钥已于 2026-10-23 生成（见最后一节），`release.yml` 的 `SPARKLE_PUBLIC_KEY` 是它的公钥，验证运行已经用它签名。只差打标签发布，要等 Max 同意。
 
 ## 发一个正式版
 
@@ -53,9 +53,9 @@ gh workflow run release.yml --ref main
 
 `validate_only` 默认为真：完整地构建、签名、公证、检查，用 `Scripts/make-appcast.sh` 生成 appcast（扩展当前公开的 appcast，第一次发布前公开地址是 404，就新建），但不创建 Release、不上传 appcast。产物 `Scribe-<版本>-<构建号>-validation` 保留 7 天，里面有 `Scribe-<版本>.pkg`、`appcast.xml` 和 `release-notes.md`。
 
-在真实密钥生成之前，验证运行每次用一把临时密钥：app 和 appcast 都只信任这把用完即删的密钥。所以验证产物可以拿来做手动检查，但不要装着日常用，它永远收不到真正的更新。
+验证运行用钥匙串里的真密钥签名，产物和正式发布的一样，只是不发布。
 
-本地也能走一遍同样的流程（不需要证书）：
+临时密钥只用于 CI 和本地的无签名构建：app 和 appcast 都只信任这把用完即删的密钥，所以这样的包可以拿来检查，但不要装着日常用，它永远收不到真正的更新。本地这样走一遍同样的流程（不需要证书）：
 
 ```bash
 Scripts/release-tool.sh key new > /tmp/scribe-key && chmod 600 /tmp/scribe-key
@@ -86,29 +86,58 @@ defaults write io.github.itvx.inputmethod.Scribe BetaUpdates -bool YES
 
 已安装的中书只接受用这把密钥签名的 appcast 和安装包。私钥只存在发布用的 Mac 上（发布用的钥匙串，和 Developer ID 证书在一起），但**必须另外备份**：丢了它，已安装的中书就再也收不到更新，只能让用户手动重装新版。
 
-### 生成（需要 Max 同意后才做）
+下面的命令里，`KEYCHAIN_DB` 是 runner 的 `.env` 里同名的路径：
 
-发布用的钥匙串只能在 Max 的图形界面登录会话里解锁，所以这几步由 Max 在本机「终端」里运行（`KEYCHAIN_DB` 换成 runner 的 `.env` 里同名的路径）：
+```bash
+KEYCHAIN_DB="$(grep '^KEYCHAIN_DB=' ~/actions-runners/scribe/.env | cut -d= -f2-)"
+```
 
-1. 生成私钥，存进发布用的钥匙串。`-T /usr/bin/security` 让 runner 读它时不弹授权框：
+### 现在的密钥
+
+- 2026-10-23 经 Max 同意生成，存在发布用的钥匙串里（`KEYCHAIN_DB`，和 Developer ID 证书在同一个钥匙串）。runner 每次运行时用 `.env` 里的密码文件解锁它，和 `build-release.sh` 一样。
+- 钥匙串项：generic password，service `https://sparkle-project.org`，account `io.github.itvx.inputmethod.Scribe`，名称 `Scribe Sparkle EdDSA key`。用 `-T /usr/bin/security` 把 `security` 加进了访问控制，runner 读取时不弹授权框。
+- 内容是 base64 编码的 32 字节 Ed25519 种子（`Scripts/release-tool.sh key new` 生成，也就是 `sign_update --ed-key-file` 读的格式）。生成和存入时私钥只经过管道，没有显示、记录或写进任何文件：
+
+  ```bash
+  printf 'add-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -l "Scribe Sparkle EdDSA key" -T /usr/bin/security -w %s %s\n' "$(Scripts/release-tool.sh key new)" "$KEYCHAIN_DB" | security -i
+  ```
+
+- 公钥就是 `release.yml` 里 `SPARKLE_PUBLIC_KEY` 的值。从钥匙串重新算一遍来核对：
+
+  ```bash
+  security find-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -w "$KEYCHAIN_DB" | Scripts/release-tool.sh key public
+  ```
+
+### 备份
+
+由 Max 在本机「终端」里做一次，私钥不在屏幕上出现：
+
+1. 把私钥复制到剪贴板：
 
    ```bash
-   security add-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -l "中书 Scribe 更新签名密钥" -T /usr/bin/security -w "$(Scripts/release-tool.sh key new)" "$KEYCHAIN_DB"
+   security find-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -w "$KEYCHAIN_DB" | pbcopy
    ```
 
-2. 备份：把下面这条命令显示的私钥存进密码管理器，然后清屏：
+2. 在密码管理器里新建一项（比如「中书 Scribe Sparkle 更新签名密钥」），粘贴进去。
+3. 清空剪贴板：
 
    ```bash
-   security find-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -w "$KEYCHAIN_DB"
+   pbcopy </dev/null
    ```
 
-3. 算出公钥：
+### 恢复
 
-   ```bash
-   security find-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -w "$KEYCHAIN_DB" | Scripts/release-tool.sh key public
-   ```
+钥匙串丢了或者换了发布用的 Mac 时：先从密码管理器把私钥复制到剪贴板，把它存回发布用的钥匙串（同样只经过管道），再清空剪贴板：
 
-4. 开 PR 把公钥填进 `release.yml` 的 `SPARKLE_PUBLIC_KEY`。合并后跑一次验证：这次 `make-appcast.sh` 会从钥匙串读私钥，并确认它和 app 里的公钥对得上。
+```bash
+printf 'add-generic-password -s https://sparkle-project.org -a io.github.itvx.inputmethod.Scribe -l "Scribe Sparkle EdDSA key" -T /usr/bin/security -w %s %s\n' "$(pbpaste)" "$KEYCHAIN_DB" | security -i >/dev/null 2>&1
+```
+
+```bash
+pbcopy </dev/null
+```
+
+然后用上面核对公钥的命令确认算出来的还是 `release.yml` 里的值。
 
 ### 换密钥
 

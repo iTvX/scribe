@@ -109,8 +109,9 @@ jobs:
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             test
 
-      # The package below trusts this key, which signs the dry-run appcast, as
-      # release.yml does until the real update signing key exists.
+      # The package below trusts this key, which signs the dry-run appcast. CI
+      # never has the real update signing key, which stays in the release
+      # keychain.
       - name: Make a throwaway update key
         id: throwaway
         run: |
