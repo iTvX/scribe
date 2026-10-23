@@ -1,0 +1,6 @@
+"Deploy" = "重新部署";
+"Sync user data" = "同步用戶資料";
+"Logs…" = "日誌目錄…";
+"User folder…" = "用戶目錄…";
+"Help…" = "使用說明…";
+"launch_problem" = "中書啟動時崩潰了，這次沒有載入 Rime。請撤銷最近對設定的改動，再重新部署。";

@@ -1,0 +1,6 @@
+"Deploy" = "重新部署";
+"Sync user data" = "同步用户数据";
+"Logs…" = "日志目录…";
+"User folder…" = "用户目录…";
+"Help…" = "使用说明…";
+"launch_problem" = "中书启动时崩溃了，这次没有加载 Rime。请撤销最近对配置的改动，再重新部署。";

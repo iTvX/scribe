@@ -1,0 +1,6 @@
+"Deploy" = "Deploy";
+"Sync user data" = "Sync user data";
+"Logs…" = "Logs…";
+"User folder…" = "User folder…";
+"Help…" = "Help…";
+"launch_problem" = "Scribe crashed while starting, and started without Rime. Undo your recent configuration changes, then deploy again.";
