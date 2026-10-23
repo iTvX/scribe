@@ -5,12 +5,13 @@ import ScribeTestSupport
 import Testing
 
 @MainActor
-@Suite struct FrontendConfigTests {
+@Suite(.serialized) struct FrontendConfigTests {
     /// Settings apps change a patch and ask only for a reload, which must
-    /// deploy squirrel.yaml again.
-    @Test func aPatchTakesEffectAfterAReload() throws {
+    /// deploy squirrel.yaml and scribe.yaml again.
+    @Test(arguments: ["squirrel.custom.yaml", "scribe.custom.yaml"])
+    func aPatchTakesEffectAfterAReload(patchFile: String) throws {
         let engine = TestRime.engine
-        let patch = TestRime.userDirectory.appending(path: "squirrel.custom.yaml")
+        let patch = TestRime.userDirectory.appending(path: patchFile)
         try "patch:\n  chord_duration: 0.25\n".write(to: patch, atomically: true, encoding: .utf8)
         defer {
             try? FileManager.default.removeItem(at: patch)
