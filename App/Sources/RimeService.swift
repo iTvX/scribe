@@ -6,41 +6,87 @@ import ScribeUI
 
 extension CandidatePanel: CandidatePresenting {}
 
+extension RimeService: MaintenanceEngine {
+    var isInMaintenance: Bool {
+        engine.isInMaintenance
+    }
+
+    /// Restarts librime and deploys everything again. Open sessions are
+    /// dropped; each client starts a new one on its next key.
+    func reload() {
+        Log.app.notice("Redeploying")
+        engine.stop()
+        engine.start(Self.configuration())
+        engine.startMaintenance(fullCheck: true)
+    }
+
+    /// librime closes all sessions before syncing; each client starts a new
+    /// one on its next key.
+    func startSync() -> Bool {
+        Log.app.notice("Syncing user data")
+        return engine.syncUserData()
+    }
+}
+
 /// The process's Rime engine and candidate window, shared by every client.
 @MainActor
 final class RimeService {
     static let shared = RimeService()
 
-    /// Posted by `Scribe --reload` to make the running instance redeploy.
-    static let reloadNotification = Notification.Name("io.github.itvx.inputmethod.Scribe.reload")
+    static let reloadNotification = Notification.Name(ServerNotification.reload)
+    static let syncNotification = Notification.Name(ServerNotification.sync)
 
     let engine = LibrimeEngine.shared
     let candidatePanel = CandidatePanel()
+
+    private lazy var maintenance = MaintenanceQueue(engine: self)
+    /// Checks for finished maintenance while tasks wait in the queue.
+    private var maintenanceTimer: Timer?
 
     private init() {}
 
     /// Starts librime and deploys if the user's files changed.
     func start() {
-        engine.notificationHandler = Self.log
+        engine.notificationHandler = { notification in
+            Self.log(notification)
+            if notification.type == "deploy" {
+                RimeService.shared.resumeMaintenance()
+            }
+        }
         engine.start(Self.configuration())
         engine.startMaintenance(fullCheck: false)
-        DistributedNotificationCenter.default().addObserver(forName: Self.reloadNotification, object: nil, queue: .main) { _ in
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: Self.reloadNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {
-                RimeService.shared.redeploy()
+                RimeService.shared.request(.reload)
+            }
+        }
+        center.addObserver(forName: Self.syncNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                RimeService.shared.request(.sync)
             }
         }
     }
 
-    /// Restarts librime and deploys everything again. Open sessions are
-    /// dropped; each client starts a new one on its next key.
-    func redeploy() {
-        Log.app.notice("Redeploying")
-        if engine.isInMaintenance {
-            engine.joinMaintenance()
+    /// Queues a reload or a sync; it starts once librime is not busy.
+    func request(_ task: MaintenanceQueue.Task) {
+        Log.app.notice("Requested \(task == .reload ? "reload" : "sync", privacy: .public)")
+        maintenance.enqueue(task)
+        resumeMaintenance()
+    }
+
+    private func resumeMaintenance() {
+        maintenance.resume()
+        if maintenance.pending.isEmpty {
+            maintenanceTimer?.invalidate()
+            maintenanceTimer = nil
+        } else if maintenanceTimer == nil {
+            maintenanceTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { _ in
+                MainActor.assumeIsolated {
+                    RimeService.shared.resumeMaintenance()
+                }
+            }
         }
-        engine.stop()
-        engine.start(Self.configuration())
-        engine.startMaintenance(fullCheck: true)
     }
 
     func makeAdapter() -> InputAdapter {

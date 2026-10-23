@@ -22,18 +22,19 @@ enum ScribeApp {
             quitRunningInstances(bundleIdentifier: bundleIdentifier)
             exit(0)
         case .reload:
-            DistributedNotificationCenter.default().postNotificationName(
-                RimeService.reloadNotification,
-                object: nil,
-                userInfo: nil,
-                deliverImmediately: true
-            )
+            post(RimeService.reloadNotification)
+            exit(0)
+        case .sync:
+            post(RimeService.syncNotification)
             exit(0)
         case .selfTest:
             exit(SelfTest.run() ? 0 : 1)
         case .help:
             print(Command.usage)
             exit(0)
+        case .invalid(let arguments):
+            FileHandle.standardError.write(Data("Unknown option: \(arguments)\n\n\(Command.usage)\n".utf8))
+            exit(2)
         case .runServer:
             runServer(bundle: bundle, bundleIdentifier: bundleIdentifier)
         }
@@ -57,6 +58,11 @@ enum ScribeApp {
             app.run()
         }
         exit(0)
+    }
+
+    /// Delivered at once, even though Scribe runs in the background.
+    private static func post(_ name: Notification.Name) {
+        DistributedNotificationCenter.default().postNotificationName(name, object: nil, userInfo: nil, deliverImmediately: true)
     }
 
     @MainActor

@@ -106,6 +106,13 @@ public final class LibrimeEngine: RimeEngine {
         return lastDeployResult.withLock { $0 } == "success"
     }
 
+    /// Starts synchronizing user data with the sync directory, in librime's
+    /// maintenance thread. librime closes all sessions first.
+    @discardableResult
+    public func syncUserData() -> Bool {
+        api.pointee.sync_user_data()
+    }
+
     public func createSession() -> RimeSessionID? {
         let id = api.pointee.create_session()
         return id == 0 ? nil : RimeSessionID(rawValue: UInt(id))

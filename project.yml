@@ -83,6 +83,9 @@ targets:
     platform: macOS
     sources:
       - path: App/Sources/Adapter
+      - path: App/Sources/Command.swift
+      - path: App/Sources/MaintenanceQueue.swift
+      - path: App/Sources/Log.swift
       - path: App/Tests
     dependencies:
       - package: ScribeCore
