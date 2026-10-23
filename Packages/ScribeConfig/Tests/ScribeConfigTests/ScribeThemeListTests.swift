@@ -75,6 +75,32 @@ struct ScribeThemeListTests {
         ])
     }
 
+    @Test func nativeThemeIsNeverServed() {
+        let scribe = configTree([
+            ("appearance/theme", "native"),
+            ("themes/native/light/background", "#FFFFFF"),
+            ("themes/native/dark/background", "#000000"),
+        ])
+        let source = ScribeConfigSource(scribe: scribe)
+        #expect(source.servedPresetIDs == [])
+        #expect(!source.owns("preset_color_schemes/native"))
+        #expect(source.string(at: "style/color_scheme") == "native")
+        #expect(source.string(at: "style/color_scheme_dark") == nil)
+
+        let appearance = Appearance(squirrel: squirrel, scribe: scribe)
+        #expect(appearance.light == Appearance(squirrel: squirrel).light.withColorScheme("native"))
+        #expect(appearance.light.isNative)
+        #expect(appearance.light.colors == .native)
+        #expect(appearance.dark == nil)
+        #expect(appearance.theme(isDark: true).colors == .native)
+        #expect(!appearance.forcesLightAppearance)
+
+        #expect(ConfigDiagnostics.check(scribe: scribe, squirrel: squirrel) == [
+            ConfigDiagnostic(path: "themes/native", problem: .invalidThemeID),
+        ])
+        #expect(availableThemes(scribe: scribe, squirrel: squirrel).filter { $0.id == "native" }.map(\.origin) == [.native])
+    }
+
     @Test(arguments: ["native", "aqua", "wechat"])
     func knownThemes(id: String) {
         let scribe = configTree([
@@ -137,5 +163,13 @@ struct ScribeValueTests {
         #expect(StatusMessageType.allCases == [.long, .short, .mix])
         #expect(NotificationPolicy.allCases == [.always, .appropriate, .never])
         #expect(ColorSpace.allCases == [.sRGB, .displayP3])
+    }
+}
+
+private extension Theme {
+    func withColorScheme(_ id: String) -> Theme {
+        var theme = self
+        theme.colorSchemeID = id
+        return theme
     }
 }

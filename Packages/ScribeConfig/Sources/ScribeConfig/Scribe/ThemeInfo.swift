@@ -38,7 +38,7 @@ public func availableThemes(scribe: some ConfigSource, squirrel: some ConfigSour
         origin: .native
     )]
     let scribeThemes = ScribeConfigSource.themes(in: scribe)
-    for id in scribe.mapKeys(at: "themes") ?? [] where id != "native" {
+    for id in scribe.mapKeys(at: "themes") ?? [] {
         guard let hasDark = scribeThemes[id] else { continue }
         themes.append(ThemeInfo(
             id: id,

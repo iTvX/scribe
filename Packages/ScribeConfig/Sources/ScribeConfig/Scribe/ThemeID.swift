@@ -11,9 +11,10 @@ public enum ThemeID {
     }
 
     /// An ID Scribe can serve as a Squirrel preset: not empty, without "/"
-    /// (a path separator) or ":" (which marks the dark preset), and not
-    /// starting with "@" (a list reference in a path).
+    /// (a path separator) or ":" (which marks the dark preset), not starting
+    /// with "@" (a list reference in a path), and not "native", which always
+    /// means the system colours.
     static func isServable(_ id: String) -> Bool {
-        !id.isEmpty && !id.contains("/") && !id.contains(":") && !id.hasPrefix("@")
+        !id.isEmpty && id != "native" && !id.contains("/") && !id.contains(":") && !id.hasPrefix("@")
     }
 }

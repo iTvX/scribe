@@ -9,7 +9,8 @@ public struct ConfigDiagnostic: Equatable, Sendable {
         /// `appearance/theme` or `appearance/dark_theme` names neither native,
         /// a Scribe theme nor a Squirrel preset.
         case unknownTheme(String)
-        /// A theme ID under `themes` that contains "/" or ":" or starts with "@".
+        /// A theme ID under `themes` that Scribe ignores: "native", or one
+        /// that contains "/" or ":" or starts with "@".
         case invalidThemeID
     }
 
