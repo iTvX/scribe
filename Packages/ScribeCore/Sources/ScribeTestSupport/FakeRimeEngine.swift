@@ -179,6 +179,11 @@ public final class FakeRimeEngine: RimeEngine {
         )
     }
 
+    /// Only the scribe_test schema exists.
+    public func selectSchema(_ schemaID: String, in session: RimeSessionID) -> Bool {
+        sessions[session] != nil && schemaID == "scribe_test"
+    }
+
     public func selectCandidate(onCurrentPage index: Int, in session: RimeSessionID) -> Bool {
         guard var state = sessions[session] else { return false }
         let page = currentPage(state)

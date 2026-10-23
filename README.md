@@ -107,10 +107,16 @@ Scripts/install-rime-ice.sh
 
 把固定版本的[雾凇拼音](https://github.com/iDvel/rime-ice)（校验 sha256）放进 `~/Library/Scribe`，然后让正在运行的中书重新部署。只增加或覆盖雾凇拼音自己的文件，不碰鼠须管的 `~/Library/Rime`。
 
-不切换输入法也能检查打字效果：`--replay` 用 app 自带的 librime 和插件，在 `~/Library/Scribe` 的临时副本上回放按键（副本里不带用户词库，正在运行的输入法占用着它们）：
+不切换输入法也能检查打字效果：`--replay` 用 app 自带的 librime 和插件，在 `~/Library/Scribe` 的临时副本上回放按键（副本里不带用户词库，正在运行的输入法占用着它们）。回放文件里可以用 `@schema` 指定方案：
 
 ```bash
-"$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/rime-ice.replay
+"$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/double-pinyin-flypy.replay
+```
+
+`Tests/Fixtures/gate` 里的两个回放（全拼 `rime_ice` 和小鹤双拼 `double_pinyin_flypy`）由 `Scripts/check-gate.sh` 在临时目录里装上固定版本的雾凇拼音来跑，不读 `~/Library/Scribe`，CI 里也跑：
+
+```bash
+Scripts/check-gate.sh
 ```
 
 ### 输入法菜单

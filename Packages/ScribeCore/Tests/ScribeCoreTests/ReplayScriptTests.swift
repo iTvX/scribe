@@ -65,3 +65,16 @@ import Testing
         """)
     #expect(script.steps[0].expectations == [.accentComments([1, 3]), .warningComments([])])
 }
+
+@Test func parsesTheSchema() throws {
+    let script = try ReplayScript("""
+        @schema double_pinyin_flypy
+        n
+        i
+        """)
+    #expect(script.steps[0].schema == "double_pinyin_flypy")
+    #expect(script.steps[1].schema == nil)
+    #expect(throws: ReplayScript.ParseError(line: 1, message: "expected \"@schema SCHEMA_ID\"")) {
+        try ReplayScript("@schema")
+    }
+}

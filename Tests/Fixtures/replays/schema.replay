@@ -1,0 +1,4 @@
+# @schema selects a schema before the next step, as the gate replays do.
+@schema scribe_test
+n
+i       => candidates "你"; marked "ni"

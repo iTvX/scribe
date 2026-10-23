@@ -92,6 +92,12 @@ import Testing
         #expect(engine.consumeCommit(in: session) == "你")
     }
 
+    @Test func selectingASchema() throws {
+        defer { engine.destroySession(session) }
+        #expect(engine.selectSchema("scribe_test", in: session))
+        #expect(try #require(engine.status(in: session)).schemaID == "scribe_test")
+    }
+
     @Test func propertiesRoundTrip() {
         defer { engine.destroySession(session) }
         #expect(engine.property("client_app", in: session) == nil)

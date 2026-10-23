@@ -22,8 +22,9 @@ enum Command: Equatable {
     case ascii(Bool)
     case getASCII
     case selfTest
-    /// Plays a replay file against a copy of the user's configuration.
-    case replay(file: String)
+    /// Plays a replay file against a copy of the user's configuration, or
+    /// against another Rime user directory in place.
+    case replay(file: String, userDirectory: String?)
     case help
     /// Unrecognized arguments, joined by spaces.
     case invalid(String)
@@ -54,7 +55,11 @@ enum Command: Equatable {
             }
             return
         case "--replay":
-            self = rest.count == 1 ? .replay(file: rest[0]) : invalid
+            self = switch rest.count {
+            case 1: .replay(file: rest[0], userDirectory: nil)
+            case 2: .replay(file: rest[0], userDirectory: rest[1])
+            default: invalid
+            }
             return
         default:
             break
@@ -107,8 +112,9 @@ enum Command: Equatable {
         Other:
           --build     build the schemas in the current directory
           --self-test check that librime and its plugins load from this app
-          --replay FILE
-                      play a replay file against a copy of ~/Library/Scribe
+          --replay FILE [USER_DIR]
+                      play a replay file against a copy of ~/Library/Scribe,
+                      or against USER_DIR, another Rime user directory, in place
           --help      show this help
         """
 

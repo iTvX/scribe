@@ -131,6 +131,9 @@ public protocol RimeEngine: AnyObject {
     func consumeCommit(in session: RimeSessionID) -> String?
     func context(in session: RimeSessionID) -> EngineContext
     func status(in session: RimeSessionID) -> EngineStatus?
+    /// Switches the session to a schema. librime reports success even for a
+    /// schema it does not have; check the status to be sure.
+    func selectSchema(_ schemaID: String, in session: RimeSessionID) -> Bool
     func selectCandidate(onCurrentPage index: Int, in session: RimeSessionID) -> Bool
     func changePage(backward: Bool, in session: RimeSessionID) -> Bool
     /// Commits whatever is being composed.

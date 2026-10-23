@@ -24,6 +24,7 @@ import ScribeConfig
 ///
 /// `@notifications always|appropriate|never` and `@status-message
 /// mix|long|short` set how notifications are announced from then on.
+/// `@schema SCHEMA_ID` switches to a schema before the next step.
 /// `@style inline_preedit|inline_candidate|linear|vertical true|false` sets
 /// how the composition is shown from then on. `@app BUNDLE_ID
 /// [OPTION=true|false ...]` makes the session type into that app, with those
@@ -100,6 +101,8 @@ public struct ReplayScript: Equatable, Sendable {
         public var presentation = InputSession.Presentation()
         /// The app the session types into from this step on.
         public var app: App?
+        /// The schema to switch to just before the step.
+        public var schema: String?
     }
 
     public struct ParseError: Error, Equatable, CustomStringConvertible {
@@ -128,6 +131,7 @@ public struct ReplayScript: Equatable, Sendable {
         var messageType = StatusMessageType.mix
         var presentation = InputSession.Presentation()
         var pendingApp: App?
+        var pendingSchema: String?
         for (index, rawLine) in source.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let lineNumber = index + 1
             let line = Self.stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
@@ -157,6 +161,11 @@ public struct ReplayScript: Equatable, Sendable {
                         throw fail("expected \"@status-message mix|long|short\"")
                     }
                     messageType = type
+                case "@schema":
+                    guard words.count == 2 else {
+                        throw fail("expected \"@schema SCHEMA_ID\"")
+                    }
+                    pendingSchema = words[1]
                 case "@style":
                     let styles: [String: WritableKeyPath<InputSession.Presentation, Bool>] = [
                         "inline_preedit": \.inlinePreedit,
@@ -223,10 +232,12 @@ public struct ReplayScript: Equatable, Sendable {
                 notifications: notifications,
                 messageType: messageType,
                 presentation: presentation,
-                app: pendingApp
+                app: pendingApp,
+                schema: pendingSchema
             ))
             pendingOptions = []
             pendingApp = nil
+            pendingSchema = nil
         }
     }
 
@@ -364,6 +375,10 @@ public enum ReplayRunner {
         defer { session.onAsyncActions = nil }
 
         for step in script.steps {
+            // A schema switch resets the schema's options, so it goes first.
+            if let schema = step.schema, !session.selectSchema(schema) {
+                failures.append(Failure(line: step.line, step: "@schema \(schema)", message: "schema \(schema) is not available"))
+            }
             session.presentation = step.presentation
             if let app = step.app {
                 session.setClientApp(InputSession.ClientApp(bundleID: app.bundleID, options: app.options))

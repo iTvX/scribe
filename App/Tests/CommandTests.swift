@@ -29,11 +29,12 @@ func parsesOptions(arguments: [String], command: Command) {
 }
 
 @Test func parsesReplayWithItsFile() {
-    #expect(Command(arguments: ["Scribe", "--replay", "typing.replay"]) == .replay(file: "typing.replay"))
+    #expect(Command(arguments: ["Scribe", "--replay", "typing.replay"]) == .replay(file: "typing.replay", userDirectory: nil))
+    #expect(Command(arguments: ["Scribe", "--replay", "typing.replay", "/tmp/rime"]) == .replay(file: "typing.replay", userDirectory: "/tmp/rime"))
 }
 
 @Test(arguments: [
-    ["--bogus"], ["reload"], ["--reload", "extra"], ["-x"], ["--replay"], ["--replay", "a", "b"],
+    ["--bogus"], ["reload"], ["--reload", "extra"], ["-x"], ["--replay"], ["--replay", "a", "b", "c"],
     ["--enable-input-source", "com.apple.keylayout.ABC"], ["--select-input-source", hans, hant],
     ["--select-input-source", "Hans"],
 ])
