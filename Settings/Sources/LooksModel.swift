@@ -26,7 +26,7 @@ final class LooksModel {
             return
         }
         do {
-            if let deployed = try Appearance.loadDeployed(userDirectory: directories.user, sharedDirectory: shared,
+            if let deployed = try DeployedAppearance.load(userDirectory: directories.user, sharedDirectory: shared,
                                                           schemaID: activeSchema ?? "") {
                 phase = .loaded(deployed)
                 let light = deployed.appearance.light.colorSchemeID ?? "native"

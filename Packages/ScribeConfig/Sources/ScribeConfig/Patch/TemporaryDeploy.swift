@@ -11,8 +11,9 @@ struct TemporaryDeploy {
     let sharedDirectory: URL
 
     /// Copies the top-level `*.yaml` files of the user directory (but not
-    /// user.yaml or installation.yaml) with `replacing` written over them,
-    /// deploys `<configID>.yaml`, runs `body` and stops the engine again.
+    /// user.yaml, installation.yaml or dictionaries, which can be large and a
+    /// config never includes) with `replacing` written over them, deploys
+    /// `<configID>.yaml`, runs `body` and stops the engine again.
     func run<T>(_ configID: String, replacing: [String: String] = [:],
                 _ body: (LibrimeEngine) throws(PatchSaveError) -> T) throws(PatchSaveError) -> T {
         guard !engine.isRunning else { throw .engineBusy }
@@ -23,7 +24,8 @@ struct TemporaryDeploy {
         do {
             try fileManager.createDirectory(at: temporary, withIntermediateDirectories: true)
             let names = try fileManager.contentsOfDirectory(atPath: userDirectory.path(percentEncoded: false))
-            for name in names where name.hasSuffix(".yaml") && !["user.yaml", "installation.yaml"].contains(name) {
+            for name in names where name.hasSuffix(".yaml") && !name.hasSuffix(".dict.yaml")
+                && !["user.yaml", "installation.yaml"].contains(name) {
                 // Reading follows symbolic links, which may be relative.
                 guard let data = fileManager.contents(atPath: userDirectory.appending(path: name).path(percentEncoded: false))
                 else { continue }

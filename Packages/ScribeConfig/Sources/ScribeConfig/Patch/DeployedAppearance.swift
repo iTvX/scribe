@@ -8,14 +8,14 @@ public struct DeployedAppearance: Equatable, Sendable {
     public var colorSchemeNames: [String: String]
 }
 
-extension Appearance {
+extension DeployedAppearance {
     /// The themes Scribe shows for a schema, from the deployed squirrel.yaml
     /// and schema in `<userDirectory>/build`. librime reads copies in a
     /// temporary directory, so it never opens the real one. Nil when
     /// squirrel.yaml has not been deployed yet.
     @MainActor
-    public static func loadDeployed(userDirectory: URL, sharedDirectory: URL, schemaID: String,
-                                    engine: LibrimeEngine = .shared) throws(PatchSaveError) -> DeployedAppearance? {
+    public static func load(userDirectory: URL, sharedDirectory: URL, schemaID: String,
+                            engine: LibrimeEngine = .shared) throws(PatchSaveError) -> DeployedAppearance? {
         guard !engine.isRunning else { throw .engineBusy }
         let fileManager = FileManager.default
         let build = userDirectory.appending(path: "build", directoryHint: .isDirectory)
@@ -38,7 +38,7 @@ extension Appearance {
         }
         engine.start(RimeConfiguration(sharedDataDirectory: sharedDirectory, userDataDirectory: temporary, minimumLogLevel: 2))
         defer { engine.stop() }
-        guard let appearance = load(from: engine, schemaID: schemaID) else { return nil }
+        guard let appearance = Appearance.load(from: engine, schemaID: schemaID) else { return nil }
         let ids = [appearance.light.colorSchemeID, appearance.dark?.colorSchemeID].compactMap(\.self)
         let names = engine.withConfig(.deployed("squirrel")) { squirrel in
             ids.reduce(into: [String: String]()) { names, id in
