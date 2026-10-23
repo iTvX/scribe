@@ -29,7 +29,9 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 }
 
 struct SettingsView: View {
-    var model: ImportModel
+    var importModel: ImportModel
+    var defaults: DefaultsModel
+    var looks: LooksModel
     @State private var selection: SettingsPage? = .importing
 
     var body: some View {
@@ -41,9 +43,13 @@ struct SettingsView: View {
         } detail: {
             switch selection ?? .importing {
             case .importing:
-                ImportView(model: model)
-            case let page:
-                PlaceholderView(title: page.title, systemImage: page.systemImage)
+                ImportView(model: importModel)
+            case .schemas:
+                SchemasView(model: defaults)
+            case .looks:
+                LooksView(model: looks)
+            case .shortcuts:
+                ShortcutsView(model: defaults)
             }
         }
         .frame(minWidth: 760, minHeight: 540)

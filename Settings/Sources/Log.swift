@@ -6,4 +6,5 @@ enum Log {
     private static let subsystem = Bundle.main.bundleIdentifier ?? "io.github.itvx.inputmethod.Scribe.Settings"
 
     static let importer = Logger(subsystem: subsystem, category: "import")
+    static let settings = Logger(subsystem: subsystem, category: "settings")
 }
