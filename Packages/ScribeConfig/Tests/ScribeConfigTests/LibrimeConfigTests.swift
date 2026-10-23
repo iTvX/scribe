@@ -178,7 +178,7 @@ struct LibrimeConfigTests {
         let dark = try #require(deployed.appearance.dark)
         for theme in [light, dark] {
             #expect(theme.colors.hilitedCandidateBackground == .rgba(RGBAColor(red: 0x00, green: 0xB1, blue: 0x75)))
-            #expect(theme.candidateFormat.template == "[label]\u{2005}[candidate] [comment]\u{2005}")
+            #expect(theme.candidateFormat.template == "[label] [candidate] [comment] ")
             #expect(theme.inlinePreedit)
         }
         #expect(light.colorSchemeID == "wechat_light")
@@ -402,6 +402,68 @@ struct LibrimeConfigTests {
         afterRest.appOptions = AppOptions()
         #expect(afterRest == beforeRest)
         #expect(afterAppearance == beforeAppearance)
+        #expect(again.isEmpty)
+    }
+
+    /// U+2005 typed into a patch as the character itself, rather than the
+    /// " " escape of squirrel.yaml's presets, survives librime, the
+    /// Squirrel loader and a conversion to Scribe's format read back.
+    @Test func literalFourPerEmSpaceInAPatch() throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        let format = "%c\u{2005}%@\u{2005}"
+        let squirrelCustom = user.appending(path: "squirrel.custom.yaml")
+        try """
+            patch:
+              preset_color_schemes/+:
+                spaced:
+                  name: Spaced
+                  back_color: 0xFFFFFF
+                  candidate_format: "\(format)"
+              style/color_scheme: spaced
+            """.write(to: squirrelCustom, atomically: true, encoding: .utf8)
+        let written = try Data(contentsOf: squirrelCustom)
+        #expect(written.range(of: Data([0xE2, 0x80, 0x85])) != nil)
+        #expect(written.range(of: Data("\\u".utf8)) == nil)
+        let baselineYAML = try ConfigFixtures.text(ConfigFixtures.squirrelYAML)
+        let template = "[label]\u{2005}[candidate] [comment]\u{2005}"
+
+        func deployAndLoad() throws -> (Appearance, ScribeConversion, String?) {
+            engine.start(Self.configuration(shared: shared, user: user))
+            defer { engine.stop() }
+            #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+            #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+            return try (
+                #require(Appearance.load(from: engine, schemaID: "")),
+                #require(ScribeConversion.load(from: engine, baselineYAML: baselineYAML)),
+                engine.withConfig(.deployed("scribe")) { $0.string(at: "themes/spaced/style/candidate_format") } ?? nil
+            )
+        }
+
+        let (before, conversion, unconverted) = try deployAndLoad()
+        #expect(before.light.colorSchemeID == "spaced")
+        #expect(before.light.candidateFormat.template == template)
+        #expect(unconverted == nil)
+        let theme = try #require(conversion.entries.first { $0.key == "themes/spaced" }?.value)
+        #expect(theme.string(at: "style/candidate_format") == format)
+
+        let writer = CustomPatchWriter(userDirectory: user, sharedDirectory: shared)
+        do {
+            _ = try writer.save("scribe", changes: conversion.entries.map { .set($0.key, $0.value) }, expectedOriginal: nil)
+        } catch {
+            Issue.record("CustomPatchWriter refused the conversion: \(error)")
+        }
+        let saved = try Data(contentsOf: user.appending(path: "scribe.custom.yaml"))
+        #expect(saved.range(of: Data(format.utf8)) != nil)
+
+        let (after, again, converted) = try deployAndLoad()
+        #expect(converted == format)
+        #expect(after.light.colorSchemeID == "spaced")
+        #expect(after.light.candidateFormat.template == template)
+        #expect(after == before)
         #expect(again.isEmpty)
     }
 

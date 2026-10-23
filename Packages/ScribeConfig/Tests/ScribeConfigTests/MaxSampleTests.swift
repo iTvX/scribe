@@ -24,8 +24,8 @@ struct MaxSampleTests {
         #expect(theme.memorizeSize)
         #expect(!theme.showPaging)
         #expect(theme.statusMessageType == .mix)
-        #expect(theme.candidateFormat.template == "[label]\u{2005}[candidate] [comment]\u{2005}")
-        #expect(theme.candidateFormat.segments == [.label, .text("\u{2005}"), .candidate, .text(" "), .comment, .text("\u{2005}")])
+        #expect(theme.candidateFormat.template == "[label] [candidate] [comment] ")
+        #expect(theme.candidateFormat.segments == [.label, .text(" "), .candidate, .text(" "), .comment, .text(" ")])
         #expect(theme.alpha == 1)
         #expect(theme.cornerRadius == 5)
         #expect(theme.hilitedCornerRadius == 0)
@@ -99,7 +99,7 @@ struct MaxSampleTests {
             borderWidth = 8.0
             candidateFont.faces = ["PingFangSC-Regular" ("PingFangSC" "Regular")]
             candidateFont.pointSize = 16.0
-            candidateFormat = "[label]\\u{2005}[candidate] [comment]\\u{2005}"
+            candidateFormat = "[label] [candidate] [comment] "
             colorSchemeID = "wechat_dark"
             colorSpace = sRGB
             colors.accentText = nil

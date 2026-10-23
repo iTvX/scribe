@@ -1,5 +1,7 @@
 # A Max-style patch for the deploy tests, with the same values as
 # Packages/ScribeConfig/Tests/ScribeConfigTests/Support/MaxSample.swift.
+# candidate_format has plain ASCII spaces, as in Max's own file (whose
+# comment says U+2005); LibrimeConfigTests covers a literal U+2005.
 patch:
   preset_color_schemes/+:
     wechat_light:
@@ -12,7 +14,7 @@ patch:
       font_point: 16
       label_font_point: 12
       inline_preedit: true
-      candidate_format: "%c %@ "
+      candidate_format: "%c %@ "
       back_color: 0xFFFFFF
       text_color: 0x424242
       hilited_candidate_back_color: 0x75B100
@@ -28,7 +30,7 @@ patch:
       font_point: 16
       label_font_point: 12
       inline_preedit: true
-      candidate_format: "%c %@ "
+      candidate_format: "%c %@ "
       back_color: 0x2D2D2D
       text_color: 0xBDBDBD
       candidate_text_color: 0xE0E0E0
