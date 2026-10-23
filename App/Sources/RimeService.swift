@@ -107,6 +107,14 @@ final class RimeService {
 
     private func observeServerNotifications() {
         let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: CarbonInputSources.selectionChanged, object: nil, queue: .main) { _ in
+            // Once the switch has settled, as Squirrel does.
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    RimeService.shared.inputSourceChanged()
+                }
+            }
+        }
         center.addObserver(forName: Self.reloadNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {
                 RimeService.shared.request(.reload)
@@ -132,6 +140,14 @@ final class RimeService {
 
     /// The adapter of the client that was activated last.
     private weak var activeAdapter: InputAdapter?
+
+    /// macOS 26 does not deactivate Scribe when another process switches the
+    /// input source, as tools such as macism do (rime/squirrel#1140). Commit
+    /// what was typed then, as deactivating would.
+    private func inputSourceChanged() {
+        guard !InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent else { return }
+        activeAdapter?.finishComposition()
+    }
 
     func activated(_ adapter: InputAdapter) {
         activeAdapter = adapter

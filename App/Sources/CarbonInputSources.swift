@@ -3,6 +3,17 @@ import Foundation
 
 /// The real Text Input Sources manager.
 struct CarbonInputSources: InputSourceSystem {
+    /// Posted to the distributed notification center when the selected input
+    /// source changes.
+    static let selectionChanged = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
+
+    var currentInputSourceID: String? {
+        guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+              let value = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
+        else { return nil }
+        return Unmanaged<CFString>.fromOpaque(value).takeUnretainedValue() as String
+    }
+
     func state(of id: String) -> InputSourceState? {
         guard let source = source(id, includeAllInstalled: true) else { return nil }
         return InputSourceState(
