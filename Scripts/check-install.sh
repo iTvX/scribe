@@ -79,8 +79,8 @@ done
 [[ -n "${result}" ]] || fail "no deploy result within ${DEPLOY_TIMEOUT} seconds"
 grep -q "Deploy succeeded" <<< "${result}" || fail "deploy failed; see ${LOG_DIR}"
 
-errors="$(find "${LOG_DIR}" -name "rime.scribe.*.log.ERROR.*.${pid}" -exec cat {} + 2>/dev/null | grep -E '^E' || true)"
-warnings="$(find "${LOG_DIR}" -name "rime.scribe.*.log.WARNING.*.${pid}" -exec cat {} + 2>/dev/null | grep -cE '^W' || true)"
+errors="$(find "${LOG_DIR}" -name "rime.scribe.*.log.ERROR.*.${pid}.log" -exec cat {} + 2>/dev/null | grep -E '^E' || true)"
+warnings="$(find "${LOG_DIR}" -name "rime.scribe.*.log.WARNING.*.${pid}.log" -exec cat {} + 2>/dev/null | grep -cE '^W' || true)"
 if [[ -n "${errors}" ]]; then
   indent <<< "${errors}" >&2
   fail "librime logged errors while deploying"

@@ -1,0 +1,27 @@
+# 雾凇拼音 smoke test for the M1 gate. Not run in CI, which has no rime-ice:
+# after Scripts/install-rime-ice.sh, play it against ~/Library/Scribe with
+#   "$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/rime-ice.replay
+n
+i
+h
+a
+o       => marked "ni hao"; candidates "你好"
+space   => commit "你好"; marked ""; candidates none
+z
+h
+o
+n
+g
+w
+e
+n       => candidates "中文"
+1       => commit "中文"
+s
+h
+u
+r
+u
+f
+a       => candidates "输入法"
+Return  => commit "shurufa"
+space   => unhandled
