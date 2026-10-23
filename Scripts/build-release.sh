@@ -63,12 +63,17 @@ if [[ "${SIGNED}" == 1 ]]; then
     echo "error: signing identity \"${SIGN_IDENTITY}\" is not in ${KEYCHAIN_DB}" >&2
     exit 1
   fi
-  # Not -v: the Developer ID G2 intermediate that issued the installer
-  # certificate is only in KEYCHAIN_DB, which is not on the search list, so
-  # find-identity cannot complete the chain and reports it as untrusted.
-  # check-release.sh verifies the finished package signature instead.
   if ! security find-identity "${KEYCHAIN_DB}" | grep -qF "\"${INSTALLER_IDENTITY}\""; then
     echo "error: installer identity \"${INSTALLER_IDENTITY}\" is not in ${KEYCHAIN_DB}" >&2
+    exit 1
+  fi
+  # productsign only accepts an identity whose chain it can build from the
+  # keychain search list, and the system roots lack the Developer ID G2
+  # intermediate that issues installer certificates.
+  if ! security find-identity -v "${KEYCHAIN_DB}" | grep -qF "\"${INSTALLER_IDENTITY}\""; then
+    echo "error: \"${INSTALLER_IDENTITY}\" has no trusted certificate chain." >&2
+    echo "Import the Developer ID G2 intermediate into the login keychain:" >&2
+    echo "  https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer" >&2
     exit 1
   fi
   CODESIGN_ARGS=(--sign "${SIGN_IDENTITY}" --keychain "${KEYCHAIN_DB}" --timestamp)

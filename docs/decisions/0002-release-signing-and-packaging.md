@@ -23,6 +23,7 @@
 - `notarytool` 用现有的钥匙串 profile 提交公证，通过后 `stapler staple`。
 - `Scripts/check-release.sh` 不安装就能验证：安装包签名、公证票据、Gatekeeper 评估，以及包里 app 的签名、Team ID、hardened runtime、entitlements、架构，并实际启动一次确认 librime 能加载。
 - 签名设置从环境变量读取（`KEYCHAIN_DB`、`KEYCHAIN_PASSWORD_FILE`、`NOTARY_PROFILE`、`NOTARY_KEYCHAIN`），和 mac-switch 的发布脚本一致。密码只在运行时从文件读取，不打印、不写日志。
+- Developer ID Installer 证书由 Developer ID G2 中间证书签发，系统根证书里没有它，签名用的钥匙串又不在搜索列表上，所以发布用的 Mac 要把 Apple 的 `DeveloperIDG2CA.cer`（公开证书）导入登录钥匙串，否则 `productsign` 找不到可用的身份。不改搜索列表，免得同时发版的几个 runner 互相影响。
 
 ### 发布流程
 
