@@ -38,6 +38,23 @@ targets:
     sources:
       - path: App/Sources
       - path: App/Resources
+      # Fetched by Scripts/fetch-librime.sh. librime loads its plugins from the
+      # rime-plugins directory next to librime.1.dylib.
+      - path: Frameworks/rime-plugins
+        buildPhase:
+          copyFiles:
+            destination: frameworks
+            subpath: rime-plugins
+        attributes: [CodeSignOnCopy]
+      - path: Frameworks/opencc
+        type: folder
+        buildPhase:
+          copyFiles:
+            destination: sharedSupport
+      - path: Frameworks/rime-data
+        buildPhase:
+          copyFiles:
+            destination: sharedSupport
     dependencies:
       - package: RimeKit
       - package: ScribeConfig

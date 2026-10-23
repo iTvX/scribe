@@ -71,8 +71,22 @@ version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${APP
 build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${APP}/Contents/Info.plist")"
 pass "Scribe.app ${version} (${build}) is universal and embeds librime.1.dylib"
 
+PLUGINS=(lua octagram predict)
+for plugin in "${PLUGINS[@]}"; do
+  [[ -f "${APP}/Contents/Frameworks/rime-plugins/librime-${plugin}.dylib" ]] || fail "plugin ${plugin} is not embedded"
+done
+for file in default.yaml essay.txt luna_pinyin.schema.yaml opencc/s2t.json opencc/STCharacters.ocd2; do
+  [[ -f "${APP}/Contents/SharedSupport/${file}" ]] || fail "shared data lacks ${file}"
+done
+pass "embeds the ${PLUGINS[*]} plugins, default Rime data and OpenCC data"
+
 codesign --verify --strict --deep "${APP}" || fail "Scribe.app signature does not verify"
-for code in "${APP}" "${APP}/Contents/Frameworks/librime.1.dylib"; do
+CODE=("${APP}" "${APP}/Contents/Frameworks/librime.1.dylib")
+for plugin in "${PLUGINS[@]}"; do
+  CODE+=("${APP}/Contents/Frameworks/rime-plugins/librime-${plugin}.dylib")
+done
+for code in "${CODE[@]}"; do
+  codesign --verify --strict "${code}" || fail "${code##*/} signature does not verify"
   details="$(codesign --display --verbose=2 "${code}" 2>&1)"
   grep -q "flags=.*runtime" <<< "${details}" || fail "${code##*/} lacks the hardened runtime"
   if [[ "${SIGNED}" == 1 ]]; then
@@ -87,12 +101,15 @@ grep -q "com.apple.security.cs.disable-library-validation" <<< "${entitlements}"
 ! grep -q "com.apple.security.get-task-allow" <<< "${entitlements}" ||
   fail "release build carries get-task-allow"
 if [[ "${SIGNED}" == 1 ]]; then
-  pass "Scribe.app and librime.1.dylib signed by ${TEAM_ID} with hardened runtime and timestamp"
+  pass "Scribe.app, librime and its plugins signed by ${TEAM_ID} with hardened runtime and timestamp"
 else
-  pass "Scribe.app and librime.1.dylib signed ad hoc with hardened runtime"
+  pass "Scribe.app, librime and its plugins signed ad hoc with hardened runtime"
 fi
 
-"${APP}/Contents/MacOS/Scribe" --help >/dev/null || fail "Scribe.app does not launch"
-pass "Scribe.app launches and loads librime"
+self_test="$("${APP}/Contents/MacOS/Scribe" --self-test 2>/dev/null)" || fail "self-test failed: ${self_test}"
+for plugin in "${PLUGINS[@]}"; do
+  grep -qx "plugin ${plugin}: loaded" <<< "${self_test}" || fail "plugin ${plugin} does not load: ${self_test}"
+done
+pass "Scribe.app launches, loads librime $(head -1 <<< "${self_test}" | cut -d' ' -f2) and its plugins"
 
 echo "All checks passed for ${PACKAGE##*/}"

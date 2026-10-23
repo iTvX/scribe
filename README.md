@@ -41,7 +41,7 @@
 Scripts/fetch-librime.sh
 ```
 
-下载 librime 1.17.0 官方发布包并校验 sha256，生成 `Frameworks/librime.xcframework`，插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
+下载 librime 1.17.0 官方发布包和默认数据（rime-prelude、rime-essay、rime-luna-pinyin、rime-stroke，都固定到具体提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
 
 ### 运行测试
 
