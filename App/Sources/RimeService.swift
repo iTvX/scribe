@@ -147,6 +147,17 @@ final class RimeService {
     }
 
     private func observeServerNotifications() {
+        // Closes librime cleanly, so user dictionaries are written out, when
+        // the Mac logs out or shuts down and when Scribe quits, as Squirrel
+        // does before logging out.
+        let finalize: @Sendable (Notification) -> Void = { _ in
+            MainActor.assumeIsolated {
+                RimeService.shared.finalize()
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main, using: finalize)
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main, using: finalize)
+
         let center = DistributedNotificationCenter.default()
         center.addObserver(forName: CarbonInputSources.selectionChanged, object: nil, queue: .main) { _ in
             // Once the switch has settled, as Squirrel does.
@@ -246,6 +257,12 @@ final class RimeService {
         process.executableURL = URL(filePath: "/usr/bin/say")
         process.arguments = [message]
         try? process.run()
+    }
+
+    private func finalize() {
+        Log.app.notice("Finalizing librime")
+        candidatePanel.hide()
+        engine.stop()
     }
 
     /// Queues a reload or a sync; it starts once librime is not busy.
