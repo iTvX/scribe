@@ -8,6 +8,8 @@ enum InputMenu {
         case openLogs
         case openUserFolder
         case openHelp
+        /// Only in release builds that update themselves.
+        case checkForUpdates
 
         /// The English title, also the key into Localizable.strings.
         var title: String {
@@ -17,6 +19,7 @@ enum InputMenu {
             case .openLogs: "Logs…"
             case .openUserFolder: "User folder…"
             case .openHelp: "Help…"
+            case .checkForUpdates: "Check for updates…"
             }
         }
 
@@ -29,14 +32,15 @@ enum InputMenu {
             case .openLogs: Selector(("openLogs:"))
             case .openUserFolder: Selector(("openUserFolder:"))
             case .openHelp: Selector(("openHelp:"))
+            case .checkForUpdates: Selector(("checkForUpdates:"))
             }
         }
     }
 
     @MainActor
-    static func make(target: AnyObject) -> NSMenu {
+    static func make(target: AnyObject, offersUpdates: Bool = false) -> NSMenu {
         let menu = NSMenu()
-        for command in Command.allCases {
+        for command in Command.allCases where offersUpdates || command != .checkForUpdates {
             let item = NSMenuItem(title: Bundle.main.localizedString(forKey: command.title, value: nil, table: nil), action: command.action, keyEquivalent: "")
             item.target = target
             if command == .deploy {

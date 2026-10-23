@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><!--
+  Test fixture for the appcast dry run in .github/workflows/ci.yml: a published
+  feed to extend, with two made-up releases. Written with
+  `Scripts/release-tool.sh appcast` and signed with Sparkle's sign_update and a
+  throwaway key that was then deleted; the packages it describes never existed.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>中书 Scribe</title>
+        <link>https://github.com/iTvX/scribe</link>
+        <description>中书 Scribe 的更新</description>
+        <language>zh</language>
+        <item>
+            <title>中书 0.0.9</title>
+            <pubDate>Thu, 01 Jan 2026 00:00:00 +0000</pubDate>
+            <sparkle:version>20260101000000</sparkle:version>
+            <sparkle:shortVersionString>0.0.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[- 测试用的旧正式版]]></description>
+            <enclosure url="https://github.com/iTvX/scribe/releases/download/v0.0.9/Scribe-0.0.9.pkg" length="22" type="application/octet-stream" sparkle:edSignature="papACVdarz5gInHERhkevqKjvbZcawaWKKESe8mgMdHY+ftXTdIRdRW7GDGrggsSIx1KusPU8ggBaxyDB3pxDw==" sparkle:installationType="package"></enclosure>
+        </item>
+        <item>
+            <title>中书 0.0.9-beta.1</title>
+            <pubDate>Mon, 01 Dec 2025 00:00:00 +0000</pubDate>
+            <sparkle:version>20251201000000</sparkle:version>
+            <sparkle:shortVersionString>0.0.9-beta.1</sparkle:shortVersionString>
+            <sparkle:channel>beta</sparkle:channel>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[- 测试用的旧测试版]]></description>
+            <enclosure url="https://github.com/iTvX/scribe/releases/download/v0.0.9-beta.1/Scribe-0.0.9-beta.1.pkg" length="29" type="application/octet-stream" sparkle:edSignature="6WHAZ86ajKqL2o0bOSEUg1skACFVaLuiIaKZynlXMGqYL2yWFJZi/R/8Tzj/lCyI+0UOvQsjJoJtkJgTvGF2Dg==" sparkle:installationType="package"></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: LdcGa8TBLC9U94LUlZyrCP+h7JbuDjy4vC1EzbUL24kjoYXY53CwxS0J6tJY1wCBX6K0qfiY0Sa7Z2w9d6JrBQ==
+length: 2496
+-->

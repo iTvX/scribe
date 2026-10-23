@@ -22,6 +22,11 @@
 #   NOTARY_KEYCHAIN         keychain holding that profile (default: the search list)
 #   SKIP_NOTARIZATION=1     sign without notarizing, for local checks only
 #   BUILD_NUMBER            CFBundleVersion (default: UTC timestamp)
+#
+# Software updates (docs/decisions/0011-releases-and-updates.md), both or
+# neither; without them the app never checks for updates:
+#   SPARKLE_FEED_URL        the appcast installed copies check (https)
+#   SPARKLE_PUBLIC_KEY      the public half of the update signing key, base64
 
 set -euo pipefail
 
@@ -38,6 +43,26 @@ case "${1:-}" in
   "") ;;
   *) echo "usage: $0 [--unsigned]" >&2; exit 2 ;;
 esac
+
+# Software updates: the feed and its key go into the app together, or not at all.
+SPARKLE_FEED_URL="${SPARKLE_FEED_URL:-}"
+SPARKLE_PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-}"
+if [[ -n "${SPARKLE_FEED_URL}" || -n "${SPARKLE_PUBLIC_KEY}" ]]; then
+  if [[ -z "${SPARKLE_FEED_URL}" || -z "${SPARKLE_PUBLIC_KEY}" ]]; then
+    echo "error: set both SPARKLE_FEED_URL and SPARKLE_PUBLIC_KEY, or neither" >&2
+    exit 2
+  fi
+  if [[ "${SPARKLE_FEED_URL}" != https://* ]]; then
+    echo "error: SPARKLE_FEED_URL must be an https URL" >&2
+    exit 2
+  fi
+  # 32 bytes are 43 base64 characters and one "=".
+  if [[ ! "${SPARKLE_PUBLIC_KEY}" =~ ^[A-Za-z0-9+/]{43}=$ ]] ||
+     [[ "$(base64 -D <<< "${SPARKLE_PUBLIC_KEY}" | wc -c | tr -d ' ')" != 32 ]]; then
+    echo "error: SPARKLE_PUBLIC_KEY must be a base64 Ed25519 public key (32 bytes)" >&2
+    exit 2
+  fi
+fi
 
 if [[ "${SIGNED}" == 1 ]]; then
   : "${KEYCHAIN_DB:?set KEYCHAIN_DB to the keychain holding the Developer ID identities}"
@@ -82,6 +107,7 @@ else
 fi
 
 "${ROOT}/Scripts/fetch-librime.sh"
+"${ROOT}/Scripts/fetch-sparkle.sh"
 xcodegen generate --quiet --spec "${ROOT}/project.yml"
 # Build unsigned and sign below, so nothing from Xcode's local signing (such as
 # the get-task-allow entitlement) ends up in the release.
@@ -100,12 +126,27 @@ mkdir -p "${OUTPUT}/root"
 APP="${OUTPUT}/root/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
 
+# Software updates: only release builds carry the feed and its key.
+if [[ -n "${SPARKLE_FEED_URL}" ]]; then
+  for entry in "SUFeedURL ${SPARKLE_FEED_URL}" "SUPublicEDKey ${SPARKLE_PUBLIC_KEY}"; do
+    read -r key value <<< "${entry}"
+    /usr/libexec/PlistBuddy -c "Set :${key} ${value}" "${APP}/Contents/Info.plist" 2>/dev/null ||
+      /usr/libexec/PlistBuddy -c "Add :${key} string ${value}" "${APP}/Contents/Info.plist"
+  done
+fi
+
 # Sign inside out: embedded libraries first, then the command line tools next
 # to Scribe, then the app. The tools load librime, so they get the app's
 # entitlements; rime-install is a shell script, signed in extended attributes.
 while IFS= read -r -d '' library; do
   codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${library}"
 done < <(find "${APP}/Contents/Frameworks" -depth -type f -name '*.dylib' -print0)
+# Sparkle, inside out, as its documentation describes; none of it needs
+# entitlements.
+SPARKLE="${APP}/Contents/Frameworks/Sparkle.framework"
+for code in "${SPARKLE}/Versions/B/Autoupdate" "${SPARKLE}/Versions/B/Updater.app" "${SPARKLE}"; do
+  codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${code}"
+done
 for tool in rime_deployer rime_dict_manager; do
   codesign --force --options runtime "${CODESIGN_ARGS[@]}" \
     --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}/Contents/MacOS/${tool}"

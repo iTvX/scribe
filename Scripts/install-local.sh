@@ -21,6 +21,7 @@ if ! command -v xcodegen >/dev/null; then
 fi
 
 "${ROOT}/Scripts/fetch-librime.sh"
+"${ROOT}/Scripts/fetch-sparkle.sh"
 xcodegen generate --quiet --spec "${ROOT}/project.yml"
 xcodebuild -quiet \
   -project "${ROOT}/Scribe.xcodeproj" \
