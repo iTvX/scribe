@@ -353,6 +353,58 @@ struct LibrimeConfigTests {
         #expect(again.unconverted == conversion.unconverted)
     }
 
+    /// The Settings app writes a conversion through CustomPatchWriter, which
+    /// deploys the new scribe.custom.yaml itself (with the engine stopped)
+    /// and checks that every entry reads back as written.
+    @Test func conversionSavesThroughCustomPatchWriter() throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.rimeIceYAML, to: user.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.maxSampleCustomYAML, to: user.appending(path: "squirrel.custom.yaml"))
+        let baselineYAML = try ConfigFixtures.text(ConfigFixtures.squirrelYAML)
+
+        func deployAndLoad() throws -> (ScribeSettings, Appearance, ScribeConversion) {
+            engine.start(Self.configuration(shared: shared, user: user))
+            defer { engine.stop() }
+            #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+            #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+            return try (
+                #require(ScribeSettings.load(from: engine)),
+                #require(Appearance.load(from: engine, schemaID: "")),
+                #require(ScribeConversion.load(from: engine, baselineYAML: baselineYAML))
+            )
+        }
+
+        let (before, beforeAppearance, conversion) = try deployAndLoad()
+        #expect(!engine.isRunning)
+        #expect(conversion.entries.contains { $0.key == "themes/purity_of_form_custom" })
+        #expect(conversion.entries.contains { $0.value == .map([:]) })
+
+        let writer = CustomPatchWriter(userDirectory: user, sharedDirectory: shared)
+        do {
+            _ = try writer.save("scribe", changes: conversion.entries.map { .set($0.key, $0.value) }, expectedOriginal: nil)
+        } catch {
+            Issue.record("CustomPatchWriter refused the conversion: \(error)")
+        }
+        #expect(!engine.isRunning)
+        let saved = try ConfigFixtures.text(user.appending(path: "scribe.custom.yaml"))
+        #expect(try CustomPatchEditor(text: saved).keys == conversion.entries.map(\.key))
+
+        let (after, afterAppearance, again) = try deployAndLoad()
+        for bundleID in Set(before.appOptions.byBundleID.keys).union(after.appOptions.byBundleID.keys) {
+            #expect(after.appOptions.options(for: bundleID) == before.appOptions.options(for: bundleID), "\(bundleID)")
+        }
+        var (beforeRest, afterRest) = (before, after)
+        beforeRest.appOptions = AppOptions()
+        afterRest.appOptions = AppOptions()
+        #expect(afterRest == beforeRest)
+        #expect(afterAppearance == beforeAppearance)
+        #expect(again.isEmpty)
+    }
+
     @Test func noConfigWhileStopped() {
         #expect(!engine.isRunning)
         #expect(engine.withConfig(.deployed("squirrel")) { _ in true } == nil)
