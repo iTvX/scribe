@@ -11,11 +11,12 @@
 # only the named ones, into Tests/Fixtures/snapshots/squirrel/<suite>/.
 #
 # Needs a Metal device. Each case shows Squirrel's panel in an invisible
-# window that lays out as on a Retina screen, whatever the display, then
-# composites the window's layers with CARenderer, masks and shadows included.
-# Also writes screen.json, the screen size Squirrel wrapped lines for, which
-# ScribeUI's comparison uses too. Run it after changing cases.json or the
-# configs, and commit the images.
+# window that lays out as on a Retina screen and on a fixed 1440×900 display,
+# whatever this Mac has, then composites the window's layers with CARenderer,
+# masks and shadows included. Also writes screen.json, and placements.json:
+# where Squirrel put its window for each step of the cases in
+# Tests/Fixtures/snapshots/placements.json. Run it after changing the cases or
+# the configs, and commit the results.
 
 set -euo pipefail
 

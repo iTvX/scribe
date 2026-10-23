@@ -16,6 +16,7 @@ Tools/squirrel-oracle/render.sh
 - 预编辑：用例里有预编辑就交给面板，相当于输入法按应用决定不内嵌时的情形。
 - 窗口不可见（alpha 为 0），透明度在合成时加上；毛玻璃背景截不到，和中书的渲染一样不画。
 - 不管这台 Mac 的屏幕是不是 Retina，都按 2 倍排版和绘制：TextKit 会把行的图层对齐到窗口的像素网格，所以排版时就得是 2 倍。
-- 同时写出 `screen.json`，记录排版用的屏幕尺寸；行长和屏幕宽度有关，ScribeUI 对照时用同样的尺寸。
+- 进程里所有屏幕都报告成同一块固定的 1440×900 屏幕（只替换 `NSScreen.frame`，鼠须管的代码不动），行长和窗口位置都不受这台 Mac 的显示器影响；`screen.json` 记录这个尺寸，ScribeUI 对照时用同样的尺寸。
+- 窗口位置：按 `Tests/Fixtures/snapshots/placements.json` 里的每个用例，在同一个鼠须管面板里依次显示、隐藏，记下鼠须管每次交给 `setFrame` 的窗口框（AppKit 取整之前）、面板视图的尺寸和内容视图的旋转，写到 `squirrel/placements.json`。ScribeUI 的 `SquirrelPlacementTests` 用同样的步骤驱动中书的候选窗，要求结果一致。
 
-画出来的图在 `Tests/Fixtures/snapshots/squirrel/`，提交进仓库，CI 不运行这个工具。改了 `cases.json` 或配置以后重新运行，检查差异再提交。
+画出来的图和记录的位置在 `Tests/Fixtures/snapshots/squirrel/`，提交进仓库，CI 不运行这个工具。改了 `cases.json` 或配置以后重新运行，检查差异再提交。

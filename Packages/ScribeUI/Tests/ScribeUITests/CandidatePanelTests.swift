@@ -253,6 +253,46 @@ private final class Recorder: CandidatePanelDelegate {
         #expect(commentColor(3) == drawn.warningCommentTextColor)
     }
 
+    /// Squirrel's choice: the dark theme in dark mode when there is one;
+    /// a light-only scheme that is not native keeps the light appearance.
+    @Test func darkModeUsesTheDarkThemeWhenThereIsOne() {
+        let panel = themedPanel(Appearance(light: Fixtures.aqua, dark: Fixtures.lostTemple), system: Fixtures.dark)
+        defer { panel.hide() }
+        #expect(panel.view.theme?.backgroundColor == PanelTheme(Fixtures.lostTemple, palette: Fixtures.darkPalette).backgroundColor)
+        #expect(panel.windowAppearance?.name == .darkAqua)
+
+        panel.systemAppearance = { Fixtures.light }
+        panel.show(Fixtures.pinyinPage, near: caret)
+        #expect(panel.view.theme?.backgroundColor == PanelTheme(Fixtures.aqua, palette: Fixtures.lightPalette).backgroundColor)
+        #expect(panel.windowAppearance?.name == .aqua)
+    }
+
+    @Test func aLightOnlySchemeStaysLightInDarkMode() {
+        let appearance = Appearance(light: Fixtures.aqua, dark: nil)
+        #expect(appearance.forcesLightAppearance)
+        let panel = themedPanel(appearance, system: Fixtures.dark)
+        defer { panel.hide() }
+        #expect(panel.view.theme?.backgroundColor == PanelTheme(Fixtures.aqua, palette: Fixtures.lightPalette).backgroundColor)
+        #expect(panel.windowAppearance?.name == .aqua)
+    }
+
+    @Test func nativeColoursFollowTheSystemWithoutADarkTheme() {
+        let panel = themedPanel(Appearance(light: Fixtures.squirrelDefaults, dark: nil), system: Fixtures.dark)
+        defer { panel.hide() }
+        #expect(panel.view.theme?.backgroundColor == Fixtures.darkPalette.windowBackground)
+        #expect(panel.windowAppearance?.name == .darkAqua)
+    }
+
+    private func themedPanel(_ appearance: Appearance, system: NSAppearance) -> CandidatePanel {
+        let panel = CandidatePanel()
+        panel.appearance = appearance
+        panel.palette = { $0.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? Fixtures.darkPalette : Fixtures.lightPalette }
+        panel.systemAppearance = { system }
+        panel.screenFrame = { _ in PanelRenderer.referenceScreen }
+        panel.show(Fixtures.pinyinPage, near: caret)
+        return panel
+    }
+
     @Test func pointsOutsideThePanelHitNothing() throws {
         let (panel, _) = panel()
         panel.show(Fixtures.pinyinPage, near: caret)

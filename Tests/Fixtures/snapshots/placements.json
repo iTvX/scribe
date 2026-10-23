@@ -1,0 +1,1093 @@
+{
+  "comment": "Candidate window placement cases, shared by ScribeUI's SquirrelPlacementTests and Tools/squirrel-oracle. Styles go on top of cases.json's style; contents are cases.json contents or the ones here. Each case runs its steps in one panel; a hide step hides it.",
+  "screen": [
+    0,
+    0,
+    1440,
+    900
+  ],
+  "contents": {
+    "short": {
+      "candidates": [
+        {
+          "text": "中"
+        },
+        {
+          "text": "钟"
+        }
+      ],
+      "highlighted": 0
+    },
+    "huge": {
+      "candidates": [
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        },
+        {
+          "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        }
+      ],
+      "highlighted": 0
+    }
+  },
+  "cases": [
+    {
+      "name": "middle-horizontal",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "middle-horizontal-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "middle-horizontal-preedit",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "middle-horizontal-preedit-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "middle-vertical",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "middle-vertical-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "middle-vertical-preedit",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "middle-vertical-preedit-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "right-horizontal",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "right-horizontal-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "right-horizontal-preedit",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "right-horizontal-preedit-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "right-vertical",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "right-vertical-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "right-vertical-preedit",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "right-vertical-preedit-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            1420,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "bottom-horizontal",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "bottom-horizontal-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "bottom-horizontal-preedit",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "bottom-horizontal-preedit-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "bottom-vertical",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "bottom-vertical-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "bottom-vertical-preedit",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "bottom-vertical-preedit-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            10,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "top-horizontal",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "top-horizontal-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "top-horizontal-preedit",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "top-horizontal-preedit-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "top-vertical",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "top-vertical-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "top-vertical-preedit",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "top-vertical-preedit-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            870,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "left-horizontal",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "left-horizontal-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "left-horizontal-preedit",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "left-horizontal-preedit-paging",
+      "style": {
+        "text_orientation": "horizontal",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "left-vertical",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "left-vertical-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        }
+      ]
+    },
+    {
+      "name": "left-vertical-preedit",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "left-vertical-preedit-paging",
+      "style": {
+        "text_orientation": "vertical",
+        "show_paging": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            4,
+            450,
+            1,
+            18
+          ],
+          "content": "pinyin-preedit"
+        }
+      ]
+    },
+    {
+      "name": "memorize-vertical-lower",
+      "style": {
+        "text_orientation": "vertical",
+        "memorize_size": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "nine"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "hide": true
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        }
+      ]
+    },
+    {
+      "name": "no-memorize-vertical-lower",
+      "style": {
+        "text_orientation": "vertical",
+        "memorize_size": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "nine"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "hide": true
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        }
+      ]
+    },
+    {
+      "name": "memorize-vertical-upper",
+      "style": {
+        "text_orientation": "vertical",
+        "memorize_size": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            600,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        },
+        {
+          "caret": [
+            720,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "caret": [
+            720,
+            600,
+            1,
+            18
+          ],
+          "content": "nine"
+        },
+        {
+          "caret": [
+            720,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "hide": true
+        },
+        {
+          "caret": [
+            720,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        }
+      ]
+    },
+    {
+      "name": "no-memorize-vertical-right-edge",
+      "style": {
+        "text_orientation": "vertical",
+        "memorize_size": "false"
+      },
+      "steps": [
+        {
+          "caret": [
+            1380,
+            600,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        },
+        {
+          "caret": [
+            1380,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "caret": [
+            1380,
+            600,
+            1,
+            18
+          ],
+          "content": "nine"
+        },
+        {
+          "caret": [
+            1380,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "hide": true
+        },
+        {
+          "caret": [
+            1380,
+            600,
+            1,
+            18
+          ],
+          "content": "short"
+        }
+      ]
+    },
+    {
+      "name": "memorize-horizontal-lower",
+      "style": {
+        "text_orientation": "horizontal",
+        "memorize_size": "true"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "pinyin"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "nine"
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        },
+        {
+          "hide": true
+        },
+        {
+          "caret": [
+            720,
+            200,
+            1,
+            18
+          ],
+          "content": "short"
+        }
+      ]
+    },
+    {
+      "name": "oversized-horizontal",
+      "style": {},
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "huge"
+        }
+      ]
+    },
+    {
+      "name": "oversized-vertical",
+      "style": {
+        "text_orientation": "vertical"
+      },
+      "steps": [
+        {
+          "caret": [
+            720,
+            450,
+            1,
+            18
+          ],
+          "content": "huge"
+        }
+      ]
+    }
+  ]
+}
