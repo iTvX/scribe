@@ -32,6 +32,18 @@
 | B12 | 菜单栏输入法菜单 → 重新部署，等几秒再输入 `nihao` | 照常出现候选窗 |
 | B13 | 在文稿里输入 `nihao`，然后在终端用脚本切到 ABC（如 `macism com.apple.keylayout.ABC`） | 文稿里留下 `nihao`，没有下划线，候选窗消失 |
 
+## 菜单栏、通知和启动保护
+
+| # | 操作 | 预期 |
+|---|------|------|
+| M1 | 切到中书 | 菜单栏出现「中」（雾凇拼音中文状态的简短标签） |
+| M2 | 单按一下 Shift | 菜单栏的「中」变成「Ａ」 |
+| M3 | 切到 ABC | 菜单栏的中书图标消失 |
+| M4 | 在 `~/Library/Scribe/scribe.custom.yaml` 里写 `patch: {status_icon: false}`，菜单 → 重新部署，再切回中书 | 菜单栏不显示中书的图标（测完删掉这个补丁，再重新部署） |
+| M5 | 菜单 → 重新部署 | 通知中心里有中书的「正在部署…」，接着换成「部署完成。」，不弹横幅也不要求授权 |
+| M6 | 在终端运行 `killall Scribe; open -g "$HOME/Library/Input Methods/Scribe.app"; sleep 1; killall Scribe; open -g "$HOME/Library/Input Methods/Scribe.app"` | 听到语音提示「中书启动时崩溃了……」 |
+| M7 | 紧接 M6，在文本编辑里切到中书输入 `nihao`，再选菜单 → 重新部署，然后再输入 `nihao` | 第一次字母原样进入文稿；重新部署后出现候选窗 |
+
 ## 终端
 
 | # | 应用 | 操作 | 预期 |
