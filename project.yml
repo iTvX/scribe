@@ -40,6 +40,7 @@ targets:
       - path: App/Resources
     dependencies:
       - package: RimeKit
+      - package: ScribeConfig
       - package: ScribeCore
       - package: ScribeUI
       - sdk: Carbon.framework
@@ -58,11 +59,33 @@ targets:
         # A plain executable; the debug dylib only serves SwiftUI previews.
         ENABLE_DEBUG_DYLIB: NO
 
+  # Tests for the IMK adapter. The adapter sources are compiled into the
+  # bundle directly, so it needs no host app.
+  ScribeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App/Sources/Adapter
+      - path: App/Tests
+    dependencies:
+      - package: ScribeCore
+        product: ScribeCore
+      - package: ScribeCore
+        product: ScribeTestSupport
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   Scribe:
     build:
       targets:
         Scribe: all
+        ScribeTests: [test]
+    test:
+      targets:
+        - ScribeTests
     run:
       config: Debug
     archive:

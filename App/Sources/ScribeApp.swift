@@ -21,6 +21,16 @@ enum ScribeApp {
         case .quit:
             quitRunningInstances(bundleIdentifier: bundleIdentifier)
             exit(0)
+        case .reload:
+            DistributedNotificationCenter.default().postNotificationName(
+                RimeService.reloadNotification,
+                object: nil,
+                userInfo: nil,
+                deliverImmediately: true
+            )
+            exit(0)
+        case .selfTest:
+            exit(SelfTest.run() ? 0 : 1)
         case .help:
             print(Command.usage)
             exit(0)
@@ -39,6 +49,9 @@ enum ScribeApp {
         }
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
+        // OpenCC resolves its dictionaries relative to the working directory.
+        FileManager.default.changeCurrentDirectoryPath(RimeService.sharedDataDirectory(bundle: bundle).path(percentEncoded: false))
+        RimeService.shared.start()
         Log.app.notice("Input method server listening on \(connectionName, privacy: .public)")
         withExtendedLifetime(server) {
             app.run()
