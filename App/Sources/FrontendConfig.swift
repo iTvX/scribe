@@ -1,4 +1,5 @@
 import RimeKit
+import ScribeConfig
 
 /// The frontend's own config files, which librime's workspace deploy leaves
 /// out.
@@ -17,5 +18,19 @@ enum FrontendConfig {
             _ = engine.deployConfigFile(file, versionKey: "config_version")
         }
         return true
+    }
+
+    /// The candidate window's themes and the sessions' configuration while
+    /// `schemaID` is in use: squirrel.yaml and scribe.yaml, with the schema's
+    /// style on top, as Squirrel loads them on a schema change. Nil if
+    /// librime cannot open the configs.
+    static func load(
+        _ engine: LibrimeEngine,
+        settings: ScribeSettings,
+        schemaID: String,
+        isDark: Bool
+    ) -> (appearance: Appearance, configuration: SessionConfiguration)? {
+        guard let appearance = Appearance.load(from: engine, schemaID: schemaID) else { return nil }
+        return (appearance, SessionConfiguration(settings: settings, theme: appearance.theme(isDark: isDark)))
     }
 }

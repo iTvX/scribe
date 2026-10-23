@@ -113,12 +113,12 @@ final class RimeService {
     /// candidate window and every session. While librime deploys, schemas
     /// are being rewritten; the deploy's end brings us back.
     func loadAppearance() {
-        guard let settings, !engine.isInMaintenance,
-              let appearance = Appearance.load(from: engine, schemaID: schemaID)
-        else { return }
-        candidatePanel.appearance = appearance
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        configuration = SessionConfiguration(settings: settings, theme: appearance.theme(isDark: isDark))
+        guard let settings, !engine.isInMaintenance,
+              let loaded = FrontendConfig.load(engine, settings: settings, schemaID: schemaID, isDark: isDark)
+        else { return }
+        candidatePanel.appearance = loaded.appearance
+        configuration = loaded.configuration
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
             adapter.configuration = configuration
