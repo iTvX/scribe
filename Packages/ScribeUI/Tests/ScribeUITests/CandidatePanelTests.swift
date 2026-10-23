@@ -67,9 +67,16 @@ private final class Recorder: CandidatePanelDelegate {
     @Test func nothingToShowHides() {
         let (panel, _) = panel()
         panel.show(Fixtures.pinyinPage, near: caret)
-        // The preedit is inline in Squirrel's default style.
-        panel.show(CandidateSnapshot(entries: [], preedit: Preedit(text: "zh", selectedRange: 0..<2, caret: 2)), near: caret)
+        // The session sends no preedit when it is inline.
+        panel.show(CandidateSnapshot(entries: [], preedit: nil), near: caret)
         #expect(!panel.isVisible)
+    }
+
+    @Test func aPreeditAloneShows() {
+        let (panel, _) = panel()
+        panel.show(CandidateSnapshot(entries: [], preedit: Preedit(text: "zh", selectedRange: 0..<2, caret: 2)), near: caret)
+        #expect(panel.isVisible)
+        panel.hide()
     }
 
     @Test func statusMessagesHideByThemselves() async throws {

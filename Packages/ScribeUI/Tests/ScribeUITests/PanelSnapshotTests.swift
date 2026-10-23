@@ -68,6 +68,8 @@ private let featureCases: [SnapshotCase] = [
     variant("preedit-vertical", backgrounds, content: preedit) { $0.orientation = .vertical },
     variant("preedit-only", backgrounds, content: Fixtures.content(CandidateSnapshot(entries: []), preedit: "zhong", selected: 0..<5)),
     variant("preedit-native", content: preedit) { $0.inlinePreedit = false },
+    // An app with Squirrel's no_inline option on a theme with inline_preedit.
+    variant("preedit-inline-theme", content: preedit),
     variant("wrap-stacked", content: Fixtures.content(CandidateSnapshot(entries: Fixtures.entries([longCandidate, "中书"]), highlightedIndex: 0))),
     variant(
         "wrap-linear",

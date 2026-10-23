@@ -6,7 +6,7 @@
 
 设计文档写的是「候选窗用 Core Text 自绘」。实际做法是：排版用 TextKit 2，和鼠须管一样；背景、边框、高亮和翻页箭头用 Core Graphics 在 `draw(_:)` 里画；文字由 TextKit 2 的布局片段（`NSTextLayoutFragment`）画出。鼠须管的代码只用来弄清它的行为，ScribeUI 里的实现是重写的。
 
-- **文字**：`PanelText` 照鼠须管的方式拼出候选窗的文字：替换 `candidate_format` 里的占位符、NFC 规范化、`noBreak` 标记、横排时候选之间用两个空格、各段的段落样式、竖排列表时按标签宽度缩进折行。
+- **文字**：`PanelText` 照鼠须管的方式拼出候选窗的文字：替换 `candidate_format` 里的占位符、NFC 规范化、`noBreak` 标记、横排时候选之间用两个空格、各段的段落样式、竖排列表时按标签宽度缩进折行。预编辑是否内嵌由会话按应用决定（鼠须管的 `inline_preedit` 加上 `no_inline`、`inline` 选项），内嵌时快照里没有预编辑；面板不看主题，快照里有预编辑就画。
 - **排版**：`PanelTextLayout` 里有一个不显示的 `NSTextView`（TextKit 2），设置和鼠须管的一致：`lineFragmentPadding` 为 0，布局代理不在 `noBreak` 前断行，竖排时 `setLayoutOrientation(.vertical)`。行长取屏幕宽度的三分之一（竖排取高度的四分之一），字号越大越长。
 - **形状**：鼠须管从 TextKit 的选区矩形算出背景、高亮和翻页箭头的路径。`PanelGeometry` 和 `PanelShapes` 用纯函数重写了这套计算，连同它的边界情况（比如 `hilited_corner_radius` 为 0 时扩展半径里的除零），不画图就能做单元测试。
 - **绘制**：`PanelView.draw(_:)` 按鼠须管图层的顺序画：面板背景、预编辑背景、边框、预编辑高亮、候选背景、高亮候选和它的阴影，然后是翻页箭头和文字。鼠须管用 `CAShapeLayer` 加蒙版叠出来的效果，这里用奇偶填充和裁剪实现；`mutual_exclusive` 也是靠奇偶填充把背景挖空。阴影按实测的 Core Animation 行为换算：模糊取 `shadowRadius` 的两倍，偏移在翻转坐标里向右下。
