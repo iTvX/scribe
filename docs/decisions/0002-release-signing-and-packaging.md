@@ -30,3 +30,12 @@
 - `.github/workflows/release.yml` 跑在 Max 的 Mac 上的自托管 runner（label `scribe-local`，和 Max 其他仓库的 runner 一样的做法），只由推送到 main 和手动触发，绝不由 pull request 触发，同一时间只跑一个。
 - M0 阶段的产物是签名、公证、staple 过的 `.pkg`，作为 workflow artifact 上传。发 GitHub Release 和 Sparkle 更新留到 M4，到时只在 `validate_only` 为假时运行。
 - 普通 CI（`ci.yml`）在 GitHub 托管机器上用 `build-release.sh --unsigned` 检查打包流程，不需要任何凭据。
+
+## 安装时预编译共享数据
+
+和鼠须管的 postinstall 一样，安装包装好后在 `Scribe.app/Contents/SharedSupport` 里运行 `Scribe --build`，把自带的方案预编译到 `SharedSupport/build`，以后部署这些方案时直接用，不用再编译（本机约 6 秒）。
+
+- 以 root 运行：装好的 app 属于 root，普通用户写不进去，鼠须管也是这样。
+- 失败不影响安装；设了 `RIME_NO_PREBUILD` 就跳过，和鼠须管相同。
+- 预编译会在 app 里新增文件（`build/`、`installation.yaml`、`user.yaml`），所以装好之后 `codesign --verify` 会报资源封印不符。已安装的鼠须管 1.1.2 也是这样；用安装包装的 app 不带隔离属性，不经 Gatekeeper 检查，librime 和插件各自的签名不受影响。发布包本身在安装前由 `check-release.sh` 检查，签名完整。
+- `check-release.sh` 在展开的副本里运行同样的 `--build`，确认能预编译出 `build/`。
