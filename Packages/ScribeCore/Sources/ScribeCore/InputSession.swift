@@ -252,6 +252,16 @@ public final class InputSession {
         }
     }
 
+    /// What the menu bar shows for the input mode, as Squirrel does: the
+    /// schema's short label for the ascii_mode state, or "中" and "Ａ". Nil
+    /// until the session has started.
+    public var modeIndicator: String? {
+        guard let session, engine.sessionExists(session) else { return nil }
+        let ascii = engine.option("ascii_mode", in: session)
+        let label = engine.stateLabel("ascii_mode", state: ascii, abbreviated: true, in: session) ?? ""
+        return label.isEmpty ? (ascii ? "Ａ" : "中") : label
+    }
+
     /// The value of a Rime option, such as "ascii_mode", or nil while there
     /// is no session.
     public func option(_ name: String) -> Bool? {

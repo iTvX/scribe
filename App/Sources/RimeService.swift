@@ -41,6 +41,7 @@ final class RimeService {
 
     let engine = LibrimeEngine.shared
     let candidatePanel = CandidatePanel()
+    private let modeStatusItem = ModeStatusItem()
 
     private lazy var maintenance = MaintenanceQueue(engine: self)
     /// Checks for finished maintenance while tasks wait in the queue.
@@ -62,6 +63,7 @@ final class RimeService {
             setenv("RIME_LOG_DIR", logDirectory.path(percentEncoded: false), 1)
         }
         observeServerNotifications()
+        modeStatusItem.isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
         if LaunchGuard.standard.isRelaunchTooSoon() {
             Log.app.fault("Relaunched within two seconds; starting without Rime")
             Self.speak(Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil))
@@ -71,6 +73,7 @@ final class RimeService {
             Self.log(notification)
             switch notification.type {
             case "deploy":
+                DeployMessage(event: notification.value)?.post()
                 RimeService.shared.resumeMaintenance()
                 if notification.value != "start" {
                     RimeService.shared.updateIdentity()
@@ -92,6 +95,7 @@ final class RimeService {
     func startMaintenance(fullCheck: Bool) {
         let started = FrontendConfig.startMaintenance(engine, fullCheck: fullCheck)
         settings = ScribeSettings.load(from: engine)
+        modeStatusItem.isEnabled = settings?.showsStatusIcon ?? true
         if !started {
             loadAppearance()
         }
@@ -144,6 +148,17 @@ final class RimeService {
     }
 
     private func observeServerNotifications() {
+        // Closes librime cleanly, so user dictionaries are written out, when
+        // the Mac logs out or shuts down and when Scribe quits, as Squirrel
+        // does before logging out.
+        let finalize: @Sendable (Notification) -> Void = { _ in
+            MainActor.assumeIsolated {
+                RimeService.shared.finalize()
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main, using: finalize)
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main, using: finalize)
+
         let center = DistributedNotificationCenter.default()
         center.addObserver(forName: CarbonInputSources.selectionChanged, object: nil, queue: .main) { _ in
             // Once the switch has settled, as Squirrel does.
@@ -183,12 +198,18 @@ final class RimeService {
     /// input source, as tools such as macism do (rime/squirrel#1140). Commit
     /// what was typed then, as deactivating would.
     private func inputSourceChanged() {
-        guard !InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent else { return }
+        let isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
+        modeStatusItem.isScribeCurrent = isScribeCurrent
+        guard !isScribeCurrent else { return }
         activeAdapter?.finishComposition()
     }
 
     func activated(_ adapter: InputAdapter) {
         activeAdapter = adapter
+        modeStatusItem.isScribeCurrent = true
+        if let indicator = adapter.modeIndicator {
+            modeStatusItem.title = indicator
+        }
     }
 
     /// Sets ASCII mode in every client's session, as Squirrel does.
@@ -237,6 +258,12 @@ final class RimeService {
         try? process.run()
     }
 
+    private func finalize() {
+        Log.app.notice("Finalizing librime")
+        candidatePanel.hide()
+        engine.stop()
+    }
+
     /// Queues a reload or a sync; it starts once librime is not busy.
     func request(_ task: MaintenanceQueue.Task) {
         Log.app.notice("Requested \(task == .reload ? "reload" : "sync", privacy: .public)")
@@ -279,6 +306,10 @@ final class RimeService {
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
             adapter.handle(notification)
+            if notification.type == "option", ["ascii_mode", "!ascii_mode"].contains(notification.value),
+               adapter.owns(notification), let indicator = adapter.modeIndicator {
+                modeStatusItem.title = indicator
+            }
         }
     }
 
