@@ -9,7 +9,7 @@ struct ScribeSettingsApp: App {
     var body: some Scene {
         Window("中书设置", id: "settings") {
             SettingsView(model: model)
-                .task { model.importOnLaunchIfRequested() }
+                .task { model.launch() }
         }
         .windowResizability(.contentMinSize)
     }

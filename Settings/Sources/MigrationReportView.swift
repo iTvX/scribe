@@ -5,6 +5,7 @@ import SwiftUI
 /// What an import did, grouped by how Scribe uses each file.
 struct MigrationReportView: View {
     let report: MigrationReport
+    let userWords: UserWordsOutcome
     var onDone: () -> Void
 
     var body: some View {
@@ -46,18 +47,31 @@ struct MigrationReportView: View {
                          ? "没有"
                          : report.userDictionaries.dictionaries.joined(separator: "、"))
                 }
-                if report.userDictionaries.snapshots.isEmpty {
-                    LabeledContent("同步快照") {
-                        Text("没有找到")
+                if !userWords.merged.isEmpty {
+                    LabeledContent("已合并") {
+                        Label(userWords.merged.joined(separator: "、"), systemImage: "checkmark.circle")
                     }
                 }
-                ForEach(report.userDictionaries.snapshots, id: \.self) { snapshot in
+                if let staging = userWords.staging {
                     LabeledContent {
-                        Label("部署后合并进中书词库", systemImage: "clock")
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Label(userWords.syncState.title, systemImage: userWords.syncState == .merged ? "checkmark.circle" : "clock")
+                            Text(staging.folder.displayPath)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
                     } label: {
-                        Text(snapshot.displayPath)
+                        Text(verbatim: "中书同步时合并：\(userWords.staged.joined(separator: "、"))")
+                    }
+                }
+                ForEach(userWords.failed.keys.sorted(), id: \.self) { name in
+                    LabeledContent {
+                        Text(userWords.failed[name] ?? "")
+                            .foregroundStyle(.red)
                             .textSelection(.enabled)
+                    } label: {
+                        Text(verbatim: "失败：\(name)")
                     }
                 }
             }
@@ -146,8 +160,6 @@ private struct NoticeRow: View {
                     .textSelection(.enabled)
             case .otherFrontendConfig(let file):
                 Text(verbatim: "\(file) 是其他输入法前端（小狼毫、仓输入法等）的配置，已复制，中书不读取。")
-            case .userDictionariesNotSynced(let names):
-                Text(verbatim: "有用户词库 \(names.joined(separator: "、"))，但没有找到鼠须管的同步快照。先在鼠须管里“同步用户数据”，再重新导入，才能把用户词带过来。")
             case .symbolicLink(let path, let target):
                 Text(verbatim: "\(path) 是符号链接，指向 \(target)。导入时原样复制了链接，它仍然指向原来的位置。")
             }
@@ -180,10 +192,21 @@ extension SkipReason {
     var title: String {
         switch self {
         case .buildOutput: "部署生成的文件，中书部署时重新生成"
-        case .userDictionary: "用户词库，通过同步快照合并"
+        case .userDictionary: "用户词库，导出后合并进中书词库"
         case .syncDirectory: "同步文件夹"
         case .trash: "librime 替换下来的旧文件"
         case .systemFile: "访达的系统文件"
+        }
+    }
+}
+
+extension UserWordsOutcome.SyncState {
+    var title: String {
+        switch self {
+        case .none: ""
+        case .nextSync: "中书下次同步时合并"
+        case .waiting: "等待中书同步"
+        case .merged: "已合并"
         }
     }
 }
