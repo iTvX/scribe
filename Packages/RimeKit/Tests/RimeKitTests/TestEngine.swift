@@ -13,16 +13,25 @@ enum TestEngine {
         .deletingLastPathComponent()  // repository root
         .appending(path: "Tests/Fixtures/rime", directoryHint: .isDirectory)
 
+    static let appName = "rime.scribe-tests"
+
+    /// librime writes its log files here, warnings and above.
+    static let logDirectory = FileManager.default.temporaryDirectory
+        .appending(path: "scribe-rimekit-logs-\(UUID().uuidString)", directoryHint: .isDirectory)
+
     static let engine: LibrimeEngine = {
         let userDirectory = FileManager.default.temporaryDirectory
             .appending(path: "scribe-rimekit-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try! FileManager.default.createDirectory(at: userDirectory, withIntermediateDirectories: true)
+        for directory in [userDirectory, logDirectory] {
+            try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
         let engine = LibrimeEngine.shared
         engine.start(RimeConfiguration(
             sharedDataDirectory: fixtures,
             userDataDirectory: userDirectory,
-            minimumLogLevel: 2,
-            appName: "rime.scribe-tests"
+            logDirectory: logDirectory,
+            minimumLogLevel: 1,
+            appName: appName
         ))
         precondition(engine.deploy(fullCheck: true), "deploying the test schema failed")
         return engine

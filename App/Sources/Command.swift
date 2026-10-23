@@ -11,6 +11,8 @@ enum Command: Equatable {
     case reload
     case sync
     case selfTest
+    /// Plays a replay file against a copy of the user's configuration.
+    case replay(file: String)
     case help
     /// Unrecognized arguments, joined by spaces.
     case invalid(String)
@@ -19,6 +21,10 @@ enum Command: Equatable {
         let arguments = Self.removingLaunchArguments(Array(arguments.dropFirst()))
         guard let option = arguments.first else {
             self = .runServer
+            return
+        }
+        if option == "--replay", arguments.count == 2 {
+            self = .replay(file: arguments[1])
             return
         }
         guard arguments.count == 1 else {
@@ -45,6 +51,8 @@ enum Command: Equatable {
           --reload    make the running Scribe redeploy its configuration
           --sync      make the running Scribe sync its user data
           --self-test check that librime and its plugins load from this app
+          --replay FILE
+                      play a replay file against a copy of ~/Library/Scribe
           --help      show this help
 
         With no option, Scribe runs as the input method server.

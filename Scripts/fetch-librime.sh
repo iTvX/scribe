@@ -5,8 +5,8 @@
 #   Frameworks/librime.xcframework   librime.1.dylib, its headers and a module map
 #   Frameworks/rime-plugins/         librime-lua, librime-octagram, librime-predict
 #   Frameworks/opencc/               OpenCC dictionaries and configs
-#   Frameworks/rime-data/            rime-prelude, rime-essay, rime-luna-pinyin and
-#                                    rime-stroke, shipped as shared data
+#   Frameworks/rime-data/            the schemas plum installs by default (as
+#                                    Squirrel ships them), as shared data
 #
 # Safe to run repeatedly: it does nothing when Frameworks/ already holds this
 # release, and downloads are kept in build/downloads (override with
@@ -28,6 +28,10 @@ RIME_DATA=(
   "rime-essay 054920de4f54c9e5994276a96a4fc2a35cb51aa3 3339b40aae91b0216d393aeccc6a8f7daad56a1f3a5e1ffcf464c80690d1b6ce"
   "rime-luna-pinyin 56b934b099dfbeab842320f13aa8b461a6ab3e42 876c7ba559794f476abf7195a255aea29000cee281e6f5ec664928dce018bd90"
   "rime-stroke 1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48 1347a57ab4cf269be9b1c49ce50facfe60617207f2780604fe82914070da8a80"
+  "rime-terra-pinyin 723e51bc266cf9464530c1ddedb856aa18e3da34 34dd53684366f2e6b6598fa019ab68171aaa738da064768fab0d4349530f5841"
+  "rime-bopomofo 6085c9a38a4a728047862b33d67eee18aa86f3b9 5fc0719e8fe9b2eb8aa05c505ffb2b39d972e637951531182dd7d745a83bda51"
+  "rime-cangjie 52d90a1b1312e74042b38c1cbc8142defbc53171 18d989bf21d0bb86b402f18be4dd060bf2653896c95448afb01d4da2e6be5464"
+  "rime-quick 5dcdb9e353d314239e9c8cddc0f42d52da4837bb 2f2ae291b1ebd17ad5bfccfabbeb3aba2a466589628f15172da5fc76b24b9f7e"
 )
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

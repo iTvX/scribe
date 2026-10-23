@@ -41,7 +41,7 @@
 Scripts/fetch-librime.sh
 ```
 
-下载 librime 1.17.0 官方发布包和默认数据（rime-prelude、rime-essay、rime-luna-pinyin、rime-stroke，都固定到具体提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
+下载 librime 1.17.0 官方发布包和默认数据（plum 默认安装的那几套：prelude、essay、朙月拼音、地球拼音、注音、倉頡五代、速成、筆畫，和鼠须管自带的一致，都固定到具体提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
 
 ### 运行测试
 
@@ -73,9 +73,31 @@ Scripts/install-local.sh
 
 注册之后输入源不会自动启用。到「系统设置 → 键盘 → 输入法」点「+」，在「简体中文」或「繁体中文」下添加「中书」。
 
+### 本机检查
+
+```bash
+Scripts/check-install.sh
+```
+
+构建并装到本机，然后在不切换当前输入法的前提下逐项检查：两个输入模式已注册、中书已启用、进程能启动、日志里有 librime 版本并开始监听、完整重新部署成功且 librime 没有记录错误。`xcrun swift Scripts/tis-status.swift` 可以单独查看输入源状态。
+
+### 雾凇拼音
+
+```bash
+Scripts/install-rime-ice.sh
+```
+
+把固定版本的[雾凇拼音](https://github.com/iDvel/rime-ice)（校验 sha256）放进 `~/Library/Scribe`，然后让正在运行的中书重新部署。只增加或覆盖雾凇拼音自己的文件，不碰鼠须管的 `~/Library/Rime`。
+
+不切换输入法也能检查打字效果：`--replay` 用 app 自带的 librime 和插件，在 `~/Library/Scribe` 的临时副本上回放按键（副本里不带用户词库，正在运行的输入法占用着它们）：
+
+```bash
+"$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/rime-ice.replay
+```
+
 ### 查看日志
 
-中书用系统的统一日志，子系统是 `io.github.itvx.inputmethod.Scribe`。可以在「控制台」里按子系统过滤，也可以在终端里看：
+librime 的日志在 `~/Library/Logs/Scribe`。中书自己用系统的统一日志，子系统是 `io.github.itvx.inputmethod.Scribe`。可以在「控制台」里按子系统过滤，也可以在终端里看：
 
 ```bash
 log show --last 10m --info --predicate 'subsystem == "io.github.itvx.inputmethod.Scribe"'
@@ -99,7 +121,13 @@ Scripts/build-release.sh --unsigned
 
 - `--install`：注册输入源（不启用、不切换）
 - `--quit`：退出所有正在运行的中书进程
+- `--reload`：让正在运行的中书重新部署
+- `--sync`：让正在运行的中书同步用户数据
+- `--self-test`：检查 librime 和插件能否从这个 app 加载
+- `--replay 文件`：在 `~/Library/Scribe` 的临时副本上回放按键
 - `--help`：显示帮助
+
+详见 `docs/decisions/0005-server-commands.md`。
 
 ## 许可
 
