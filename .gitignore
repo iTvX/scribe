@@ -1,7 +1,9 @@
 # macOS
 .DS_Store
 
-# Xcode
+# Xcode (the project is generated from project.yml by XcodeGen)
+*.xcodeproj
+*.xcworkspace
 build/
 DerivedData/
 xcuserdata/
@@ -13,7 +15,6 @@ xcuserdata/
 # Swift Package Manager
 .build/
 .swiftpm/
-Packages/
 
-# Vendored binaries (fetched by scripts, not committed)
+# Vendored binaries (fetched by Scripts/fetch-librime.sh, not committed)
 Frameworks/
