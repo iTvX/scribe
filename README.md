@@ -51,6 +51,14 @@ swift test --package-path Packages/RimeKit
 
 其他包同理，换成 `Packages/ScribeConfig`、`Packages/ScribeCore`、`Packages/ScribeUI`。测试依赖上一步下载的 librime。
 
+ScribeUI 的测试里有候选窗快照：把面板画成图，和 `Tests/Fixtures/snapshots/scribe` 里的基准图逐像素对比，对不上的图写到 `build/snapshot-failures`。改了绘制、需要更新基准图时这样跑一遍（测试会故意失败），检查新图后再正常跑：
+
+```bash
+SCRIBE_RECORD_SNAPSHOTS=1 swift test --package-path Packages/ScribeUI
+```
+
+做法和容差见 `docs/decisions/0007-candidate-panel-rendering.md`。
+
 ### 生成工程并构建
 
 ```bash
