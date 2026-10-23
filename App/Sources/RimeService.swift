@@ -26,7 +26,7 @@ extension RimeService: MaintenanceEngine {
         Log.app.notice("Redeploying")
         engine.stop()
         engine.start(Self.configuration(identity: identity))
-        engine.startMaintenance(fullCheck: true)
+        startMaintenance(fullCheck: true)
     }
 
     /// librime closes all sessions before syncing; each client starts a new
@@ -87,7 +87,22 @@ final class RimeService {
             }
         }
         engine.start(Self.configuration(identity: identity))
-        engine.startMaintenance(fullCheck: false)
+        startMaintenance(fullCheck: false)
+    }
+
+    /// Squirrel's and Scribe's own config files. They are not part of the
+    /// workspace librime deploys, so the frontend deploys them itself.
+    static let frontendConfigFiles = ["squirrel.yaml", "scribe.yaml"]
+
+    /// Starts maintenance and, as Squirrel does, deploys the frontend's
+    /// config files with the user's patches while it runs. Settings apps
+    /// change scribe.custom.yaml and ask only for a reload, so every deploy
+    /// goes through here.
+    func startMaintenance(fullCheck: Bool) {
+        guard engine.startMaintenance(fullCheck: fullCheck) else { return }
+        for file in Self.frontendConfigFiles {
+            _ = engine.deployConfigFile(file, versionKey: "config_version")
+        }
     }
 
     private func observeServerNotifications() {

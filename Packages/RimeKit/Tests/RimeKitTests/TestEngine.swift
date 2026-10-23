@@ -19,9 +19,10 @@ enum TestEngine {
     static let logDirectory = FileManager.default.temporaryDirectory
         .appending(path: "scribe-rimekit-logs-\(UUID().uuidString)", directoryHint: .isDirectory)
 
+    static let userDirectory = FileManager.default.temporaryDirectory
+        .appending(path: "scribe-rimekit-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+
     static let engine: LibrimeEngine = {
-        let userDirectory = FileManager.default.temporaryDirectory
-            .appending(path: "scribe-rimekit-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         for directory in [userDirectory, logDirectory] {
             try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         }

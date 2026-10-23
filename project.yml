@@ -61,6 +61,11 @@ targets:
         buildPhase:
           copyFiles:
             destination: sharedSupport
+      # Scribe's own settings, deployed the same way.
+      - path: SharedSupport/scribe.yaml
+        buildPhase:
+          copyFiles:
+            destination: sharedSupport
       # rime_deployer, rime_dict_manager and rime-install, next to Scribe as
       # in Squirrel; signed by the script below.
       - path: Frameworks/bin

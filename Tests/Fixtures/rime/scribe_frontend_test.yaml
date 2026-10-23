@@ -1,0 +1,5 @@
+# A frontend config file, like squirrel.yaml, for the tests of deploying one.
+config_version: "1"
+
+style:
+  color_scheme: native
