@@ -55,6 +55,12 @@ targets:
         buildPhase:
           copyFiles:
             destination: sharedSupport
+      # rime_deployer, rime_dict_manager and rime-install, next to Scribe as
+      # in Squirrel; signed by the script below.
+      - path: Frameworks/bin
+        buildPhase:
+          copyFiles:
+            destination: executables
     dependencies:
       - package: RimeKit
       - package: ScribeConfig
@@ -62,6 +68,23 @@ targets:
       - package: ScribeUI
       - sdk: Carbon.framework
       - sdk: InputMethodKit.framework
+    postBuildScripts:
+      - name: Sign the command line tools
+        basedOnDependencyAnalysis: false
+        script: |
+          # Xcode signs the app last, and everything in Contents/MacOS needs a
+          # signature by then. The tools get the app's entitlements, so that
+          # with an ad hoc signature they can still load librime.
+          if [ "${CODE_SIGNING_ALLOWED}" != "YES" ]; then
+            exit 0
+          fi
+          tools="${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}"
+          identity="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          for tool in rime_deployer rime_dict_manager; do
+            codesign --force --sign "${identity}" --options runtime \
+              --entitlements "${SRCROOT}/App/Scribe.entitlements" "${tools}/${tool}"
+          done
+          codesign --force --sign "${identity}" --options runtime "${tools}/rime-install"
     settings:
       base:
         PRODUCT_NAME: Scribe

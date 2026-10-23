@@ -80,10 +80,24 @@ for file in default.yaml essay.txt luna_pinyin.schema.yaml opencc/s2t.json openc
 done
 pass "embeds the ${PLUGINS[*]} plugins, default Rime data and OpenCC data"
 
+TOOLS=(rime_deployer rime_dict_manager rime-install)
+for tool in "${TOOLS[@]}"; do
+  [[ -x "${APP}/Contents/MacOS/${tool}" ]] || fail "${tool} is not next to Scribe"
+done
+for tool in rime_deployer rime_dict_manager; do
+  for arch in arm64 x86_64; do
+    lipo "${APP}/Contents/MacOS/${tool}" -verify_arch "${arch}" || fail "${tool} lacks ${arch}"
+  done
+done
+pass "ships ${TOOLS[*]} next to Scribe, universal"
+
 codesign --verify --strict --deep "${APP}" || fail "Scribe.app signature does not verify"
 CODE=("${APP}" "${APP}/Contents/Frameworks/librime.1.dylib")
 for plugin in "${PLUGINS[@]}"; do
   CODE+=("${APP}/Contents/Frameworks/rime-plugins/librime-${plugin}.dylib")
+done
+for tool in "${TOOLS[@]}"; do
+  CODE+=("${APP}/Contents/MacOS/${tool}")
 done
 for code in "${CODE[@]}"; do
   codesign --verify --strict "${code}" || fail "${code##*/} signature does not verify"
@@ -95,15 +109,17 @@ for code in "${CODE[@]}"; do
     grep -q "Timestamp=" <<< "${details}" || fail "${code##*/} has no secure timestamp"
   fi
 done
-entitlements="$(codesign --display --entitlements - --xml "${APP}" 2>/dev/null)"
-grep -q "com.apple.security.cs.disable-library-validation" <<< "${entitlements}" ||
-  fail "missing the disable-library-validation entitlement"
-! grep -q "com.apple.security.get-task-allow" <<< "${entitlements}" ||
-  fail "release build carries get-task-allow"
+for code in "${APP}" "${APP}/Contents/MacOS/rime_deployer" "${APP}/Contents/MacOS/rime_dict_manager"; do
+  entitlements="$(codesign --display --entitlements - --xml "${code}" 2>/dev/null)"
+  grep -q "com.apple.security.cs.disable-library-validation" <<< "${entitlements}" ||
+    fail "${code##*/} lacks the disable-library-validation entitlement"
+  ! grep -q "com.apple.security.get-task-allow" <<< "${entitlements}" ||
+    fail "${code##*/} carries get-task-allow"
+done
 if [[ "${SIGNED}" == 1 ]]; then
-  pass "Scribe.app, librime and its plugins signed by ${TEAM_ID} with hardened runtime and timestamp"
+  pass "Scribe.app, librime, its plugins and the tools signed by ${TEAM_ID} with hardened runtime and timestamp"
 else
-  pass "Scribe.app, librime and its plugins signed ad hoc with hardened runtime"
+  pass "Scribe.app, librime, its plugins and the tools signed ad hoc with hardened runtime"
 fi
 
 self_test="$("${APP}/Contents/MacOS/Scribe" --self-test 2>/dev/null)" || fail "self-test failed: ${self_test}"
@@ -111,5 +127,14 @@ for plugin in "${PLUGINS[@]}"; do
   grep -qx "plugin ${plugin}: loaded" <<< "${self_test}" || fail "plugin ${plugin} does not load: ${self_test}"
 done
 pass "Scribe.app launches, loads librime $(head -1 <<< "${self_test}" | cut -d' ' -f2) and its plugins"
+
+# Output from either tool means it got past loading librime. Neither command
+# touches any files.
+usage="$("${APP}/Contents/MacOS/rime_dict_manager" 2>&1)" || fail "rime_dict_manager does not run: ${usage}"
+grep -q -- "--list" <<< "${usage}" || fail "rime_dict_manager does not run: ${usage}"
+usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
+[[ "${usage}" == "invalid arguments." ]] || fail "rime_deployer does not run: ${usage}"
+bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
+pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
 echo "All checks passed for ${PACKAGE##*/}"

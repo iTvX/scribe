@@ -7,6 +7,9 @@
 #   Frameworks/opencc/               OpenCC dictionaries and configs
 #   Frameworks/rime-data/            the schemas plum installs by default (as
 #                                    Squirrel ships them), as shared data
+#   Frameworks/bin/                  rime_deployer and rime_dict_manager, which
+#                                    find librime in ../Frameworks, and plum's
+#                                    rime-install, as Squirrel ships them
 #
 # Safe to run repeatedly: it does nothing when Frameworks/ already holds this
 # release, and downloads are kept in build/downloads (override with
@@ -21,6 +24,10 @@ RIME_SHA256=11d8dc663c6ec06d5ccb6111ba664a9e7b631b703ac6acd07cffbac664021850
 DEPS_ARCHIVE="rime-deps-${LIBRIME_COMMIT}-macOS-universal.tar.bz2"
 DEPS_SHA256=dfe6047e87be271963d7466bd1a6e3d9e660c30e5e73e4bb94e8782c0a6ac8df
 BASE_URL="https://github.com/rime/librime/releases/download/${LIBRIME_VERSION}"
+
+# plum, for its rime-install script.
+PLUM_COMMIT=b1be1969f914cc005add4090631b855db00c2591
+PLUM_SHA256=4ebc2bec937766184546f9c0598f90a692a2e0ef1a50c0c2e594dbb3e131f61e
 
 # Default data, pinned to commits: repository, commit, sha256 of the archive.
 RIME_DATA=(
@@ -39,13 +46,14 @@ FRAMEWORKS="${ROOT}/Frameworks"
 CACHE="${SCRIBE_DOWNLOAD_CACHE:-${ROOT}/build/downloads}"
 STAMP="${FRAMEWORKS}/.librime-stamp"
 # Bump the trailing layout number whenever this script changes what it writes.
-STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} ${RIME_DATA[*]} layout 2"
+STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} ${RIME_DATA[*]} plum ${PLUM_SHA256} layout 3"
 
 if [[ -f "${STAMP}" && "$(cat "${STAMP}")" == "${STAMP_CONTENT}" &&
       -d "${FRAMEWORKS}/librime.xcframework" &&
       -d "${FRAMEWORKS}/rime-plugins" &&
       -d "${FRAMEWORKS}/opencc" &&
-      -d "${FRAMEWORKS}/rime-data" ]]; then
+      -d "${FRAMEWORKS}/rime-data" &&
+      -d "${FRAMEWORKS}/bin" ]]; then
   echo "librime ${LIBRIME_VERSION} is already in ${FRAMEWORKS}"
   exit 0
 fi
@@ -76,6 +84,7 @@ for entry in "${RIME_DATA[@]}"; do
   read -r repository commit sha256 <<< "${entry}"
   fetch "${repository}-${commit}.tar.gz" "${sha256}" "https://github.com/rime/${repository}/archive/${commit}.tar.gz"
 done
+fetch "plum-${PLUM_COMMIT}.tar.gz" "${PLUM_SHA256}" "https://github.com/rime/plum/archive/${PLUM_COMMIT}.tar.gz"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
@@ -120,13 +129,27 @@ for entry in "${RIME_DATA[@]}"; do
     -exec cp {} "${WORK}/rime-data/" \;
 done
 
+# The command line tools look for librime next to the app's executables, in
+# ../Frameworks. Changing them invalidates their signature, so sign them
+# again ad hoc; releases sign them properly.
+mkdir -p "${WORK}/bin" "${WORK}/plum"
+for tool in rime_deployer rime_dict_manager; do
+  cp "${DIST}/bin/${tool}" "${WORK}/bin/"
+  install_name_tool -add_rpath "@loader_path/../Frameworks" "${WORK}/bin/${tool}" 2>/dev/null
+  codesign --force --sign - "${WORK}/bin/${tool}" 2>/dev/null
+done
+tar -xzf "${CACHE}/plum-${PLUM_COMMIT}.tar.gz" -C "${WORK}/plum" --strip-components 1
+cp "${WORK}/plum/rime-install" "${WORK}/bin/"
+chmod +x "${WORK}/bin/rime-install"
+
 mkdir -p "${FRAMEWORKS}"
-rm -rf "${FRAMEWORKS}/librime.xcframework" "${FRAMEWORKS}/rime-plugins" "${FRAMEWORKS}/opencc" \
-  "${FRAMEWORKS}/rime-data" "${STAMP}"
+rm -rf "${FRAMEWORKS:?}/librime.xcframework" "${FRAMEWORKS:?}/rime-plugins" "${FRAMEWORKS:?}/opencc" \
+  "${FRAMEWORKS:?}/rime-data" "${FRAMEWORKS:?}/bin" "${STAMP}"
 mv "${WORK}/librime.xcframework" "${FRAMEWORKS}/"
 cp -pR "${DIST}/lib/rime-plugins" "${FRAMEWORKS}/rime-plugins"
 cp -pR "${WORK}/deps/share/opencc" "${FRAMEWORKS}/opencc"
 mv "${WORK}/rime-data" "${FRAMEWORKS}/rime-data"
+mv "${WORK}/bin" "${FRAMEWORKS}/bin"
 cp "${WORK}/rime/version-info.txt" "${FRAMEWORKS}/librime-version-info.txt"
 echo "${STAMP_CONTENT}" > "${STAMP}"
 
