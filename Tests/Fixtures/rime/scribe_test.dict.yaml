@@ -1,0 +1,20 @@
+# Dictionary for the scribe_test schema. Weights fix the candidate order.
+---
+name: scribe_test
+version: "1"
+sort: by_weight
+...
+
+你	ni	700
+泥	ni	600
+呢	ni	500
+尼	ni	400
+逆	ni	300
+拟	ni	200
+腻	ni	100
+好	hao	500
+号	hao	400
+你好	ni hao	1000
+中	zhong	500
+书	shu	500
+中书	zhong shu	1000

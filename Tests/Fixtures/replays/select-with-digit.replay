@@ -1,0 +1,4 @@
+# A digit commits the candidate with that label.
+n
+i       => candidates "你" "泥" "呢"
+3       => commit "呢"; marked ""; candidates none

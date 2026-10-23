@@ -1,0 +1,7 @@
+# Page_Down and Page_Up move between pages of five candidates.
+n
+i           => page 0; candidates "你" "泥" "呢" "尼" "逆"
+Page_Down   => page 1; candidates "拟" "腻"; marked "ni"
+Page_Down   => page 1
+Page_Up     => page 0; candidates "你"
+2           => commit "泥"

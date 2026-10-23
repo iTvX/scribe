@@ -1,0 +1,32 @@
+# Minimal pinyin schema for tests: a handful of syllables with fixed weights,
+# so candidate order is deterministic.
+schema:
+  schema_id: scribe_test
+  name: Scribe Test
+  version: "1"
+
+engine:
+  processors:
+    - ascii_composer
+    - speller
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - script_translator
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+
+translator:
+  dictionary: scribe_test
+  # No learning: every test sees the same candidate order.
+  enable_user_dict: false
+
+menu:
+  page_size: 5
