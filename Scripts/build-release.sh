@@ -63,7 +63,11 @@ if [[ "${SIGNED}" == 1 ]]; then
     echo "error: signing identity \"${SIGN_IDENTITY}\" is not in ${KEYCHAIN_DB}" >&2
     exit 1
   fi
-  if ! security find-identity -v "${KEYCHAIN_DB}" | grep -qF "\"${INSTALLER_IDENTITY}\""; then
+  # Not -v: the Developer ID G2 intermediate that issued the installer
+  # certificate is only in KEYCHAIN_DB, which is not on the search list, so
+  # find-identity cannot complete the chain and reports it as untrusted.
+  # check-release.sh verifies the finished package signature instead.
+  if ! security find-identity "${KEYCHAIN_DB}" | grep -qF "\"${INSTALLER_IDENTITY}\""; then
     echo "error: installer identity \"${INSTALLER_IDENTITY}\" is not in ${KEYCHAIN_DB}" >&2
     exit 1
   fi
