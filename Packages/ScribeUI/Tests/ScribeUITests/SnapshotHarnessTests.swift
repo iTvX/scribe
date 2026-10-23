@@ -68,4 +68,25 @@ import Testing
         let comparison = Snapshot.Comparison(expected: expected, actual: actual)
         #expect(comparison.matches, "\(comparison)")
     }
+
+    /// The looser comparison with Squirrel's references still catches a
+    /// point of movement and a wrong colour.
+    @Test func squirrelToleranceCatchesRealDifferences() throws {
+        func squirrelMatch(_ expected: CGImage, _ actual: CGImage) -> Bool {
+            Snapshot.Comparison(expected: expected, actual: actual, channelTolerance: SquirrelReferenceTests.channelTolerance, neighborhood: 1)
+                .matches(maxDifferingFraction: SquirrelReferenceTests.maxDifferingFraction, maxDifferingPixels: SquirrelReferenceTests.maxDifferingPixels)
+        }
+        let expected = try render()
+        #expect(squirrelMatch(expected, try render()))
+        #expect(!squirrelMatch(expected, try render { $0.labelFont.pointSize = 11 }))
+        // 47/255 more green; smaller slips are the exact baselines' job.
+        #expect(!squirrelMatch(expected, try render { $0.colors.hilitedCandidateBackground = Fixtures.color("0x75e000") }))
+        let pixels = Snapshot.pixels(of: expected)
+        var moved = [UInt8](repeating: 0, count: pixels.count)
+        for row in 0..<expected.height {
+            let start = row * expected.width * 4
+            moved[(start + 8)..<(start + expected.width * 4)] = pixels[start..<(start + expected.width * 4 - 8)]
+        }
+        #expect(!squirrelMatch(expected, try #require(Snapshot.image(from: moved, width: expected.width, height: expected.height))))
+    }
 }

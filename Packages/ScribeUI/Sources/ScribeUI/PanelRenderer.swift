@@ -12,7 +12,7 @@ enum PanelRenderer {
     static let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
 
     /// The reference screen: a 1440×900 display.
-    static let referenceScreen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    nonisolated static let referenceScreen = CGRect(x: 0, y: 0, width: 1440, height: 900)
 
     /// The panel for `content`, or nil when it has nothing to show. `scale`
     /// is pixels per point.
@@ -41,6 +41,7 @@ enum PanelRenderer {
         context.scaleBy(x: pixelScale, y: -pixelScale)
         // PanelView smooths its text, as Squirrel's TextKit layers do.
         context.setAllowsFontSmoothing(true)
+        context.clip(to: windowClip(viewSize: viewSize, screenSize: sizing.size, vertical: theme.vertical, scale: scale))
 
         let previous = NSGraphicsContext.current
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
@@ -50,6 +51,27 @@ enum PanelRenderer {
         NSGraphicsContext.current = previous
 
         return theme.vertical ? rotatedClockwise(context) : context.makeImage()
+    }
+
+    /// The part of the view the window shows, in view coordinates. AppKit
+    /// rounds the window's content view to the nearest pixel at `scale`;
+    /// the panel stays at its natural size, so a panel that rounds down
+    /// loses a sliver of its right edge and of its top edge (bottom edge
+    /// when turned for vertical text) on screen.
+    static func windowClip(viewSize: CGSize, screenSize: CGSize, vertical: Bool, scale: CGFloat) -> CGRect {
+        // A side that rounds up is not cut; it keeps a whole extra point so
+        // the clip leaves its anti-aliased edge alone.
+        func shownLength(_ length: CGFloat) -> CGFloat {
+            let rounded = (length * scale).rounded() / scale
+            return rounded < length ? rounded : length.rounded(.up) + 1
+        }
+        let shown = CGSize(width: shownLength(screenSize.width), height: shownLength(screenSize.height))
+        if vertical {
+            // The view's x runs down the screen and its y leftwards; the
+            // turned content keeps its top edge and loses its bottom one.
+            return CGRect(x: 0, y: viewSize.height - shown.width, width: shown.height, height: shown.width)
+        }
+        return CGRect(x: 0, y: max(0, screenSize.height - shown.height), width: shown.width, height: shown.height)
     }
 
     private static func bitmap(width: Int, height: Int) -> CGContext? {

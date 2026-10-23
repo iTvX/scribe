@@ -8,11 +8,12 @@ let package = Package(
         .library(name: "ScribeUI", targets: ["ScribeUI"]),
     ],
     dependencies: [
+        .package(path: "../RimeKit"),
         .package(path: "../ScribeConfig"),
         .package(path: "../ScribeCore"),
     ],
     targets: [
         .target(name: "ScribeUI", dependencies: ["ScribeConfig", "ScribeCore"]),
-        .testTarget(name: "ScribeUITests", dependencies: ["ScribeUI", "ScribeConfig", "ScribeCore"]),
+        .testTarget(name: "ScribeUITests", dependencies: ["ScribeUI", "RimeKit", "ScribeConfig", "ScribeCore"]),
     ]
 )

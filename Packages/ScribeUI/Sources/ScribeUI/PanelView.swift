@@ -141,7 +141,6 @@ final class PanelView: NSView {
         let shapes = shapes(text, theme: theme)
 
         context.saveGState()
-        context.clip(to: bounds)
         // The window's alphaValue fades everything together.
         let fades = theme.alpha < 1
         if fades {

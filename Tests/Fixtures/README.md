@@ -4,4 +4,4 @@
 - `replays/`：回放文件，一行一个按键加期望结果，在假引擎和真实 librime 上都跑，格式见其中的 README。
 - `gate/`：需要真实配置的检查，比如 `rime-ice.replay`，不在 CI 里跑，用 `Scribe --replay` 在本机回放。
 - `rime-dir/`：合成的鼠须管用户目录（雾凇拼音式配置、Lua、OpenCC、其他前端的配置），供导入测试使用；git 存不了的 `build/`、`.git/`、用户词库等由测试在运行时补上。
-- `snapshots/`：候选窗快照的基准图。`scribe/` 是中书自己画的，按测试分组；更新方法见仓库 README 的「运行测试」。
+- `snapshots/`：候选窗快照。`cases.json` 是用例，`configs/` 是从真实 squirrel.yaml 读出的扁平配置，`scribe/` 是中书自己画的基准图，`squirrel/` 是 `Tools/squirrel-oracle` 用鼠须管代码画的参考图；更新方法见仓库 README 的「运行测试」。

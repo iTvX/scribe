@@ -1,0 +1,972 @@
+{
+  "comment": "Candidate window snapshot cases, shared by ScribeUI's snapshot tests and Tools/squirrel-oracle. Config values are written as in squirrel.yaml; a case with \"config\" starts from configs/<config>.json instead of \"style\" and \"schemes\" here.",
+  "style": {
+    "color_scheme": "native",
+    "candidate_list_layout": "stacked",
+    "text_orientation": "horizontal",
+    "inline_preedit": "true",
+    "inline_candidate": "false",
+    "memorize_size": "true",
+    "mutual_exclusive": "false",
+    "translucency": "false",
+    "show_paging": "false",
+    "corner_radius": "7",
+    "hilited_corner_radius": "0",
+    "border_height": "-2",
+    "border_width": "-2",
+    "line_spacing": "5",
+    "spacing": "8",
+    "shadow_size": "0",
+    "candidate_format": "[label]. [candidate] [comment]",
+    "font_face": "Avenir, PingFang SC",
+    "font_point": "16"
+  },
+  "schemes": {
+    "aqua": {
+      "text_color": "0x606060",
+      "back_color": "0xeeeceeee",
+      "candidate_text_color": "0x000000",
+      "hilited_text_color": "0x000000",
+      "hilited_candidate_text_color": "0xffffff",
+      "hilited_candidate_back_color": "0xeefa3a0a",
+      "comment_text_color": "0x5a5a5a",
+      "hilited_comment_text_color": "0xfcac9d"
+    },
+    "lost_temple": {
+      "text_color": "0xe8f3f6",
+      "back_color": "0xee303030",
+      "hilited_text_color": "0x82e6ca",
+      "hilited_candidate_text_color": "0x000000",
+      "hilited_candidate_back_color": "0x82e6ca",
+      "comment_text_color": "0xbb82e6ca",
+      "hilited_comment_text_color": "0xbb203d34"
+    },
+    "wechat_light": {
+      "back_color": "0xffffff",
+      "text_color": "0x424242",
+      "candidate_text_color": "0x000000",
+      "hilited_candidate_text_color": "0xffffff",
+      "hilited_candidate_back_color": "0x75b100",
+      "label_color": "0x999999",
+      "hilited_candidate_label_color": "0xffffff",
+      "comment_text_color": "0x999999",
+      "hilited_comment_text_color": "0xdcdcdc",
+      "border_color": "0xe5e5e5",
+      "candidate_list_layout": "linear",
+      "border_width": "8",
+      "border_height": "0",
+      "corner_radius": "5",
+      "inline_preedit": "true",
+      "font_face": "PingFang SC",
+      "font_point": "16",
+      "label_font_point": "12"
+    },
+    "wechat_dark": {
+      "back_color": "0x2e2e2e",
+      "text_color": "0xdcdcdc",
+      "candidate_text_color": "0xe6e6e6",
+      "hilited_candidate_text_color": "0xffffff",
+      "hilited_candidate_back_color": "0x75b100",
+      "label_color": "0x8c8c8c",
+      "hilited_candidate_label_color": "0xffffff",
+      "comment_text_color": "0x8c8c8c",
+      "hilited_comment_text_color": "0xdcdcdc",
+      "border_color": "0x3c3c3c",
+      "candidate_list_layout": "linear",
+      "border_width": "8",
+      "border_height": "0",
+      "corner_radius": "5",
+      "inline_preedit": "true",
+      "font_face": "PingFang SC",
+      "font_point": "16",
+      "label_font_point": "12"
+    },
+    "glass": {
+      "back_color": "0x80ffffff",
+      "text_color": "0x606060",
+      "candidate_text_color": "0x000000",
+      "hilited_text_color": "0x000000",
+      "comment_text_color": "0x5a5a5a",
+      "preedit_back_color": "0x40ff0000",
+      "hilited_back_color": "0x6000c0ff",
+      "candidate_back_color": "0x30000000",
+      "hilited_candidate_back_color": "0x80fa3a0a"
+    }
+  },
+  "contents": {
+    "pinyin": {
+      "candidates": [
+        {
+          "text": "中书"
+        },
+        {
+          "text": "中枢",
+          "comment": "zhōng shū"
+        },
+        {
+          "text": "钟书"
+        },
+        {
+          "text": "忠恕",
+          "comment": "~shu"
+        },
+        {
+          "text": "中"
+        }
+      ],
+      "highlighted": 0
+    },
+    "pinyin-preedit": {
+      "candidates": [
+        {
+          "text": "中书"
+        },
+        {
+          "text": "中枢",
+          "comment": "zhōng shū"
+        },
+        {
+          "text": "钟书"
+        },
+        {
+          "text": "忠恕",
+          "comment": "~shu"
+        },
+        {
+          "text": "中"
+        }
+      ],
+      "highlighted": 0,
+      "preedit": {
+        "text": "zhong shu ji",
+        "selection": [
+          6,
+          12
+        ],
+        "caret": 12
+      }
+    },
+    "nine": {
+      "candidates": [
+        {
+          "text": "是",
+          "comment": "shì"
+        },
+        {
+          "text": "时"
+        },
+        {
+          "text": "事"
+        },
+        {
+          "text": "市",
+          "comment": "shì"
+        },
+        {
+          "text": "使"
+        },
+        {
+          "text": "十",
+          "comment": "shí"
+        },
+        {
+          "text": "式"
+        },
+        {
+          "text": "师"
+        },
+        {
+          "text": "试",
+          "comment": "shì"
+        }
+      ],
+      "highlighted": 0
+    },
+    "nine-preedit": {
+      "candidates": [
+        {
+          "text": "是",
+          "comment": "shì"
+        },
+        {
+          "text": "时"
+        },
+        {
+          "text": "事"
+        },
+        {
+          "text": "市",
+          "comment": "shì"
+        },
+        {
+          "text": "使"
+        },
+        {
+          "text": "十",
+          "comment": "shí"
+        },
+        {
+          "text": "式"
+        },
+        {
+          "text": "师"
+        },
+        {
+          "text": "试",
+          "comment": "shì"
+        }
+      ],
+      "highlighted": 0,
+      "preedit": {
+        "text": "shi",
+        "selection": [
+          0,
+          3
+        ],
+        "caret": 3
+      }
+    }
+  },
+  "suites": {
+    "layout": [
+      {
+        "name": "stacked-horizontal-light",
+        "style": {
+          "candidate_list_layout": "stacked",
+          "text_orientation": "horizontal"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "stacked-horizontal-dark",
+        "style": {
+          "candidate_list_layout": "stacked",
+          "text_orientation": "horizontal"
+        },
+        "content": "pinyin",
+        "dark": true
+      },
+      {
+        "name": "stacked-vertical-light",
+        "style": {
+          "candidate_list_layout": "stacked",
+          "text_orientation": "vertical"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "stacked-vertical-dark",
+        "style": {
+          "candidate_list_layout": "stacked",
+          "text_orientation": "vertical"
+        },
+        "content": "pinyin",
+        "dark": true
+      },
+      {
+        "name": "linear-horizontal-light",
+        "style": {
+          "candidate_list_layout": "linear",
+          "text_orientation": "horizontal"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "linear-horizontal-dark",
+        "style": {
+          "candidate_list_layout": "linear",
+          "text_orientation": "horizontal"
+        },
+        "content": "pinyin",
+        "dark": true
+      },
+      {
+        "name": "linear-vertical-light",
+        "style": {
+          "candidate_list_layout": "linear",
+          "text_orientation": "vertical"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "linear-vertical-dark",
+        "style": {
+          "candidate_list_layout": "linear",
+          "text_orientation": "vertical"
+        },
+        "content": "pinyin",
+        "dark": true
+      }
+    ],
+    "schemes": [
+      {
+        "name": "aqua",
+        "scheme": "aqua",
+        "content": "pinyin"
+      },
+      {
+        "name": "lost_temple",
+        "scheme": "lost_temple",
+        "content": "pinyin"
+      },
+      {
+        "name": "wechat_light",
+        "scheme": "wechat_light",
+        "content": "pinyin"
+      },
+      {
+        "name": "wechat_dark",
+        "scheme": "wechat_dark",
+        "content": "pinyin",
+        "dark": true
+      }
+    ],
+    "features": [
+      {
+        "name": "preedit-stacked",
+        "scheme": "aqua",
+        "style": {
+          "inline_preedit": "false"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "preedit-linear",
+        "scheme": "aqua",
+        "style": {
+          "inline_preedit": "false",
+          "candidate_list_layout": "linear"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "preedit-vertical",
+        "scheme": "aqua",
+        "style": {
+          "inline_preedit": "false",
+          "text_orientation": "vertical"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "preedit-only",
+        "scheme": "aqua",
+        "style": {
+          "inline_preedit": "false"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": {
+          "candidates": [],
+          "preedit": {
+            "text": "zhong",
+            "selection": [
+              0,
+              5
+            ],
+            "caret": 5
+          }
+        }
+      },
+      {
+        "name": "preedit-native",
+        "style": {
+          "inline_preedit": "false"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "preedit-inline-theme",
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "wrap-stacked",
+        "content": {
+          "candidates": [
+            {
+              "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿列张"
+            },
+            {
+              "text": "中书"
+            }
+          ],
+          "highlighted": 0
+        }
+      },
+      {
+        "name": "wrap-linear",
+        "style": {
+          "candidate_list_layout": "linear"
+        },
+        "content": {
+          "candidates": [
+            {
+              "text": "千字文开篇"
+            },
+            {
+              "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄"
+            },
+            {
+              "text": "宇宙洪荒"
+            },
+            {
+              "text": "天地玄黄宇宙洪荒日月盈昃辰宿列张天地玄黄宇宙洪荒日月盈昃辰宿"
+            },
+            {
+              "text": "辰宿列张"
+            }
+          ],
+          "highlighted": 3
+        }
+      },
+      {
+        "name": "rare-characters",
+        "content": {
+          "candidates": [
+            {
+              "text": "𠀾"
+            },
+            {
+              "text": "𪚥",
+              "comment": "zhé"
+            },
+            {
+              "text": "𰻞𰻞面"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 2
+        }
+      },
+      {
+        "name": "nine-candidates",
+        "content": {
+          "candidates": [
+            {
+              "text": "是",
+              "comment": "shì"
+            },
+            {
+              "text": "时"
+            },
+            {
+              "text": "事"
+            },
+            {
+              "text": "市",
+              "comment": "shì"
+            },
+            {
+              "text": "使"
+            },
+            {
+              "text": "十",
+              "comment": "shí"
+            },
+            {
+              "text": "式"
+            },
+            {
+              "text": "师"
+            },
+            {
+              "text": "试",
+              "comment": "shì"
+            }
+          ],
+          "highlighted": 4
+        }
+      },
+      {
+        "name": "paging-stacked",
+        "style": {
+          "show_paging": "true"
+        },
+        "content": {
+          "candidates": [
+            {
+              "text": "中书"
+            },
+            {
+              "text": "中枢",
+              "comment": "zhōng shū"
+            },
+            {
+              "text": "钟书"
+            },
+            {
+              "text": "忠恕",
+              "comment": "~shu"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 0,
+          "page": 1,
+          "lastPage": false
+        }
+      },
+      {
+        "name": "paging-linear-vertical",
+        "style": {
+          "show_paging": "true",
+          "candidate_list_layout": "linear",
+          "text_orientation": "vertical"
+        },
+        "content": {
+          "candidates": [
+            {
+              "text": "中书"
+            },
+            {
+              "text": "中枢",
+              "comment": "zhōng shū"
+            },
+            {
+              "text": "钟书"
+            },
+            {
+              "text": "忠恕",
+              "comment": "~shu"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 0,
+          "page": 0,
+          "lastPage": false
+        }
+      },
+      {
+        "name": "border",
+        "scheme": "aqua",
+        "style": {
+          "border_width": "4",
+          "border_height": "4"
+        },
+        "colors": {
+          "border_color": "0xffa0a0a0"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "translucent",
+        "scheme": "glass",
+        "style": {
+          "inline_preedit": "false",
+          "translucency": "true",
+          "hilited_corner_radius": "4",
+          "surrounding_extra_expansion": "1"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "mutual-exclusive",
+        "scheme": "glass",
+        "style": {
+          "inline_preedit": "false",
+          "translucency": "true",
+          "hilited_corner_radius": "4",
+          "surrounding_extra_expansion": "1",
+          "mutual_exclusive": "true"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "shadow-stacked",
+        "scheme": "aqua",
+        "style": {
+          "shadow_size": "6",
+          "hilited_corner_radius": "6"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "shadow-linear",
+        "scheme": "aqua",
+        "style": {
+          "shadow_size": "6",
+          "hilited_corner_radius": "6",
+          "candidate_list_layout": "linear"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "expansion-stacked",
+        "scheme": "aqua",
+        "style": {
+          "surrounding_extra_expansion": "2",
+          "hilited_corner_radius": "4"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "expansion-linear",
+        "scheme": "aqua",
+        "style": {
+          "surrounding_extra_expansion": "-2",
+          "hilited_corner_radius": "4",
+          "candidate_list_layout": "linear"
+        },
+        "colors": {
+          "preedit_back_color": "0xf4f4f4",
+          "hilited_back_color": "0xffd8c0",
+          "candidate_back_color": "0xffffff"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "hilited-corner-stacked",
+        "scheme": "aqua",
+        "style": {
+          "hilited_corner_radius": "8"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "hilited-corner-linear",
+        "scheme": "aqua",
+        "style": {
+          "hilited_corner_radius": "8",
+          "candidate_list_layout": "linear"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "format-four-per-em-space",
+        "style": {
+          "candidate_format": "[label] [candidate] [comment]"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "format-without-label",
+        "style": {
+          "candidate_format": "[candidate] [comment]"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "accent-warning-comments",
+        "scheme": "lost_temple",
+        "colors": {
+          "accent_text_color": "0x3c9cff",
+          "warning_text_color": "0x3030ff"
+        },
+        "content": {
+          "candidates": [
+            {
+              "text": "中书"
+            },
+            {
+              "text": "中枢",
+              "comment": "zhōng shū"
+            },
+            {
+              "text": "钟书"
+            },
+            {
+              "text": "忠恕",
+              "comment": "~shu"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 0,
+          "accent": [
+            1,
+            3
+          ],
+          "warning": [
+            3,
+            4
+          ]
+        }
+      },
+      {
+        "name": "accent-without-colour",
+        "scheme": "lost_temple",
+        "content": {
+          "candidates": [
+            {
+              "text": "中书"
+            },
+            {
+              "text": "中枢",
+              "comment": "zhōng shū"
+            },
+            {
+              "text": "钟书"
+            },
+            {
+              "text": "忠恕",
+              "comment": "~shu"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 0,
+          "accent": [
+            1
+          ]
+        }
+      },
+      {
+        "name": "base-offset",
+        "scheme": "aqua",
+        "style": {
+          "base_offset": "3"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "alpha",
+        "scheme": "aqua",
+        "style": {
+          "alpha": "0.6"
+        },
+        "content": "pinyin"
+      },
+      {
+        "name": "status-message",
+        "content": {
+          "candidates": [],
+          "status": "中文"
+        }
+      },
+      {
+        "name": "status-message-vertical",
+        "style": {
+          "text_orientation": "vertical"
+        },
+        "content": {
+          "candidates": [],
+          "status": "ABC"
+        }
+      }
+    ],
+    "presets": [
+      {
+        "name": "apathy",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "apathy"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "aqua",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "aqua"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "azure",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "azure"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "clean_white",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "clean_white"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "dark_temple",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "dark_temple"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "dust",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "dust"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "google",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "google"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "ink",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "ink"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "lost_temple",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "lost_temple"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "luna",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "luna"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "mojave_dark",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "mojave_dark"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "native",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "native"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "psionics",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "psionics"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "purity_of_essence",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "purity_of_essence"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "purity_of_form",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "purity_of_form"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "retro_green",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "retro_green"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "retro_orange",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "retro_orange"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "solarized_dark",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "solarized_dark"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "solarized_light",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "solarized_light"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "solarized_rock",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "solarized_rock"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "starcraft",
+        "config": "squirrel",
+        "style": {
+          "color_scheme": "starcraft"
+        },
+        "content": "pinyin-preedit"
+      }
+    ],
+    "max-sample": [
+      {
+        "name": "light",
+        "config": "max-sample",
+        "content": "nine"
+      },
+      {
+        "name": "dark",
+        "config": "max-sample",
+        "content": "nine",
+        "dark": true
+      },
+      {
+        "name": "light-no-inline",
+        "config": "max-sample",
+        "content": "nine-preedit"
+      },
+      {
+        "name": "dark-no-inline",
+        "config": "max-sample",
+        "content": "nine-preedit",
+        "dark": true
+      }
+    ]
+  }
+}

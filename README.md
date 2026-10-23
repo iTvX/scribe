@@ -57,7 +57,7 @@ ScribeUI 的测试里有候选窗快照：把面板画成图，和 `Tests/Fixtur
 SCRIBE_RECORD_SNAPSHOTS=1 swift test --package-path Packages/ScribeUI
 ```
 
-做法和容差见 `docs/decisions/0007-candidate-panel-rendering.md`。
+同样的用例也和鼠须管自己的代码画出的参考图比较（`Tests/Fixtures/snapshots/squirrel`）。参考图由 `Tools/squirrel-oracle/render.sh` 生成，改了用例或配置后在本机运行再提交，CI 只做比较。做法和容差见 `docs/decisions/0007-candidate-panel-rendering.md`。
 
 ### 生成工程并构建
 

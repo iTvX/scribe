@@ -69,14 +69,31 @@ enum Snapshot {
             )
             return
         }
-        let comparison = Comparison(expected: expected, actual: image)
-        guard !comparison.matches else { return }
+        compare(image, with: expected, suite: suite, name: name, sourceLocation: sourceLocation)
+    }
+
+    /// Records an issue, with images in the artifacts directory, unless
+    /// `image` matches `expected` within the tolerances.
+    static func compare(
+        _ image: CGImage,
+        with expected: CGImage,
+        suite: String,
+        name: String,
+        channelTolerance: Int = channelTolerance,
+        neighborhood: Int = 0,
+        maxDifferingFraction: Double = maxDifferingFraction,
+        maxDifferingPixels: Int = 0,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        let comparison = Comparison(expected: expected, actual: image, channelTolerance: channelTolerance, neighborhood: neighborhood)
+        guard !comparison.matches(maxDifferingFraction: maxDifferingFraction, maxDifferingPixels: maxDifferingPixels) else { return }
+        let failures = artifactsDirectory.appending(path: suite)
         try? write(expected, to: failures.appending(path: "\(name)-expected.png"))
         try? write(image, to: failures.appending(path: "\(name)-actual.png"))
         if let diff = comparison.diffImage {
             try? write(diff, to: failures.appending(path: "\(name)-diff.png"))
         }
-        Issue.record("\(suite)/\(name) does not match its baseline: \(comparison); images in \(failures.path)", sourceLocation: sourceLocation)
+        Issue.record("\(suite)/\(name) does not match: \(comparison); images in \(failures.path)", sourceLocation: sourceLocation)
     }
 
     /// The outcome of comparing two images pixel by pixel.
@@ -87,20 +104,47 @@ enum Snapshot {
         var largestChannelDifference = 0
         var diffImage: CGImage?
 
-        init(expected: CGImage, actual: CGImage) {
+        /// Pixels differ when a channel is further apart than
+        /// `channelTolerance`, out of 255. With a `neighborhood` of 1, a pixel
+        /// also matches when it is close to any pixel next to it in the
+        /// other image, either way round, which absorbs anti-aliasing and
+        /// sub-pixel placement.
+        init(expected: CGImage, actual: CGImage, channelTolerance: Int = Snapshot.channelTolerance, neighborhood: Int = 0) {
             expectedSize = (expected.width, expected.height)
             actualSize = (actual.width, actual.height)
             guard expectedSize == actualSize else { return }
             let expectedPixels = Snapshot.pixels(of: expected)
             let actualPixels = Snapshot.pixels(of: actual)
-            var diff = [UInt8](repeating: 0, count: expectedPixels.count)
-            for pixel in stride(from: 0, to: expectedPixels.count, by: 4) {
+            let (width, height) = expectedSize
+            func distance(_ first: [UInt8], _ firstIndex: Int, _ second: [UInt8], _ secondIndex: Int) -> Int {
                 var largest = 0
                 for channel in 0..<4 {
-                    largest = max(largest, abs(Int(expectedPixels[pixel + channel]) - Int(actualPixels[pixel + channel])))
+                    largest = max(largest, abs(Int(first[firstIndex + channel]) - Int(second[secondIndex + channel])))
+                }
+                return largest
+            }
+            /// The smallest distance from pixel (x, y) of `first` to the
+            /// pixels around (x, y) in `second`.
+            func nearest(_ first: [UInt8], _ second: [UInt8], x: Int, y: Int) -> Int {
+                var best = Int.max
+                for dy in -neighborhood...neighborhood {
+                    for dx in -neighborhood...neighborhood {
+                        let (nx, ny) = (x + dx, y + dy)
+                        guard nx >= 0, ny >= 0, nx < width, ny < height else { continue }
+                        best = min(best, distance(first, (y * width + x) * 4, second, (ny * width + nx) * 4))
+                    }
+                }
+                return best
+            }
+            var diff = [UInt8](repeating: 0, count: expectedPixels.count)
+            for pixel in stride(from: 0, to: expectedPixels.count, by: 4) {
+                var largest = distance(expectedPixels, pixel, actualPixels, pixel)
+                if neighborhood > 0 && largest > channelTolerance {
+                    let (x, y) = ((pixel / 4) % width, (pixel / 4) / width)
+                    largest = max(nearest(expectedPixels, actualPixels, x: x, y: y), nearest(actualPixels, expectedPixels, x: x, y: y))
                 }
                 largestChannelDifference = max(largestChannelDifference, largest)
-                if largest > Snapshot.channelTolerance {
+                if largest > channelTolerance {
                     differingPixels += 1
                     diff[pixel] = 255
                     diff[pixel + 3] = 255
@@ -123,7 +167,13 @@ enum Snapshot {
         }
 
         var matches: Bool {
-            sizesMatch && differingFraction <= Snapshot.maxDifferingFraction
+            matches(maxDifferingFraction: Snapshot.maxDifferingFraction)
+        }
+
+        /// Whether the sizes match and few enough pixels differ: no more
+        /// than `maxDifferingFraction` of them, or `maxDifferingPixels`.
+        func matches(maxDifferingFraction: Double, maxDifferingPixels: Int = 0) -> Bool {
+            sizesMatch && (differingFraction <= maxDifferingFraction || differingPixels <= maxDifferingPixels)
         }
 
         var description: String {
