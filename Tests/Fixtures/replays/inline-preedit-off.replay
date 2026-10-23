@@ -1,0 +1,7 @@
+# Without inline preedit, the client shows a full-width space, which keeps
+# terminals from echoing the input, and the candidate window shows the input
+# with a soft cursor.
+@style inline_preedit false
+n       => marked "　"; caret 0; panel-preedit "n‸"; option soft_cursor true
+i       => marked "　"; panel-preedit "ni‸"; candidates "你"
+space   => commit "你"; marked ""; panel-preedit none

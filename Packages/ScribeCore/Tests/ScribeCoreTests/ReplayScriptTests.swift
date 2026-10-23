@@ -33,3 +33,28 @@ import Testing
         try ReplayScript("a => bogus 1")
     }
 }
+
+@Test func parsesTheStyleAndTheClientApp() throws {
+    let script = try ReplayScript("""
+        @style inline_preedit false
+        @app com.apple.Terminal ascii_mode=true no_inline=true
+        n   => panel-preedit "n‸"
+        @style linear true
+        i   => panel-preedit none
+        """)
+    #expect(script.steps[0].presentation == InputSession.Presentation(inlinePreedit: false))
+    #expect(script.steps[0].app == ReplayScript.App(bundleID: "com.apple.Terminal", options: ["ascii_mode": true, "no_inline": true]))
+    #expect(script.steps[0].expectations == [.panelPreedit("n‸")])
+    #expect(script.steps[1].presentation == InputSession.Presentation(inlinePreedit: false, linear: true))
+    #expect(script.steps[1].app == nil)
+    #expect(script.steps[1].expectations == [.panelPreedit(nil)])
+}
+
+@Test func rejectsUnknownStyles() {
+    #expect(throws: ReplayScript.ParseError(line: 1, message: "expected \"@style inline_preedit|inline_candidate|linear|vertical true|false\"")) {
+        try ReplayScript("@style color_scheme true")
+    }
+    #expect(throws: ReplayScript.ParseError(line: 1, message: "expected \"@app BUNDLE_ID [OPTION=true|false ...]\"")) {
+        try ReplayScript("@app com.apple.Terminal ascii_mode")
+    }
+}

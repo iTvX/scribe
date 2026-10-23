@@ -1,0 +1,7 @@
+# With inline_candidate, the client shows the highlighted candidate instead
+# of the input.
+@style inline_candidate true
+n
+i       => marked "你"; caret 1; panel-preedit none
+Down    => marked "泥"
+space   => commit "泥"; marked ""

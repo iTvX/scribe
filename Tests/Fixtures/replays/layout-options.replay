@@ -1,0 +1,6 @@
+# Before each key, the frontend tells Rime how the candidate window lays out
+# candidates, so schemas can follow it.
+n       => option _linear false; option _vertical false
+@style linear true
+@style vertical true
+i       => option _linear true; option _vertical true

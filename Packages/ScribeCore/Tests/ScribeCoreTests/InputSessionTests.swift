@@ -29,10 +29,73 @@ import Testing
                     .init(label: "1", text: "你"), .init(label: "2", text: "泥"), .init(label: "3", text: "呢"),
                     .init(label: "4", text: "尼"), .init(label: "5", text: "逆"),
                 ],
-                isLastPage: false,
-                preedit: Preedit(text: "ni", selectedRange: 0..<2, caret: 2)
+                isLastPage: false
             )),
         ])
+    }
+
+    @Test func withoutInlinePreeditTheWindowShowsTheInput() {
+        session.presentation.inlinePreedit = false
+        #expect(type("n").first == .setMarkedText(MarkedText(text: "　", caret: 0)))
+        // The client keeps its placeholder; only the window changes.
+        #expect(type("i") == [
+            .showCandidates(CandidateSnapshot(
+                entries: [
+                    .init(label: "1", text: "你"), .init(label: "2", text: "泥"), .init(label: "3", text: "呢"),
+                    .init(label: "4", text: "尼"), .init(label: "5", text: "逆"),
+                ],
+                isLastPage: false,
+                preedit: Preedit(text: "ni‸", selectedRange: 0..<2, caret: 2)
+            )),
+        ])
+    }
+
+    // The client app, as Squirrel handles it.
+
+    @Test func appOptionsAreSetWhenTheSessionStarts() throws {
+        session.setClientApp(InputSession.ClientApp(bundleID: "com.apple.Terminal", options: ["ascii_mode": true]))
+        _ = session.handle(KeyEvent(name: "a")!)
+        let id = try #require(session.currentSessionID)
+        #expect(engine.option("ascii_mode", in: id))
+        #expect(engine.property("client_app", in: id) == nil)
+    }
+
+    @Test func appOptionsAreSetAgainWhenTheAppChanges() throws {
+        _ = type("n")
+        let id = try #require(session.currentSessionID)
+        session.setClientApp(InputSession.ClientApp(bundleID: "org.vim.MacVim", options: ["vim_mode": true]))
+        #expect(engine.option("vim_mode", in: id))
+        engine.setOption("vim_mode", false, in: id)
+        session.setClientApp(InputSession.ClientApp(bundleID: "org.vim.MacVim", options: ["vim_mode": true]))
+        #expect(!engine.option("vim_mode", in: id), "the same app again changes nothing")
+    }
+
+    @Test func theBundleIDIsReportedWhenAllowed() throws {
+        session.setClientApp(InputSession.ClientApp(bundleID: "com.apple.TextEdit", options: [:], reportsBundleID: true))
+        let id = try #require(session.currentSessionID)
+        #expect(engine.property("client_app", in: id) == "com.apple.TextEdit")
+    }
+
+    /// Some text views accept text only after marked text, as Alacritty does.
+    @Test func forcedMarkedTextPrecedesADirectCommit() throws {
+        let chordTimer = ManualChordTimer()
+        let session = InputSession(engine: engine, chordTimer: chordTimer)
+        session.setClientApp(InputSession.ClientApp(
+            bundleID: "org.alacritty",
+            options: ["force_marked_text_for_direct_commit": true, "_chord_typing": true]
+        ))
+        var actions: [SessionAction] = []
+        session.onAsyncActions = { actions += $0 }
+        _ = session.handle(KeyEvent(name: "a")!)
+        _ = session.handle(KeyEvent(name: "s")!)
+        chordTimer.fire()
+        #expect(actions == [.setMarkedText(MarkedText(text: "as", caret: 2)), .commit("as")])
+    }
+
+    @Test func committingAfterMarkedTextNeedsNoForcing() {
+        session.setClientApp(InputSession.ClientApp(bundleID: "org.alacritty", options: ["force_marked_text_for_direct_commit": true]))
+        _ = type("ni")
+        #expect(session.handle(KeyEvent(Keysym.space)).actions.first == .commit("你"))
     }
 
     @Test func committingReplacesMarkedTextAndHidesCandidates() {
@@ -61,14 +124,16 @@ import Testing
         #expect(session.handle(KeyEvent(Keysym.escape)).actions == [.setMarkedText(.empty), .hideCandidates])
     }
 
+    /// So that the window can show the input alone.
     @Test func aCompositionWithoutCandidatesStillHasASnapshot() {
+        session.presentation.inlinePreedit = false
         // "x" spells nothing in the test dictionary.
         let result = session.handle(KeyEvent(name: "x")!)
         #expect(result.actions == [
-            .setMarkedText(MarkedText(text: "x", caret: 1)),
+            .setMarkedText(MarkedText(text: "　", caret: 0)),
             .showCandidates(CandidateSnapshot(
                 entries: [],
-                preedit: Preedit(text: "x", selectedRange: 0..<1, caret: 1)
+                preedit: Preedit(text: "x‸", selectedRange: 0..<1, caret: 1)
             )),
         ])
     }

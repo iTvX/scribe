@@ -11,6 +11,7 @@ import Testing
 final class CallLog: TextClient, CandidatePresenting {
     var calls: [String] = []
     weak var delegate: (any CandidatePanelDelegate)?
+    var bundleIdentifier = "com.example.Editor"
 
     func insertText(_ text: String) {
         calls.append("insert \(text)")
@@ -226,6 +227,27 @@ final class CallLog: TextClient, CandidatePresenting {
         try #require(log.delegate).candidatePanel(panel, didSelectCandidateAt: 0)
         #expect(other.calls == ["insert 你"])
         #expect(log.calls == ["hide"])
+    }
+
+    @Test func theClientsAppOptionsApply() throws {
+        adapter.clientApp = { InputSession.ClientApp(bundleID: $0, options: $0 == "com.apple.Terminal" ? ["ascii_mode": true] : [:]) }
+        log.bundleIdentifier = "com.apple.Terminal"
+        #expect(!adapter.handle(input(key("n", code: 45)), client: log))
+        #expect(adapter.isASCIIMode == true)
+    }
+
+    @Test func theWindowShowsTheInputAloneWhenTheClientDoesNot() {
+        session.presentation.inlinePreedit = false
+        // "x" spells nothing in the test dictionary.
+        _ = adapter.handle(input(key("x", code: 7)), client: log)
+        #expect(log.calls == ["mark 　|0", "caret", "show "])
+    }
+
+    @Test func aNoInlineAppSeesTheInputInTheWindowEvenWithoutCandidates() {
+        adapter.clientApp = { InputSession.ClientApp(bundleID: $0, options: ["no_inline": true]) }
+        log.bundleIdentifier = "com.googlecode.iterm2"
+        _ = adapter.handle(input(key("x", code: 7)), client: log)
+        #expect(log.calls == ["mark 　|0", "caret", "show "])
     }
 
     @Test func pageDownUpdatesOnlyTheWindow() {

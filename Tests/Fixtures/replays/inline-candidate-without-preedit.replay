@@ -1,0 +1,6 @@
+# With inline_candidate but not inline_preedit, the client shows only the
+# candidate and the candidate window shows the input.
+@style inline_candidate true
+@style inline_preedit false
+n
+i       => marked "你"; caret 1; panel-preedit "ni‸"

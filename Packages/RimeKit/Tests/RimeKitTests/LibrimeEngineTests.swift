@@ -92,6 +92,13 @@ import Testing
         #expect(engine.consumeCommit(in: session) == "你")
     }
 
+    @Test func propertiesRoundTrip() {
+        defer { engine.destroySession(session) }
+        #expect(engine.property("client_app", in: session) == nil)
+        engine.setProperty("client_app", "com.apple.TextEdit", in: session)
+        #expect(engine.property("client_app", in: session) == "com.apple.TextEdit")
+    }
+
     /// glog keeps the app name librime passes it and names log files it
     /// opens later, such as for the first warning, after it.
     @Test func logFilesAreNamedAfterTheApp() throws {

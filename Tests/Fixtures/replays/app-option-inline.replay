@@ -1,0 +1,6 @@
+# An app's inline option shows the input inline even when the theme does
+# not, as Chrome's does.
+@style inline_preedit false
+@app com.google.Chrome inline=true
+n
+i       => marked "ni"; panel-preedit none; option soft_cursor false
