@@ -1,0 +1,12 @@
+# With the caret moved back, the client shows the candidate followed by the
+# input after the caret, as Squirrel does.
+@engines rime
+@style inline_candidate true
+n
+i
+h
+a
+o
+!caret start
+!caret start
+!caret start    => marked "你hao"; caret 1

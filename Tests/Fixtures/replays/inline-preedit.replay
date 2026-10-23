@@ -1,0 +1,5 @@
+# With inline preedit, Squirrel's default, the client shows the input as
+# marked text and the candidate window shows only the candidates.
+n
+i       => marked "ni"; caret 2; panel-preedit none; option soft_cursor false
+space   => commit "你"; marked ""

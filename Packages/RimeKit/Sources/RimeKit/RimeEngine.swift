@@ -137,6 +137,9 @@ public protocol RimeEngine: AnyObject {
     func clearComposition(in session: RimeSessionID)
     func option(_ option: String, in session: RimeSessionID) -> Bool
     func setOption(_ option: String, _ value: Bool, in session: RimeSessionID)
+    /// A session property, such as "client_app"; nil when it is not set.
+    func property(_ name: String, in session: RimeSessionID) -> String?
+    func setProperty(_ name: String, _ value: String, in session: RimeSessionID)
     /// The raw input being composed, such as "nihao".
     func input(in session: RimeSessionID) -> String?
     /// The caret position in the raw input, in UTF-8 bytes.

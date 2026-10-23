@@ -216,6 +216,17 @@ public final class LibrimeEngine: RimeEngine {
         api.pointee.get_option(RimeSessionId(session.rawValue), option)
     }
 
+    public func property(_ name: String, in session: RimeSessionID) -> String? {
+        var value = [CChar](repeating: 0, count: 1024)
+        // librime reports an empty property as not set.
+        guard api.pointee.get_property(RimeSessionId(session.rawValue), name, &value, value.count) else { return nil }
+        return String(decoding: value.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+    }
+
+    public func setProperty(_ name: String, _ value: String, in session: RimeSessionID) {
+        api.pointee.set_property(RimeSessionId(session.rawValue), name, value)
+    }
+
     public func input(in session: RimeSessionID) -> String? {
         api.pointee.get_input(RimeSessionId(session.rawValue)).map { String(cString: $0) }
     }

@@ -7,6 +7,8 @@ import ScribeUI
 /// The text field Scribe types into.
 @MainActor
 protocol TextClient {
+    /// The application's bundle identifier.
+    var bundleIdentifier: String { get }
     /// Inserts committed text, replacing any marked text.
     func insertText(_ text: String)
     /// Replaces the marked text; empty text removes it. `caret` counts
@@ -89,6 +91,8 @@ final class InputAdapter {
     /// The client of the last event, for actions that come without one,
     /// such as a chord released after a delay.
     private var client: TextClient?
+    /// The app's options for its session, from the app's bundle identifier.
+    var clientApp: (String) -> InputSession.ClientApp = { InputSession.ClientApp(bundleID: $0) }
 
     init(session: InputSession, candidates: CandidatePresenting) {
         self.session = session
@@ -119,6 +123,7 @@ final class InputAdapter {
     /// stays right; an event that changes no modifier is consumed.
     func handle(_ input: KeyInput, client: TextClient) -> Bool {
         self.client = client
+        session.setClientApp(clientApp(client.bundleIdentifier))
         switch input.kind {
         case .keyDown:
             guard let key = MacKeyTranslator.keyDown(
@@ -184,8 +189,8 @@ final class InputAdapter {
                 client.insertText(text)
             case .setMarkedText(let marked):
                 client.setMarkedText(marked.text, caret: marked.caret)
-            case .showCandidates(let snapshot) where snapshot.entries.isEmpty:
-                // The preedit is shown inline, so there is nothing to show.
+            case .showCandidates(let snapshot) where snapshot.entries.isEmpty && snapshot.preedit == nil:
+                // The input is shown inline, so there is nothing to show.
                 candidates.hide()
             case .showCandidates(let snapshot):
                 // The window shows this client's candidates, so clicks in it

@@ -29,6 +29,7 @@ public final class FakeRimeEngine: RimeEngine {
     public private(set) var processedKeys: [KeyEvent] = []
 
     private var options: [RimeSessionID: [String: Bool]] = [:]
+    private var properties: [RimeSessionID: [String: String]] = [:]
 
     private struct State {
         var input = ""
@@ -62,6 +63,7 @@ public final class FakeRimeEngine: RimeEngine {
     public func destroySession(_ session: RimeSessionID) {
         sessions[session] = nil
         options[session] = nil
+        properties[session] = nil
     }
 
     public func processKey(_ keycode: Int32, modifiers: Int32, in session: RimeSessionID) -> Bool {
@@ -138,15 +140,20 @@ public final class FakeRimeEngine: RimeEngine {
 
     public func context(in session: RimeSessionID) -> EngineContext {
         guard let state = sessions[session], !state.input.isEmpty else { return EngineContext() }
-        let preedit = segmented(state.input)
+        var preedit = segmented(state.input)
+        let cursor = preedit.utf16.count
+        if option("soft_cursor", in: session) {
+            // As librime marks the caret; the fake's caret is always at the end.
+            preedit += "‸"
+        }
         let page = currentPage(state)
         let total = candidates(for: state.input).count
         return EngineContext(
             composition: Composition(
                 preedit: preedit,
-                cursor: preedit.utf16.count,
+                cursor: cursor,
                 selectionStart: 0,
-                selectionEnd: preedit.utf16.count
+                selectionEnd: cursor
             ),
             menu: page.isEmpty ? nil : CandidateMenu(
                 candidates: page.map { Candidate(text: $0) },
@@ -155,7 +162,8 @@ public final class FakeRimeEngine: RimeEngine {
                 isLastPage: (state.page + 1) * pageSize >= total,
                 highlightedIndex: state.highlighted,
                 selectKeys: "1234567890"
-            )
+            ),
+            commitPreview: page.isEmpty ? state.input : commitPreview(page[state.highlighted], for: state.input)
         )
     }
 
@@ -216,6 +224,14 @@ public final class FakeRimeEngine: RimeEngine {
         options[session, default: [:]][option] = value
     }
 
+    public func property(_ name: String, in session: RimeSessionID) -> String? {
+        properties[session]?[name].flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    public func setProperty(_ name: String, _ value: String, in session: RimeSessionID) {
+        properties[session, default: [:]][name] = value
+    }
+
     private func commit(_ text: String, _ state: inout State) {
         state = State()
         state.commit = text
@@ -232,6 +248,14 @@ public final class FakeRimeEngine: RimeEngine {
             : []
         var seen = Set<String>()
         return (exact + partial + prefixed).filter { seen.insert($0).inserted }
+    }
+
+    /// The candidate, followed by the input it does not cover.
+    private func commitPreview(_ candidate: String, for input: String) -> String {
+        let first = segmented(input).split(separator: " ").first.map(String.init) ?? input
+        let isPartial = first != input && dictionary.contains { $0.0 == first && $0.1.contains(candidate) }
+            && !dictionary.contains { $0.0.replacingOccurrences(of: " ", with: "") == input }
+        return isPartial ? candidate + input.dropFirst(first.count) : candidate
     }
 
     private func currentPage(_ state: State) -> [String] {

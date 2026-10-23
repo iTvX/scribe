@@ -128,8 +128,45 @@ public struct KeyResult: Equatable, Sendable {
 /// then candidates.
 @MainActor
 public final class InputSession {
+    /// How the composition is shown, from the theme. The defaults are those
+    /// of Squirrel's default style.
+    public struct Presentation: Equatable, Sendable {
+        /// The client shows the input; otherwise the candidate window does.
+        public var inlinePreedit: Bool
+        /// The client shows the highlighted candidate instead of the input.
+        public var inlineCandidate: Bool
+        /// The window lays candidates out in a row (`_linear` in Rime).
+        public var linear: Bool
+        /// The window sets text vertically (`_vertical` in Rime).
+        public var vertical: Bool
+
+        public init(inlinePreedit: Bool = true, inlineCandidate: Bool = false, linear: Bool = false, vertical: Bool = false) {
+            self.inlinePreedit = inlinePreedit
+            self.inlineCandidate = inlineCandidate
+            self.linear = linear
+            self.vertical = vertical
+        }
+    }
+
+    /// The application the session types into.
+    public struct ClientApp: Equatable, Sendable {
+        public var bundleID: String
+        /// Rime options for the app, from `app_options`.
+        public var options: [String: Bool]
+        /// Whether Rime may know the app, as the `client_app` property; from
+        /// `unsafe/report_bundleid`.
+        public var reportsBundleID: Bool
+
+        public init(bundleID: String, options: [String: Bool] = [:], reportsBundleID: Bool = false) {
+            self.bundleID = bundleID
+            self.options = options
+            self.reportsBundleID = reportsBundleID
+        }
+    }
+
     /// How long to wait for more keys of a chord, from `chord_duration`.
     public var chordDuration: TimeInterval = 0.1
+    public var presentation = Presentation()
     /// Receives actions that happen without a key, such as a chord being
     /// released after `chordDuration`.
     public var onAsyncActions: (([SessionAction]) -> Void)?
@@ -140,6 +177,7 @@ public final class InputSession {
     private var markedText = MarkedText.empty
     private var candidates: CandidateSnapshot?
     private var chordKeys: [KeyEvent] = []
+    private var clientApp: ClientApp?
 
     /// Without a chord timer, chord typing is off.
     public init(engine: any RimeEngine, chordTimer: ChordTimer? = nil) {
@@ -151,6 +189,11 @@ public final class InputSession {
     /// client unhandled.
     public func handle(_ key: KeyEvent) -> KeyResult {
         guard let session = activeSession() else { return KeyResult(handled: false, actions: []) }
+        // Schemas may follow how the window lays out candidates.
+        for (option, value) in [("_linear", presentation.linear), ("_vertical", presentation.vertical)]
+        where engine.option(option, in: session) != value {
+            engine.setOption(option, value, in: session)
+        }
         let handled = engine.processKey(key.keycode, modifiers: key.modifiers.rawValue, in: session)
         if !handled {
             if Self.leavesVimInsertMode(key), engine.option("vim_mode", in: session),
@@ -164,6 +207,17 @@ public final class InputSession {
             clearChord()
         }
         return KeyResult(handled: handled, actions: update(session))
+    }
+
+    /// Sets the app the session types into. As in Squirrel, its options are
+    /// set on every new Rime session, and on the current one when the app
+    /// changes.
+    public func setClientApp(_ app: ClientApp) {
+        guard app != clientApp else { return }
+        clientApp = app
+        if let session, engine.sessionExists(session) {
+            apply(app, to: session)
+        }
     }
 
     /// The value of a Rime option, such as "ascii_mode", or nil while there
@@ -332,27 +386,88 @@ public final class InputSession {
         session = engine.createSession()
         markedText = .empty
         candidates = nil
+        if let session, let clientApp {
+            apply(clientApp, to: session)
+        }
         return session
+    }
+
+    private func apply(_ app: ClientApp, to session: RimeSessionID) {
+        for (option, value) in app.options.sorted(by: { $0.key < $1.key }) {
+            engine.setOption(option, value, in: session)
+        }
+        if app.reportsBundleID {
+            engine.setProperty("client_app", app.bundleID, in: session)
+        }
+    }
+
+    /// Whether the client shows the input and the highlighted candidate:
+    /// the theme decides, unless the app's `inline` or `no_inline` option
+    /// says otherwise, as in Squirrel. Rime marks the caret in the input with
+    /// a soft cursor when the candidate window shows the input.
+    private func inlineMode(in session: RimeSessionID) -> (preedit: Bool, candidate: Bool) {
+        let noInline = engine.option("no_inline", in: session)
+        let preedit = presentation.inlinePreedit && !noInline || engine.option("inline", in: session)
+        let candidate = presentation.inlineCandidate && !noInline
+        if engine.option("soft_cursor", in: session) == preedit {
+            engine.setOption("soft_cursor", !preedit, in: session)
+        }
+        return (preedit, candidate)
+    }
+
+    private static func markedText(
+        for composition: Composition,
+        preview: String?,
+        inline: (preedit: Bool, candidate: Bool)
+    ) -> MarkedText {
+        let preedit = composition.preedit
+        guard inline.candidate else {
+            if inline.preedit {
+                return MarkedText(text: preedit, caret: composition.cursor)
+            }
+            // A full-width space keeps terminals such as iTerm2 from echoing
+            // the input, and keeps the baseline steady.
+            return MarkedText(text: preedit.isEmpty ? "" : "　", caret: 0)
+        }
+        var text = preview ?? ""
+        let previewLength = text.utf16.count
+        let input = preedit.utf16
+        if inline.preedit, composition.cursor >= composition.selectionEnd, composition.cursor < input.count {
+            // The input after the caret, still to be converted.
+            text += String(input.dropFirst(composition.cursor)) ?? ""
+        }
+        // The preedit may start with a prompt before the selection.
+        let start = min(composition.selectionStart, text.utf16.count)
+        return MarkedText(text: text, caret: composition.cursor <= start ? composition.cursor : previewLength)
     }
 
     private func update(_ session: RimeSessionID) -> [SessionAction] {
         var actions: [SessionAction] = []
         if let commit = engine.consumeCommit(in: session) {
+            if markedText.text.isEmpty, !commit.isEmpty, engine.option("force_marked_text_for_direct_commit", in: session) {
+                // Some text views take text only after marked text, as
+                // Alacritty does.
+                actions.append(.setMarkedText(MarkedText(text: commit, caret: commit.utf16.count)))
+            }
             actions.append(.commit(commit))
             // Inserting text replaces the client's marked text.
             markedText = .empty
         }
+        let inline = inlineMode(in: session)
         let context = engine.context(in: session)
-        let newMarkedText = context.composition.map { MarkedText(text: $0.preedit, caret: $0.cursor) } ?? .empty
+        let newMarkedText = context.composition.map {
+            Self.markedText(for: $0, preview: context.commitPreview, inline: inline)
+        } ?? .empty
         if newMarkedText != markedText {
             actions.append(.setMarkedText(newMarkedText))
             markedText = newMarkedText
         }
         // A snapshot whenever something is composed, even with no candidates,
-        // so the window can show the preedit alone.
+        // so the window can show the input alone. The window shows the input
+        // only when the client does not.
         let newCandidates = context.composition == nil && context.menu == nil
             ? nil
-            : CandidateSnapshot(menu: context.menu, composition: context.composition)
+            : CandidateSnapshot(menu: context.menu, composition: inline.preedit ? nil : context.composition)
         if newCandidates != candidates {
             actions.append(newCandidates.map(SessionAction.showCandidates) ?? .hideCandidates)
             candidates = newCandidates

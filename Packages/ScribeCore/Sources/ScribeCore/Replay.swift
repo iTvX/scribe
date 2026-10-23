@@ -24,6 +24,10 @@ import ScribeConfig
 ///
 /// `@notifications always|appropriate|never` and `@status-message
 /// mix|long|short` set how notifications are announced from then on.
+/// `@style inline_preedit|inline_candidate|linear|vertical true|false` sets
+/// how the composition is shown from then on. `@app BUNDLE_ID
+/// [OPTION=true|false ...]` makes the session type into that app, with those
+/// `app_options`, from the next step.
 ///
 /// A step may be followed by "=>" and expectations separated by ";":
 ///
@@ -36,6 +40,8 @@ import ScribeConfig
 /// - `handled` or `unhandled`: whether the key was consumed
 /// - `option NAME true|false`: a Rime option afterwards
 /// - `status "text"` or `status none`: what this step announced
+/// - `panel-preedit "text"` or `panel-preedit none`: the input the candidate
+///   window shows afterwards
 public struct ReplayScript: Equatable, Sendable {
     public enum Action: Equatable, Sendable {
         case commitComposition
@@ -61,6 +67,17 @@ public struct ReplayScript: Equatable, Sendable {
         case handled(Bool)
         case option(String, Bool)
         case status(String?)
+        case panelPreedit(String?)
+    }
+
+    public struct App: Equatable, Sendable {
+        public var bundleID: String
+        public var options: [String: Bool]
+
+        public init(bundleID: String, options: [String: Bool]) {
+            self.bundleID = bundleID
+            self.options = options
+        }
     }
 
     public struct Option: Equatable, Sendable {
@@ -76,6 +93,9 @@ public struct ReplayScript: Equatable, Sendable {
         public var options: [Option] = []
         public var notifications: NotificationPolicy = .appropriate
         public var messageType: StatusMessageType = .mix
+        public var presentation = InputSession.Presentation()
+        /// The app the session types into from this step on.
+        public var app: App?
     }
 
     public struct ParseError: Error, Equatable, CustomStringConvertible {
@@ -102,6 +122,8 @@ public struct ReplayScript: Equatable, Sendable {
         var pendingOptions: [Option] = []
         var notifications = NotificationPolicy.appropriate
         var messageType = StatusMessageType.mix
+        var presentation = InputSession.Presentation()
+        var pendingApp: App?
         for (index, rawLine) in source.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let lineNumber = index + 1
             let line = Self.stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
@@ -131,6 +153,30 @@ public struct ReplayScript: Equatable, Sendable {
                         throw fail("expected \"@status-message mix|long|short\"")
                     }
                     messageType = type
+                case "@style":
+                    let styles: [String: WritableKeyPath<InputSession.Presentation, Bool>] = [
+                        "inline_preedit": \.inlinePreedit,
+                        "inline_candidate": \.inlineCandidate,
+                        "linear": \.linear,
+                        "vertical": \.vertical,
+                    ]
+                    guard words.count == 3, let style = styles[words[1]], let value = Bool(words[2]) else {
+                        throw fail("expected \"@style inline_preedit|inline_candidate|linear|vertical true|false\"")
+                    }
+                    presentation[keyPath: style] = value
+                case "@app":
+                    var options: [String: Bool] = [:]
+                    for word in words.dropFirst(2) {
+                        let parts = word.split(separator: "=").map(String.init)
+                        guard parts.count == 2, let value = Bool(parts[1]) else {
+                            throw fail("expected \"@app BUNDLE_ID [OPTION=true|false ...]\"")
+                        }
+                        options[parts[0]] = value
+                    }
+                    guard words.count >= 2 else {
+                        throw fail("expected \"@app BUNDLE_ID [OPTION=true|false ...]\"")
+                    }
+                    pendingApp = App(bundleID: words[1], options: options)
                 default:
                     throw fail("unknown directive \"\(words[0])\"")
                 }
@@ -171,9 +217,12 @@ public struct ReplayScript: Equatable, Sendable {
                 line: lineNumber,
                 options: pendingOptions,
                 notifications: notifications,
-                messageType: messageType
+                messageType: messageType,
+                presentation: presentation,
+                app: pendingApp
             ))
             pendingOptions = []
+            pendingApp = nil
         }
     }
 
@@ -235,6 +284,8 @@ public struct ReplayScript: Equatable, Sendable {
             return argument == "none" ? .commit(nil) : quoted(argument).first.map { .commit($0) }
         case "status":
             return argument == "none" ? .status(nil) : quoted(argument).first.map { .status($0) }
+        case "panel-preedit":
+            return argument == "none" ? .panelPreedit(nil) : quoted(argument).first.map { .panelPreedit($0) }
         case "marked":
             return quoted(argument).first.map { .marked($0) }
         case "caret":
@@ -296,6 +347,10 @@ public enum ReplayRunner {
         defer { session.onAsyncActions = nil }
 
         for step in script.steps {
+            session.presentation = step.presentation
+            if let app = step.app {
+                session.setClientApp(InputSession.ClientApp(bundleID: app.bundleID, options: app.options))
+            }
             for option in step.options {
                 session.setOption(option.name, option.value)
             }
@@ -377,6 +432,11 @@ public enum ReplayRunner {
                 case .handled(let expected):
                     if handled != expected {
                         fail(expected ? "not handled" : "handled")
+                    }
+                case .panelPreedit(let expected):
+                    let actual = candidates?.preedit?.text
+                    if actual != expected {
+                        fail("window shows input \(describe(actual)), expected \(describe(expected))")
                     }
                 case .option(let name, let expected):
                     let actual = session.option(name)

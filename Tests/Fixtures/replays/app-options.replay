@@ -1,0 +1,6 @@
+# A client app's app_options become options of its Rime session, as in
+# Squirrel. Terminal's start in ASCII mode without inline preedit.
+@app com.apple.Terminal ascii_mode=true no_inline=true
+a       => unhandled; option ascii_mode true; option no_inline true
+@option ascii_mode false
+n       => marked "　"; panel-preedit "n‸"
