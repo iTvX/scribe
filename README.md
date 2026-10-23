@@ -5,6 +5,7 @@
 - **引擎**：[librime](https://github.com/rime/librime)，原样使用，不做改动
 - **前端**：全新 Swift 实现，取代鼠须管（Squirrel）；鼠须管的代码仅作参考
 - **系统要求**：macOS 14 及以上
+- **Bundle ID**：`com.maxyu.inputmethod.Scribe`
 
 ## 目标
 
