@@ -1,10 +1,12 @@
 #!/bin/bash
-# Downloads the official librime release for macOS and lays it out under
-# Frameworks/:
+# Downloads the official librime release for macOS and the default Rime data,
+# and lays them out under Frameworks/:
 #
 #   Frameworks/librime.xcframework   librime.1.dylib, its headers and a module map
 #   Frameworks/rime-plugins/         librime-lua, librime-octagram, librime-predict
 #   Frameworks/opencc/               OpenCC dictionaries and configs
+#   Frameworks/rime-data/            rime-prelude, rime-essay, rime-luna-pinyin and
+#                                    rime-stroke, shipped as shared data
 #
 # Safe to run repeatedly: it does nothing when Frameworks/ already holds this
 # release, and downloads are kept in build/downloads (override with
@@ -20,24 +22,34 @@ DEPS_ARCHIVE="rime-deps-${LIBRIME_COMMIT}-macOS-universal.tar.bz2"
 DEPS_SHA256=dfe6047e87be271963d7466bd1a6e3d9e660c30e5e73e4bb94e8782c0a6ac8df
 BASE_URL="https://github.com/rime/librime/releases/download/${LIBRIME_VERSION}"
 
+# Default data, pinned to commits: repository, commit, sha256 of the archive.
+RIME_DATA=(
+  "rime-prelude 082425ea0684bca36474415d4a0e8db9b016487e 66239ba4745d54471e5ce5540b45e86ec663ff5dba004cb23c95531a3bdec00f"
+  "rime-essay 054920de4f54c9e5994276a96a4fc2a35cb51aa3 3339b40aae91b0216d393aeccc6a8f7daad56a1f3a5e1ffcf464c80690d1b6ce"
+  "rime-luna-pinyin 56b934b099dfbeab842320f13aa8b461a6ab3e42 876c7ba559794f476abf7195a255aea29000cee281e6f5ec664928dce018bd90"
+  "rime-stroke 1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48 1347a57ab4cf269be9b1c49ce50facfe60617207f2780604fe82914070da8a80"
+)
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FRAMEWORKS="${ROOT}/Frameworks"
 CACHE="${SCRIBE_DOWNLOAD_CACHE:-${ROOT}/build/downloads}"
 STAMP="${FRAMEWORKS}/.librime-stamp"
 # Bump the trailing layout number whenever this script changes what it writes.
-STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} layout 1"
+STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} ${RIME_DATA[*]} layout 2"
 
 if [[ -f "${STAMP}" && "$(cat "${STAMP}")" == "${STAMP_CONTENT}" &&
       -d "${FRAMEWORKS}/librime.xcframework" &&
       -d "${FRAMEWORKS}/rime-plugins" &&
-      -d "${FRAMEWORKS}/opencc" ]]; then
+      -d "${FRAMEWORKS}/opencc" &&
+      -d "${FRAMEWORKS}/rime-data" ]]; then
   echo "librime ${LIBRIME_VERSION} is already in ${FRAMEWORKS}"
   exit 0
 fi
 
 # Downloads $1 into the cache unless a copy with checksum $2 is already there.
+# $3 is the URL, by default the librime release asset named $1.
 fetch() {
-  local name="$1" sha256="$2"
+  local name="$1" sha256="$2" url="${3:-${BASE_URL}/$1}"
   local file="${CACHE}/${name}"
   if [[ -f "${file}" ]] && echo "${sha256}  ${file}" | shasum -a 256 -c --status; then
     return
@@ -45,7 +57,7 @@ fetch() {
   echo "Downloading ${name}"
   mkdir -p "${CACHE}"
   curl --fail --location --silent --show-error --retry 3 \
-    --output "${file}.part" "${BASE_URL}/${name}"
+    --output "${file}.part" "${url}"
   if ! echo "${sha256}  ${file}.part" | shasum -a 256 -c --status; then
     rm -f "${file}.part"
     echo "error: checksum mismatch for ${name}" >&2
@@ -56,6 +68,10 @@ fetch() {
 
 fetch "${RIME_ARCHIVE}" "${RIME_SHA256}"
 fetch "${DEPS_ARCHIVE}" "${DEPS_SHA256}"
+for entry in "${RIME_DATA[@]}"; do
+  read -r repository commit sha256 <<< "${entry}"
+  fetch "${repository}-${commit}.tar.gz" "${sha256}" "https://github.com/rime/${repository}/archive/${commit}.tar.gz"
+done
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
@@ -90,11 +106,23 @@ xcodebuild -create-xcframework \
   -headers "${WORK}/stage/Headers" \
   -output "${WORK}/librime.xcframework" >/dev/null
 
+# Only the data files; the archives also hold READMEs, licenses and tooling.
+mkdir -p "${WORK}/rime-data"
+for entry in "${RIME_DATA[@]}"; do
+  read -r repository commit _ <<< "${entry}"
+  mkdir -p "${WORK}/data/${repository}"
+  tar -xzf "${CACHE}/${repository}-${commit}.tar.gz" -C "${WORK}/data/${repository}" --strip-components 1
+  find "${WORK}/data/${repository}" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.txt' \) \
+    -exec cp {} "${WORK}/rime-data/" \;
+done
+
 mkdir -p "${FRAMEWORKS}"
-rm -rf "${FRAMEWORKS}/librime.xcframework" "${FRAMEWORKS}/rime-plugins" "${FRAMEWORKS}/opencc" "${STAMP}"
+rm -rf "${FRAMEWORKS}/librime.xcframework" "${FRAMEWORKS}/rime-plugins" "${FRAMEWORKS}/opencc" \
+  "${FRAMEWORKS}/rime-data" "${STAMP}"
 mv "${WORK}/librime.xcframework" "${FRAMEWORKS}/"
 cp -pR "${DIST}/lib/rime-plugins" "${FRAMEWORKS}/rime-plugins"
 cp -pR "${WORK}/deps/share/opencc" "${FRAMEWORKS}/opencc"
+mv "${WORK}/rime-data" "${FRAMEWORKS}/rime-data"
 cp "${WORK}/rime/version-info.txt" "${FRAMEWORKS}/librime-version-info.txt"
 echo "${STAMP_CONTENT}" > "${STAMP}"
 
