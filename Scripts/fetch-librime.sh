@@ -5,8 +5,9 @@
 #   Frameworks/librime.xcframework   librime.1.dylib, its headers and a module map
 #   Frameworks/rime-plugins/         librime-lua, librime-octagram, librime-predict
 #   Frameworks/opencc/               OpenCC dictionaries and configs
-#   Frameworks/rime-data/            the schemas plum installs by default (as
-#                                    Squirrel ships them), as shared data
+#   Frameworks/rime-data/            the schemas plum installs by default and
+#                                    octagram's grammar, as Squirrel mainline
+#                                    ships them, as shared data
 #   Frameworks/bin/                  rime_deployer and rime_dict_manager, which
 #                                    find librime in ../Frameworks, and plum's
 #                                    rime-install, as Squirrel ships them
@@ -29,16 +30,23 @@ BASE_URL="https://github.com/rime/librime/releases/download/${LIBRIME_VERSION}"
 PLUM_COMMIT=b1be1969f914cc005add4090631b855db00c2591
 PLUM_SHA256=4ebc2bec937766184546f9c0598f90a692a2e0ef1a50c0c2e594dbb3e131f61e
 
-# Default data, pinned to commits: repository, commit, sha256 of the archive.
+# Shared data, as Squirrel mainline's build bundles it: plum's preset
+# packages and octagram's grammar, each pinned to the commit its default branch
+# (or the named branch) had on 2026-10-18. Repository, commit, sha256 of the
+# archive.
 RIME_DATA=(
-  "rime-prelude 082425ea0684bca36474415d4a0e8db9b016487e 66239ba4745d54471e5ce5540b45e86ec663ff5dba004cb23c95531a3bdec00f"
-  "rime-essay 054920de4f54c9e5994276a96a4fc2a35cb51aa3 3339b40aae91b0216d393aeccc6a8f7daad56a1f3a5e1ffcf464c80690d1b6ce"
-  "rime-luna-pinyin 56b934b099dfbeab842320f13aa8b461a6ab3e42 876c7ba559794f476abf7195a255aea29000cee281e6f5ec664928dce018bd90"
-  "rime-stroke 1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48 1347a57ab4cf269be9b1c49ce50facfe60617207f2780604fe82914070da8a80"
-  "rime-terra-pinyin 723e51bc266cf9464530c1ddedb856aa18e3da34 34dd53684366f2e6b6598fa019ab68171aaa738da064768fab0d4349530f5841"
-  "rime-bopomofo 6085c9a38a4a728047862b33d67eee18aa86f3b9 5fc0719e8fe9b2eb8aa05c505ffb2b39d972e637951531182dd7d745a83bda51"
-  "rime-cangjie 52d90a1b1312e74042b38c1cbc8142defbc53171 18d989bf21d0bb86b402f18be4dd060bf2653896c95448afb01d4da2e6be5464"
-  "rime-quick 5dcdb9e353d314239e9c8cddc0f42d52da4837bb 2f2ae291b1ebd17ad5bfccfabbeb3aba2a466589628f15172da5fc76b24b9f7e"
+  "rime/rime-prelude 082425ea0684bca36474415d4a0e8db9b016487e 66239ba4745d54471e5ce5540b45e86ec663ff5dba004cb23c95531a3bdec00f"
+  "rime/rime-essay 054920de4f54c9e5994276a96a4fc2a35cb51aa3 3339b40aae91b0216d393aeccc6a8f7daad56a1f3a5e1ffcf464c80690d1b6ce"
+  "rime/rime-luna-pinyin 56b934b099dfbeab842320f13aa8b461a6ab3e42 876c7ba559794f476abf7195a255aea29000cee281e6f5ec664928dce018bd90"
+  "rime/rime-stroke 1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48 1347a57ab4cf269be9b1c49ce50facfe60617207f2780604fe82914070da8a80"
+  "rime/rime-terra-pinyin 723e51bc266cf9464530c1ddedb856aa18e3da34 34dd53684366f2e6b6598fa019ab68171aaa738da064768fab0d4349530f5841"
+  "rime/rime-bopomofo 6085c9a38a4a728047862b33d67eee18aa86f3b9 5fc0719e8fe9b2eb8aa05c505ffb2b39d972e637951531182dd7d745a83bda51"
+  "rime/rime-cangjie 52d90a1b1312e74042b38c1cbc8142defbc53171 18d989bf21d0bb86b402f18be4dd060bf2653896c95448afb01d4da2e6be5464"
+  "rime/rime-quick 5dcdb9e353d314239e9c8cddc0f42d52da4837bb 2f2ae291b1ebd17ad5bfccfabbeb3aba2a466589628f15172da5fc76b24b9f7e"
+  # SQUIRREL_BUNDLED_RECIPES: grammar.yaml from the default branch, the
+  # zh-hant language models from the hant branch.
+  "lotem/rime-octagram-data 8ceef1b42eb77e86501382a52e85c309c0f2f04c 934a336a8f38db86d5603929bf7694b4e9f467cbafdb161312b8dea196407912"
+  "lotem/rime-octagram-data 97bf55046aad163c3d1881abae5312040b1bbed9 a4a907e71a08c8a3776fd136d992c6eb440151dfb54fe8b71e03975516c7c719"
 )
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -46,7 +54,7 @@ FRAMEWORKS="${ROOT}/Frameworks"
 CACHE="${SCRIBE_DOWNLOAD_CACHE:-${ROOT}/build/downloads}"
 STAMP="${FRAMEWORKS}/.librime-stamp"
 # Bump the trailing layout number whenever this script changes what it writes.
-STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} ${RIME_DATA[*]} plum ${PLUM_SHA256} layout 3"
+STAMP_CONTENT="librime ${LIBRIME_VERSION} ${RIME_SHA256} ${DEPS_SHA256} ${RIME_DATA[*]} plum ${PLUM_SHA256} layout 4"
 
 if [[ -f "${STAMP}" && "$(cat "${STAMP}")" == "${STAMP_CONTENT}" &&
       -d "${FRAMEWORKS}/librime.xcframework" &&
@@ -82,7 +90,7 @@ fetch "${RIME_ARCHIVE}" "${RIME_SHA256}"
 fetch "${DEPS_ARCHIVE}" "${DEPS_SHA256}"
 for entry in "${RIME_DATA[@]}"; do
   read -r repository commit sha256 <<< "${entry}"
-  fetch "${repository}-${commit}.tar.gz" "${sha256}" "https://github.com/rime/${repository}/archive/${commit}.tar.gz"
+  fetch "${repository##*/}-${commit}.tar.gz" "${sha256}" "https://github.com/${repository}/archive/${commit}.tar.gz"
 done
 fetch "plum-${PLUM_COMMIT}.tar.gz" "${PLUM_SHA256}" "https://github.com/rime/plum/archive/${PLUM_COMMIT}.tar.gz"
 
@@ -119,14 +127,21 @@ xcodebuild -create-xcframework \
   -headers "${WORK}/stage/Headers" \
   -output "${WORK}/librime.xcframework" >/dev/null
 
-# Only the data files; the archives also hold READMEs, licenses and tooling.
+# Only the data files, chosen as plum's install-packages.sh chooses them; the
+# archives also hold READMEs, licenses and tooling.
 mkdir -p "${WORK}/rime-data"
 for entry in "${RIME_DATA[@]}"; do
   read -r repository commit _ <<< "${entry}"
-  mkdir -p "${WORK}/data/${repository}"
-  tar -xzf "${CACHE}/${repository}-${commit}.tar.gz" -C "${WORK}/data/${repository}" --strip-components 1
-  find "${WORK}/data/${repository}" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.txt' \) \
+  package="${WORK}/data/${repository##*/}-${commit}"
+  mkdir -p "${package}"
+  tar -xzf "${CACHE}/${repository##*/}-${commit}.tar.gz" -C "${package}" --strip-components 1
+  find "${package}" -maxdepth 1 -type f \( -name '*.yaml' -o -name '*.txt' -o -name '*.gram' \) \
+    ! -name '*.custom.yaml' ! -name '*.recipe.yaml' ! -name 'recipe.yaml' \
     -exec cp {} "${WORK}/rime-data/" \;
+  if [[ -d "${package}/opencc" ]]; then
+    echo "error: ${repository} has OpenCC data, which this script does not install" >&2
+    exit 1
+  fi
 done
 
 # The command line tools look for librime next to the app's executables, in

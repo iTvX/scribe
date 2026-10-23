@@ -75,10 +75,11 @@ PLUGINS=(lua octagram predict)
 for plugin in "${PLUGINS[@]}"; do
   [[ -f "${APP}/Contents/Frameworks/rime-plugins/librime-${plugin}.dylib" ]] || fail "plugin ${plugin} is not embedded"
 done
-for file in default.yaml squirrel.yaml scribe.yaml essay.txt luna_pinyin.schema.yaml opencc/s2t.json opencc/STCharacters.ocd2; do
+for file in default.yaml squirrel.yaml scribe.yaml essay.txt luna_pinyin.schema.yaml quick5.schema.yaml \
+    grammar.yaml zh-hant-t-essay-bgw.gram zh-hant-t-essay-bgc.gram opencc/s2t.json opencc/STCharacters.ocd2; do
   [[ -f "${APP}/Contents/SharedSupport/${file}" ]] || fail "shared data lacks ${file}"
 done
-pass "embeds the ${PLUGINS[*]} plugins, default Rime data, squirrel.yaml, scribe.yaml and OpenCC data"
+pass "embeds the ${PLUGINS[*]} plugins, default Rime data, octagram grammar, squirrel.yaml, scribe.yaml and OpenCC data"
 
 TOOLS=(rime_deployer rime_dict_manager rime-install)
 for tool in "${TOOLS[@]}"; do
