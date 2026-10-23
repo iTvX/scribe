@@ -138,12 +138,14 @@ usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
-# The postinstall script prebuilds the shared data in place; do the same in
-# the expanded copy.
-(cd "${APP}/Contents/SharedSupport" && "${APP}/Contents/MacOS/Scribe" --build >/dev/null 2>&1) ||
-  fail "--build cannot prebuild the shared data"
+# The postinstall script prebuilds the shared data in place, as root through
+# the installer. macOS does not let other processes change a signed app's
+# contents, so build a copy the same way.
+ditto "${APP}/Contents/SharedSupport" "${WORK}/prebuild"
+build_log="$(cd "${WORK}/prebuild" && "${APP}/Contents/MacOS/Scribe" --build 2>&1)" ||
+  fail "--build cannot prebuild the shared data: $(tail -5 <<< "${build_log}")"
 for file in default.yaml luna_pinyin.prism.bin luna_pinyin.table.bin quick5.table.bin; do
-  [[ -f "${APP}/Contents/SharedSupport/build/${file}" ]] || fail "--build did not prebuild ${file}"
+  [[ -f "${WORK}/prebuild/build/${file}" ]] || fail "--build did not prebuild ${file}"
 done
 pass "--build prebuilds the shared data, as postinstall does"
 
