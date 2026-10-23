@@ -31,7 +31,7 @@
 | `Packages/` | 四个本地 Swift 包：`RimeKit`、`ScribeConfig`、`ScribeCore`、`ScribeUI` |
 | `SharedSupport/` | 随包附带的共享数据 |
 | `Frameworks/` | 脚本下载的 librime 和插件，不进仓库 |
-| `Scripts/` | 下载 librime、安装到本机等脚本 |
+| `Scripts/` | 下载 librime、安装到本机、打发布包和验证的脚本；`Scripts/pkg/` 是安装包的配置和安装脚本 |
 | `Tests/Fixtures/` | 测试样本 |
 | `docs/` | 设计决定记录和各类清单 |
 
@@ -80,6 +80,18 @@ Scripts/install-local.sh
 ```bash
 log show --last 10m --info --predicate 'subsystem == "io.github.itvx.inputmethod.Scribe"'
 ```
+
+### 打发布包
+
+```bash
+Scripts/build-release.sh --unsigned
+```
+
+不需要证书，生成 `build/release/Scribe-<版本>-<构建号>.pkg`：app 用 ad-hoc 签名，安装包不签名，只用来检查打包流程。用 `Scripts/check-release.sh --unsigned <pkg>` 验证。
+
+正式的发布包（Developer ID 签名、公证、staple）由 `.github/workflows/release.yml` 在自托管 runner 上生成：推送到 main 时自动运行，也可以在 Actions 页面手动运行（`validate_only` 只验证不发布）。生成的 `.pkg` 作为 workflow artifact 下载。签名和公证的设置见 `Scripts/build-release.sh` 开头的说明和 `docs/decisions/0002-release-signing-and-packaging.md`。
+
+安装 `.pkg` 会装到 `/Library/Input Methods`。装之前先删掉 `~/Library/Input Methods/Scribe.app`，免得同一个输入法装了两份。
 
 ### 命令行参数
 
