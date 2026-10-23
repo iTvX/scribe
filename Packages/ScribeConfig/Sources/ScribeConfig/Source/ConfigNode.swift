@@ -167,3 +167,28 @@ extension ConfigNode: ExpressibleByDictionaryLiteral {
         self = .map(Dictionary(elements, uniquingKeysWith: { _, last in last }))
     }
 }
+
+extension ConfigNode {
+    /// A copy of the tree at `path` in `source`, read through its getters:
+    /// maps by `mapKeys`, lists by `listCount`, scalars by `string`, and
+    /// anything else as `.null`. Keys that librime cannot address by path
+    /// (containing "/", or "@" followed by a letter or digit) read as `.null`.
+    public init(snapshotOf source: some ConfigSource, at path: String = "") {
+        func child(_ key: String) -> String {
+            path.isEmpty || path == "/" ? key : "\(path)/\(key)"
+        }
+        if let keys = source.mapKeys(at: path) {
+            var map: [String: ConfigNode] = [:]
+            for key in keys {
+                map[key] = ConfigNode(snapshotOf: source, at: child(key))
+            }
+            self = .map(map)
+        } else if let count = source.listCount(at: path) {
+            self = .list((0..<count).map { ConfigNode(snapshotOf: source, at: child("@\($0)")) })
+        } else if let value = source.string(at: path) {
+            self = .scalar(value)
+        } else {
+            self = .null
+        }
+    }
+}
