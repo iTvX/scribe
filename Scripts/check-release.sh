@@ -137,4 +137,13 @@ usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
+# The postinstall script prebuilds the shared data in place; do the same in
+# the expanded copy.
+(cd "${APP}/Contents/SharedSupport" && "${APP}/Contents/MacOS/Scribe" --build >/dev/null 2>&1) ||
+  fail "--build cannot prebuild the shared data"
+for file in default.yaml luna_pinyin.prism.bin luna_pinyin.table.bin quick5.table.bin; do
+  [[ -f "${APP}/Contents/SharedSupport/build/${file}" ]] || fail "--build did not prebuild ${file}"
+done
+pass "--build prebuilds the shared data, as postinstall does"
+
 echo "All checks passed for ${PACKAGE##*/}"
