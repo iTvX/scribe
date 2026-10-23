@@ -125,6 +125,7 @@ targets:
       - package: ScribeCore
         product: ScribeTestSupport
       - package: RimeKit
+      - package: ScribeUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests

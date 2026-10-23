@@ -2,6 +2,7 @@ import AppKit
 import RimeKit
 import ScribeCore
 import ScribeTestSupport
+import ScribeUI
 import Testing
 
 /// Records what the adapter does to the client and the candidate window, in
@@ -9,6 +10,7 @@ import Testing
 @MainActor
 final class CallLog: TextClient, CandidatePresenting {
     var calls: [String] = []
+    weak var delegate: (any CandidatePanelDelegate)?
 
     func insertText(_ text: String) {
         calls.append("insert \(text)")
@@ -43,6 +45,8 @@ final class CallLog: TextClient, CandidatePresenting {
     let chordTimer = ManualChordTimer()
     let session: InputSession
     let adapter: InputAdapter
+    /// Only passed back to the delegate; never shown.
+    let panel = CandidatePanel()
 
     init() {
         session = InputSession(engine: engine, chordTimer: chordTimer)
@@ -171,14 +175,57 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls.isEmpty)
     }
 
-    @Test func candidateWindowRequests() {
+    // Round trips through the candidate window: it reports clicks and scrolls
+    // to its delegate, the adapter that showed candidates last.
+
+    @Test func showingCandidatesMakesTheAdapterTheWindowsDelegate() {
+        #expect(log.delegate == nil)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        #expect(log.delegate === adapter)
+    }
+
+    @Test func clickingACandidateCommitsIt() throws {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)
         log.calls.removeAll()
-        adapter.changePage(.down)
-        adapter.moveCaret(.towardStart)
-        adapter.selectCandidate(at: 1)
-        #expect(log.calls == ["caret", "show 拟 腻", "insert 腻", "hide"])
+        try #require(log.delegate).candidatePanel(panel, didSelectCandidateAt: 1)
+        #expect(log.calls == ["insert 泥", "hide"])
+    }
+
+    @Test func scrollingPagesTheCandidates() throws {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        log.calls.removeAll()
+        let delegate = try #require(log.delegate)
+        delegate.candidatePanel(panel, didRequestPage: .down)
+        delegate.candidatePanel(panel, didRequestPage: .up)
+        #expect(log.calls == ["caret", "show 拟 腻", "caret", "show 你 泥 呢 尼 逆"])
+    }
+
+    @Test func clickingThePreeditMovesTheCaret() throws {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        let sessionID = try #require(session.currentSessionID)
+        let delegate = try #require(log.delegate)
+        delegate.candidatePanel(panel, didRequestCaretMove: .towardStart)
+        #expect(engine.caretPosition(in: sessionID) == 1)
+        delegate.candidatePanel(panel, didRequestCaretMove: .towardEnd)
+        #expect(engine.caretPosition(in: sessionID) == 2)
+    }
+
+    /// Clients share the one candidate window; a click goes to the client
+    /// whose candidates it shows.
+    @Test func requestsGoToTheClientShownLast() throws {
+        let other = CallLog()
+        let otherAdapter = InputAdapter(session: InputSession(engine: engine, chordTimer: chordTimer), candidates: log)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = otherAdapter.handle(input(key("n", code: 45)), client: other)
+        _ = otherAdapter.handle(input(key("i", code: 34)), client: other)
+        log.calls.removeAll()
+        other.calls.removeAll()
+        try #require(log.delegate).candidatePanel(panel, didSelectCandidateAt: 0)
+        #expect(other.calls == ["insert 你"])
+        #expect(log.calls == ["hide"])
     }
 
     @Test func pageDownUpdatesOnlyTheWindow() {
