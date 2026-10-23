@@ -76,3 +76,56 @@
 | `squirrel.yaml` 原样（版本 1.0） | 完成 | check-release；Config `LibrimeConfigTests.presetsInSharedSupport`（21 套预设） | 和 mainline 一致；比鼠须管 1.1.2 多 `status_icon` 和 Alacritty 的 `app_options` |
 | 预编译 `SharedSupport/build` | 完成 | check-release 把发布包里的 `SharedSupport` 复制出来运行 `--build`，检查 `build/` 里的二进制 | postinstall 经安装器以 root 运行 `Scribe --build`，失败不影响安装，`RIME_NO_PREBUILD` 可跳过（决定 0002）。签名发布包上验证过 |
 | 命令行工具 | 完成 | check-release | 同上「自带 `rime_deployer`…」 |
+
+## 外观设置（`style`）
+
+候选窗的渲染都和鼠须管自己的代码对照：UI `SquirrelReferenceTests` 把 `Tests/Fixtures/snapshots/cases.json` 里的每个用例画出来，和 `Tools/squirrel-oracle` 用鼠须管 46962d2 的 `SquirrelTheme`、`SquirrelView`、`SquirrelPanel` 画的参考图比较（容差只覆盖抗锯齿，决定 0007）；同一批用例另有中书自己的逐像素基准图（UI `PanelSnapshotTests`）。下表「测试」里的 `组/名字` 是 `cases.json` 的用例，「完成」要求至少一个用例把这一项设成非默认值。配置的读取（YAML、回退规则、`%c`/`%@`、字体列表的拆分）在 ScribeConfig（工作流 1），这里只记候选窗这一侧。
+
+离屏渲染截不到的部分：`translucency` 的毛玻璃背景、窗口阴影、窗口的实时行为（位置、尺寸记忆、外观切换）。它们的覆盖方式写在对应行的「说明」里。
+
+| 条目 | 状态 | 测试 | 说明 |
+|------|------|------|------|
+| `color_scheme` / `color_scheme_dark` | 完成 | UI `SquirrelReferenceTests`：`schemes/*`、`presets/*`（`color_scheme` 依次设成 21 个预设）、`max-sample/light`、`max-sample/dark`（`color_scheme_dark`，暗色外观下用 wechat_dark）；UI `PanelThemeTests.nativeColoursComeFromThePalette` | 选哪套由 ScribeConfig 的 `Appearance` 决定；窗口每次显示时按系统外观取亮或暗主题，只有非 native 的亮色主题时固定用浅色外观（和鼠须管 `show()` 一样），这一步没有单独的测试 |
+| `candidate_list_layout` | 完成 | `layout/linear-*`（4 个）、`features/preedit-linear`、`wrap-linear`、`shadow-linear`、`expansion-linear`、`hilited-corner-linear`、`paging-linear-vertical`、`scheme-overrides`、`schemes/wechat_*`、`presets/apathy`、`clean_white`、`max-sample/*` | `_linear` 选项见上面「选项和属性」 |
+| `text_orientation` | 完成 | `layout/*-vertical-*`（4 个）、`features/preedit-vertical`、`paging-linear-vertical`、`status-message-vertical`、`scheme-orientation`（写在配色里）；UI `CandidatePanelTests.verticalPanelsTurnAsLayers`、`PanelRendererTests.verticalPanelsTurnClockwise` | 已知差异：TextKit 把鼠须管的行图层对齐到窗口像素网格，竖排面板差几分之一点才对齐，所以竖排字形和鼠须管差最多约三分之一点，竖排用例的容差放宽到 3%（决定 0007）。`_vertical` 选项见上面 |
+| `inline_preedit` | 完成 | 回放 `inline-preedit`、`inline-preedit-off`、`app-option-inline`、`app-options`；UI `PanelTextTests.preeditShowsWhateverTheTheme`；`features/preedit-*`（主题不内嵌）、`features/preedit-inline-theme`、`max-sample/light-no-inline`、`max-sample/dark-no-inline`（主题内嵌、应用 `no_inline`） | 是否内嵌由 ScribeCore 按会话决定（加上 `no_inline`、`inline` 选项），内嵌时快照里没有预编辑；候选窗不看这个设置，有预编辑就画，和鼠须管的面板一样 |
+| `inline_candidate` | 完成 | 回放 `inline-candidate`、`inline-candidate-caret`、`inline-candidate-without-preedit` | 只改输入框里的标记文本（ScribeCore、IMK），候选窗不看它，鼠须管的面板也不看，所以没有渲染用例 |
+| `translucency` | 部分 | `features/translucent`、`features/mutual-exclusive`、`features/scheme-overrides`（半透明颜色叠加的效果） | 毛玻璃背景（macOS 26 起 `NSGlassEffectView`，之前 `NSVisualEffectView`，按面板轮廓遮罩）显示的是窗口后面的内容，离屏截不到，中书的快照和鼠须管的参考图里都不画。缺口：毛玻璃本身既没有自动测试，也还没有手动检查条目 |
+| `mutual_exclusive` | 完成 | `features/mutual-exclusive`（和 `features/translucent` 只差这一项）、`features/scheme-overrides`；UI `PanelShapesTests.mutualExclusionCutsCandidatesOutOfTheBackground` | |
+| `memorize_size` | 部分 | UI `PanelPlacementTests.verticalPanelsKeepTheirLongestLength`（照鼠须管 `show()` 的条件写，连运算符优先级一起） | 尺寸记忆是窗口跨多次显示的行为，参考图只画单次显示，所以没有和鼠须管自己的结果对比。缺口：让对照工具也记录鼠须管的窗口位置和尺寸 |
+| `show_paging` | 完成 | `features/paging-stacked`（上下都能翻）、`paging-linear-vertical`（只能往下）、`scheme-overrides`；UI `PanelShapesTests.pagingArrowsSitInTheStrip`、`CandidatePanelTests.pagingArrowsPage`、`PanelThemeTests.pagingStripFollowsTheLabelSize` | |
+| `status_message_type` | 完成 | 回放 `status`（`@status-message long`、`short`）；App `SessionConfigurationTests`、`InputAdapterTests.statusFollowsTheConfiguration`；UI `features/status-message`、`status-message-vertical`、`CandidatePanelTests.statusMessagesHideByThemselves` | 长短在 ScribeCore 里选，候选窗只显示传来的消息（用候选文字的样式和段落样式，和鼠须管一样） |
+| `candidate_format` | 完成 | `features/format-four-per-em-space`（U+2005）、`format-without-label`、`scheme-overrides`、`presets/clean_white`（`%c %@`）、`apathy`、`dust`、`mojave_dark`、`max-sample/*`（`"%c %@ "`，含 U+2005）；UI `PanelTextTests.formatPlaceholdersAndLabels` | `%c`、`%@` 的换算在 ScribeConfig 的 `CandidateFormat` |
+| `font_face` / `font_point` | 完成 | 全部用例（默认样式固定为 `Avenir, PingFang SC` 16 点）；`schemes/wechat_*`、`max-sample/*`（`PingFangSC-Regular`）、`presets/apathy`（`PingFangSC-Regular,HanaMinB`）、`dust`（没装的字体，走回退）、`mojave_dark`（`PingFangSC`）、`scheme-overrides`（15 点）；UI `PanelThemeTests.fontListsCascade`、`familyAndFaceEntries`、`noFaceUsesTheUserFont` | 字体列表的拆分在 ScribeConfig 的 `FontFace` |
+| `label_font_face` / `label_font_point` | 完成 | `features/part-fonts`（Menlo 12）、`scheme-overrides`（写在配色里）、`schemes/wechat_*`、`max-sample/*`（12 点）、`presets/apathy`、`dust`；UI `PanelThemeTests.smallerLabelsSitHigherInHorizontalText`、`partsWithoutFacesUseTheCandidateFont` | |
+| `comment_font_face` / `comment_font_point` | 完成 | `features/part-fonts`（Helvetica 13）、`scheme-overrides`；UI `PanelThemeTests.partsWithoutFacesUseTheCandidateFont` | |
+| `preedit_font_face` / `preedit_font_point` | 完成 | `features/part-fonts`（Menlo 15）、`scheme-overrides`（Menlo 14） | |
+| `alpha` | 完成 | `features/alpha`（0.6）、`scheme-overrides`（0.9） | 屏幕上设在窗口的 `alphaValue`；对照工具在合成时乘上鼠须管给窗口设的值 |
+| `corner_radius` / `hilited_corner_radius` | 完成 | 全部用例（默认样式 7）；`features/hilited-corner-stacked`、`hilited-corner-linear`、`shadow-*`、`expansion-*`、`translucent`、`mutual-exclusive`、`scheme-overrides`、`presets/mojave_dark`、`starcraft`；UI `PanelGeometryTests.radiusRoundsEveryCorner`、`SnapshotHarnessTests.highlightOnePointRounderFails` | |
+| `border_height` / `border_width` | 完成 | 全部用例（默认样式 -2）；`features/border`（4、4，带边框色）、`schemes/wechat_*`、`max-sample/*`（8、0）、`scheme-overrides`（3、2）；UI `PanelThemeTests.insetsSwapInVerticalMode` | |
+| `line_spacing` / `spacing` | 完成 | 全部用例（默认样式 5、8）；`features/scheme-overrides`（10、12）、`features/preedit-*`（`spacing` 决定预编辑和候选之间的距离）；UI `PanelThemeTests.paragraphSpacingComesFromTheStyle` | |
+| `base_offset` | 完成 | `features/base-offset`（3）、`scheme-overrides`（2） | TextKit 2 会抵消整行统一的 `baselineOffset`，单独设 `base_offset` 看不出变化；参考图证实鼠须管也一样（决定 0007） |
+| `shadow_size` | 完成 | `features/shadow-stacked`、`shadow-linear`、`scheme-overrides` | 这是高亮候选的阴影。窗口本身的阴影（`hasShadow`）离屏截不到，只在屏幕上 |
+| `surrounding_extra_expansion` | 完成 | `features/expansion-stacked`（2）、`expansion-linear`（-2）、`translucent`、`mutual-exclusive`、`scheme-overrides` | |
+
+## 配色（`preset_color_schemes`）
+
+同上：「测试」里的 `组/名字` 是 `cases.json` 的用例，都在 UI `SquirrelReferenceTests` 里和鼠须管的参考图比较。颜色值的解析和回退（缺的颜色用哪个）在 ScribeConfig 的 `ThemeColors`，候选窗负责把它们画对，包括 2:1 混合的计算。
+
+| 条目 | 状态 | 测试 | 说明 |
+|------|------|------|------|
+| `name` / `author` | —— | | 不画在候选窗里，只在设置界面列配色时用；读取在 ScribeConfig 的 `PresetColorScheme` |
+| `color_space` | 完成 | `presets/solarized_light`（`display_p3`）；UI `PanelThemeTests.coloursResolve` | 快照和参考图都是 sRGB，超出 sRGB 的 Display P3 颜色在图里会被截断；屏幕上不截断 |
+| `back_color` | 完成 | `schemes/*`、`presets/*`、`max-sample/*`、`features/*` 里非 native 的用例 | |
+| `border_color` | 完成 | `features/border`、`scheme-overrides`、`presets/dust`、`google`、`mojave_dark`、`retro_green`、`retro_orange`、`solarized_dark`、`solarized_light`、`solarized_rock`、`starcraft` | `schemes/wechat_*` 设了边框色但边框宽度取 `min(border_width, border_height)` = 0，不画，和鼠须管一样 |
+| `preedit_back_color` | 完成 | `features/preedit-stacked`、`preedit-linear`、`preedit-vertical`、`preedit-only`、`translucent`、`mutual-exclusive`、`expansion-*`、`scheme-overrides`、`presets/solarized_dark`、`solarized_light` | |
+| `candidate_back_color` | 完成 | `features/preedit-*`、`translucent`、`mutual-exclusive`、`expansion-stacked`、`expansion-linear`、`scheme-overrides` | |
+| `hilited_back_color` | 完成 | `features/preedit-*`、`translucent`、`mutual-exclusive`、`expansion-*`、`scheme-overrides`、`presets/dark_temple`、`google`、`mojave_dark`、`psionics`、`purity_of_essence`、`purity_of_form`、`solarized_dark`、`solarized_light`、`starcraft` | 预设用例都带预编辑和选中范围，画得出这一项 |
+| `hilited_candidate_back_color` | 完成 | 几乎所有非 native 用例；`presets/*` 里没设它的预设用 `hilited_back_color` 回退 | |
+| `text_color` / `hilited_text_color` | 完成 | `features/preedit-*`、`scheme-overrides`、`presets/*`（预编辑和选中部分） | |
+| `candidate_text_color` / `hilited_candidate_text_color` | 完成 | `schemes/*`、`presets/*`、`max-sample/*`、`features/*` 里非 native 的用例 | |
+| `label_color` / `hilited_candidate_label_color`（缺省时 2:1 混合） | 完成 | 写明颜色：`schemes/wechat_*`、`presets/clean_white`、`dust`、`mojave_dark`、`psionics`、`retro_green`、`retro_orange`、`solarized_dark`、`solarized_light`、`starcraft`、`max-sample/dark`；2:1 混合：`schemes/aqua`、`lost_temple`、`max-sample/light` 和其余预设；UI `PanelThemeTests.blendIsTwoPartsForeground` | 混合在 deviceRGB 里按分量算，含 alpha |
+| `comment_text_color` / `hilited_comment_text_color` | 完成 | `schemes/*`、`presets/*`、`max-sample/*`、`features/*` 里非 native 的用例 | |
+| `accent_text_color` / `warning_text_color` | 完成 | `features/accent-warning-comments`、`accent-without-colour`（没设颜色时注释保持标签颜色）；UI `PanelTextTests.accentAndWarningColourUnhighlightedComments`、`CandidatePanelTests.commentMarksFromTheSnapshotReachTheDrawing` | 标记来自 `_comment_highlight` / `_comment_warning`，见上面「选项和属性」 |
+| 配色里覆盖外观设置 | 完成 | `features/scheme-overrides`（排版、字体和三种分部字体、圆角、边框、行距、间距、基线、阴影、alpha、扩展、翻页、互斥、半透明、格式、内嵌都写在配色里）、`features/scheme-orientation`（竖排写在配色里）、`schemes/wechat_*`、`presets/apathy`、`clean_white`、`dust`、`mojave_dark`、`starcraft`、`max-sample/*` | 只能写在 `style` 里的 `memorize_size`、`status_message_type` 由 ScribeConfig 处理 |
+| 内置的 21 套配色 | 完成 | `presets/*`（`SharedSupport/squirrel.yaml` 里全部 21 个，各带预编辑和选中高亮）；Config `LibrimeConfigTests.presetsInSharedSupport` | 字体按各配色原样，没装的字体走回退 |

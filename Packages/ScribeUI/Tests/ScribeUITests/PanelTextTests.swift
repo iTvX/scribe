@@ -177,12 +177,4 @@ import Testing
         let first = try #require(PanelText(PanelContent(page), theme: panelTheme()))
         #expect(!first.canPageUp && !first.canPageDown)
     }
-
-    @Test func statusMessageType() {
-        #expect(PanelContent.statusMessage(long: "中文", short: "中", type: .mix) == "中")
-        #expect(PanelContent.statusMessage(long: "中文", short: "", type: .mix) == "中文")
-        #expect(PanelContent.statusMessage(long: "中文", short: "中", type: .long) == "中文")
-        #expect(PanelContent.statusMessage(long: "西文", short: "", type: .short) == "西")
-        #expect(PanelContent.statusMessage(long: "", short: "", type: .short) == "")
-    }
 }

@@ -91,6 +91,53 @@
       "hilited_back_color": "0x6000c0ff",
       "candidate_back_color": "0x30000000",
       "hilited_candidate_back_color": "0x80fa3a0a"
+    },
+    "overrides": {
+      "back_color": "0xf0ffffff",
+      "border_color": "0xff808080",
+      "preedit_back_color": "0x20ff0000",
+      "candidate_back_color": "0x18000000",
+      "hilited_back_color": "0x4000c0ff",
+      "hilited_candidate_back_color": "0xc0d77800",
+      "text_color": "0x404040",
+      "candidate_text_color": "0x101010",
+      "hilited_candidate_text_color": "0xffffff",
+      "comment_text_color": "0x707070",
+      "candidate_list_layout": "linear",
+      "inline_preedit": "false",
+      "candidate_format": "[label] [candidate] [comment]",
+      "font_face": "PingFang SC",
+      "font_point": "15",
+      "label_font_face": "Menlo",
+      "label_font_point": "11",
+      "comment_font_face": "Helvetica",
+      "comment_font_point": "12",
+      "preedit_font_face": "Menlo",
+      "preedit_font_point": "14",
+      "corner_radius": "9",
+      "hilited_corner_radius": "6",
+      "border_width": "3",
+      "border_height": "2",
+      "line_spacing": "10",
+      "spacing": "12",
+      "base_offset": "2",
+      "shadow_size": "4",
+      "alpha": "0.9",
+      "surrounding_extra_expansion": "2",
+      "show_paging": "true",
+      "mutual_exclusive": "true",
+      "translucency": "true"
+    },
+    "vertical_aqua": {
+      "text_color": "0x606060",
+      "back_color": "0xeeeceeee",
+      "candidate_text_color": "0x000000",
+      "hilited_text_color": "0x000000",
+      "hilited_candidate_text_color": "0xffffff",
+      "hilited_candidate_back_color": "0xeefa3a0a",
+      "comment_text_color": "0x5a5a5a",
+      "hilited_comment_text_color": "0xfcac9d",
+      "text_orientation": "vertical"
     }
   },
   "contents": {
@@ -772,6 +819,60 @@
           "candidates": [],
           "status": "ABC"
         }
+      },
+      {
+        "name": "part-fonts",
+        "style": {
+          "inline_preedit": "false",
+          "label_font_face": "Menlo",
+          "label_font_point": "12",
+          "comment_font_face": "Helvetica",
+          "comment_font_point": "13",
+          "preedit_font_face": "Menlo",
+          "preedit_font_point": "15"
+        },
+        "content": "pinyin-preedit"
+      },
+      {
+        "name": "scheme-overrides",
+        "scheme": "overrides",
+        "content": {
+          "candidates": [
+            {
+              "text": "中书"
+            },
+            {
+              "text": "中枢",
+              "comment": "zhōng shū"
+            },
+            {
+              "text": "钟书"
+            },
+            {
+              "text": "忠恕",
+              "comment": "~shu"
+            },
+            {
+              "text": "中"
+            }
+          ],
+          "highlighted": 0,
+          "preedit": {
+            "text": "zhong shu ji",
+            "selection": [
+              6,
+              12
+            ],
+            "caret": 12
+          },
+          "page": 1,
+          "lastPage": false
+        }
+      },
+      {
+        "name": "scheme-orientation",
+        "scheme": "vertical_aqua",
+        "content": "pinyin"
       }
     ],
     "presets": [
