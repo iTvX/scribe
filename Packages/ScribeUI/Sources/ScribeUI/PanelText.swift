@@ -63,12 +63,13 @@ struct PanelText {
             let highlighted = index == highlightedIndex
             let attributes = highlighted ? theme.highlightedCandidateAttributes : theme.candidateAttributes
             var commentAttributes = highlighted ? theme.highlightedCommentAttributes : theme.commentAttributes
-            if !highlighted {
-                // A missing accent or warning colour leaves the comment in
-                // the label colour, as in Squirrel.
-                if content.accentCommentIndices.contains(index) {
+            if !highlighted, let snapshot {
+                // Accent wins over warning. A missing accent or warning
+                // colour leaves the comment in the label colour, as in
+                // Squirrel.
+                if snapshot.accentCommentIndices.contains(index) {
                     commentAttributes[.foregroundColor] = theme.accentCommentTextColor
-                } else if content.warningCommentIndices.contains(index) {
+                } else if snapshot.warningCommentIndices.contains(index) {
                     commentAttributes[.foregroundColor] = theme.warningCommentTextColor
                 }
             }

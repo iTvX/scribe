@@ -108,15 +108,12 @@ struct SnapshotCases: Decodable {
                 highlightedIndex: content.highlighted ?? 0,
                 pageNumber: content.page ?? 0,
                 isLastPage: content.lastPage ?? true,
-                preedit: content.preedit.map { Preedit(text: $0.text, selectedRange: $0.selection[0]..<$0.selection[1], caret: $0.caret) }
+                preedit: content.preedit.map { Preedit(text: $0.text, selectedRange: $0.selection[0]..<$0.selection[1], caret: $0.caret) },
+                accentCommentIndices: Set(content.accent ?? []),
+                warningCommentIndices: Set(content.warning ?? [])
             )
         }
-        return PanelContent(
-            snapshot,
-            accentCommentIndices: Set(content.accent ?? []),
-            warningCommentIndices: Set(content.warning ?? []),
-            statusMessage: content.status
-        )
+        return PanelContent(snapshot, statusMessage: content.status)
     }
 
     /// The cases of `suite`, ready to render.
