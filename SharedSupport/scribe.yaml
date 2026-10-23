@@ -1,0 +1,8 @@
+# Scribe settings
+# encoding: utf-8
+config_version: '0.1'
+
+compatibility:
+  # Report librime's distribution_code_name as "Squirrel" and distribution_name
+  # as "鼠鬚管" instead of "Scribe", for Lua scripts that check which frontend runs.
+  report_as_squirrel: false
