@@ -80,6 +80,10 @@ final class RimeService {
             switch notification.type {
             case "deploy":
                 RimeService.shared.resumeMaintenance()
+                if notification.value != "start" {
+                    // Schemas, and their styles, are deployed now.
+                    RimeService.shared.loadAppearance()
+                }
             case "option", "schema", "property":
                 RimeService.shared.announce(notification)
             default:
@@ -90,19 +94,44 @@ final class RimeService {
         startMaintenance(fullCheck: false)
     }
 
-    /// Squirrel's and Scribe's own config files. They are not part of the
-    /// workspace librime deploys, so the frontend deploys them itself.
-    static let frontendConfigFiles = ["squirrel.yaml", "scribe.yaml"]
-
-    /// Starts maintenance and, as Squirrel does, deploys the frontend's
-    /// config files with the user's patches while it runs. Settings apps
-    /// change scribe.custom.yaml and ask only for a reload, so every deploy
-    /// goes through here.
+    /// Starts maintenance, deploying the frontend's config files on the way,
+    /// and reads them again.
     func startMaintenance(fullCheck: Bool) {
-        guard engine.startMaintenance(fullCheck: fullCheck) else { return }
-        for file in Self.frontendConfigFiles {
-            _ = engine.deployConfigFile(file, versionKey: "config_version")
+        let started = FrontendConfig.startMaintenance(engine, fullCheck: fullCheck)
+        settings = ScribeSettings.load(from: engine)
+        if !started {
+            loadAppearance()
         }
+    }
+
+    /// From the deployed squirrel.yaml.
+    private var settings: ScribeSettings?
+    /// The schema whose style the candidate window follows: the one a
+    /// session started using last.
+    private var schemaID = ""
+    /// What sessions take from the settings and the schema's style.
+    private var configuration = SessionConfiguration()
+
+    /// Reads the current schema's style and hands the result to the
+    /// candidate window and every session. While librime deploys, schemas
+    /// are being rewritten; the deploy's end brings us back.
+    func loadAppearance() {
+        guard let settings, !engine.isInMaintenance,
+              let appearance = Appearance.load(from: engine, schemaID: schemaID)
+        else { return }
+        candidatePanel.appearance = appearance
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        configuration = SessionConfiguration(settings: settings, theme: appearance.theme(isDark: isDark))
+        adapters.removeAll { $0.adapter == nil }
+        for adapter in adapters.compactMap(\.adapter) {
+            adapter.configuration = configuration
+        }
+    }
+
+    private func schemaChanged(to schemaID: String) {
+        guard schemaID != self.schemaID else { return }
+        self.schemaID = schemaID
+        loadAppearance()
     }
 
     private func observeServerNotifications() {
@@ -206,6 +235,8 @@ final class RimeService {
 
     func makeAdapter() -> InputAdapter {
         let adapter = InputAdapter(session: InputSession(engine: engine, chordTimer: RunLoopChordTimer()), candidates: candidatePanel)
+        adapter.configuration = configuration
+        adapter.onSchemaChange = { RimeService.shared.schemaChanged(to: $0) }
         adapters.append(WeakAdapter(adapter: adapter))
         return adapter
     }
@@ -222,7 +253,7 @@ final class RimeService {
     private func announce(_ notification: RimeNotification) {
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
-            adapter.handle(notification, notifications: .appropriate, messageType: .mix)
+            adapter.handle(notification)
         }
     }
 

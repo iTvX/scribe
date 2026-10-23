@@ -17,6 +17,12 @@ struct IMKTextClient: @unchecked Sendable {
     var bundleIdentifier: String {
         client.bundleIdentifier() ?? "unknown client"
     }
+
+    /// Types with this keyboard layout while Scribe is active, such as
+    /// "com.apple.keylayout.ABC".
+    func overrideKeyboard(named layout: String) {
+        client.overrideKeyboard(withKeyboardNamed: layout)
+    }
 }
 
 extension IMKTextClient: TextClient {

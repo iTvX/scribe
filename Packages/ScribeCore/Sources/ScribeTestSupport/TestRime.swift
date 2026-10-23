@@ -27,9 +27,10 @@ public enum TestFixtures {
 /// temporary user directory.
 @MainActor
 public enum TestRime {
+    public static let userDirectory = FileManager.default.temporaryDirectory
+        .appending(path: "scribe-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+
     public static let engine: LibrimeEngine = {
-        let userDirectory = FileManager.default.temporaryDirectory
-            .appending(path: "scribe-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try! FileManager.default.createDirectory(at: userDirectory, withIntermediateDirectories: true)
         let engine = LibrimeEngine.shared
         engine.start(RimeConfiguration(
