@@ -44,6 +44,47 @@ final class ScribeInputController: IMKInputController {
         }
     }
 
+    override func menu() -> NSMenu! {
+        // InputMethodKit asks on the main thread; the controller is the
+        // target it sends the menu's actions to.
+        nonisolated(unsafe) let target = self
+        nonisolated(unsafe) var menu: NSMenu?
+        MainActor.assumeIsolated {
+            menu = InputMenu.make(target: target)
+        }
+        return menu
+    }
+
+    @objc func deploy(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.request(.reload)
+        }
+    }
+
+    @objc func syncUserData(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.request(.sync)
+        }
+    }
+
+    @objc func openLogs(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.open(.logs)
+        }
+    }
+
+    @objc func openUserFolder(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.open(.userFolder)
+        }
+    }
+
+    @objc func openHelp(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.open(.help)
+        }
+    }
+
     override func commitComposition(_ sender: Any!) {
         guard let client = IMKTextClient(sender) else { return }
         let state = state

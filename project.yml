@@ -85,6 +85,8 @@ targets:
       - path: App/Sources/Adapter
       - path: App/Sources/Command.swift
       - path: App/Sources/InputSourceInstaller.swift
+      - path: App/Sources/InputMenu.swift
+      - path: App/Sources/LaunchGuard.swift
       - path: App/Sources/MaintenanceQueue.swift
       - path: App/Sources/Log.swift
       - path: App/Tests

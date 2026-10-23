@@ -6,6 +6,15 @@ import ScribeUI
 
 extension CandidatePanel: CandidatePresenting {}
 
+/// How Scribe names itself to librime. Schemas and Lua scripts may check the
+/// code name; a compatibility setting will let users report "Squirrel".
+struct DistributionIdentity: Equatable {
+    var name: String
+    var codeName: String
+
+    static let scribe = DistributionIdentity(name: "Scribe", codeName: "Scribe")
+}
+
 extension RimeService: MaintenanceEngine {
     var isInMaintenance: Bool {
         engine.isInMaintenance
@@ -16,7 +25,7 @@ extension RimeService: MaintenanceEngine {
     func reload() {
         Log.app.notice("Redeploying")
         engine.stop()
-        engine.start(Self.configuration())
+        engine.start(Self.configuration(identity: identity))
         engine.startMaintenance(fullCheck: true)
     }
 
@@ -48,8 +57,24 @@ final class RimeService {
 
     private init() {}
 
-    /// Starts librime and deploys if the user's files changed.
+    /// The distribution librime reports to schemas and plugins.
+    var identity = DistributionIdentity.scribe
+
+    /// Starts librime and deploys if the user's files changed. After a crash
+    /// at startup it starts without librime, so the user can still type and
+    /// fix the configuration; a reload starts librime again.
     func start() {
+        if let logDirectory = Self.defaultLogDirectory {
+            try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
+            // Plugins such as librime-lua log here too.
+            setenv("RIME_LOG_DIR", logDirectory.path(percentEncoded: false), 1)
+        }
+        observeServerNotifications()
+        if LaunchGuard.standard.isRelaunchTooSoon() {
+            Log.app.fault("Relaunched within two seconds; starting without Rime")
+            Self.speak(Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil))
+            return
+        }
         engine.notificationHandler = { notification in
             Self.log(notification)
             switch notification.type {
@@ -61,8 +86,11 @@ final class RimeService {
                 break
             }
         }
-        engine.start(Self.configuration())
+        engine.start(Self.configuration(identity: identity))
         engine.startMaintenance(fullCheck: false)
+    }
+
+    private func observeServerNotifications() {
         let center = DistributedNotificationCenter.default()
         center.addObserver(forName: Self.reloadNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {
@@ -112,6 +140,34 @@ final class RimeService {
         )
     }
 
+    enum Place {
+        case logs
+        case userFolder
+        case help
+    }
+
+    /// Opens a folder in the Finder, or the help in the browser.
+    func open(_ place: Place) {
+        let url: URL? = switch place {
+        case .logs: Self.defaultLogDirectory
+        case .userFolder: Self.configuration(logDirectory: nil, identity: identity).userDataDirectory
+        case .help: URL(string: "https://github.com/iTvX/scribe#readme")
+        }
+        if let url {
+            if url.isFileURL {
+                try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            }
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private static func speak(_ message: String) {
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/say")
+        process.arguments = [message]
+        try? process.run()
+    }
+
     /// Queues a reload or a sync; it starts once librime is not busy.
     func request(_ task: MaintenanceQueue.Task) {
         Log.app.notice("Requested \(task == .reload ? "reload" : "sync", privacy: .public)")
@@ -157,7 +213,12 @@ final class RimeService {
 
     /// Shared data from the app bundle, user data in ~/Library/Scribe, logs
     /// in ~/Library/Logs/Scribe.
-    static func configuration(bundle: Bundle = .main, userDirectory: URL? = nil, logDirectory: URL? = defaultLogDirectory) -> RimeConfiguration {
+    static func configuration(
+        bundle: Bundle = .main,
+        userDirectory: URL? = nil,
+        logDirectory: URL? = defaultLogDirectory,
+        identity: DistributionIdentity = .scribe
+    ) -> RimeConfiguration {
         let fileManager = FileManager.default
         let userDirectory = userDirectory ?? UserDirectories(home: fileManager.homeDirectoryForCurrentUser).scribe
         for directory in [userDirectory, logDirectory].compactMap(\.self) {
@@ -169,8 +230,8 @@ final class RimeService {
             logDirectory: logDirectory,
             minimumLogLevel: logDirectory == nil ? 2 : 0,
             appName: "rime.scribe",
-            distributionName: "Scribe",
-            distributionCodeName: "Scribe",
+            distributionName: identity.name,
+            distributionCodeName: identity.codeName,
             distributionVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         )
     }

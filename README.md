@@ -103,6 +103,12 @@ Scripts/install-rime-ice.sh
 "$HOME/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --replay Tests/Fixtures/gate/rime-ice.replay
 ```
 
+### 输入法菜单
+
+切换到中书后，菜单栏输入法菜单里有：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明。界面跟随系统语言（英文、简体中文、繁体中文）。
+
+如果中书在两秒内又被启动（多半是配置有错导致启动时崩溃），这次不加载 Rime，并语音提示；改好配置后选「重新部署」即可。
+
 ### 查看日志
 
 librime 的日志在 `~/Library/Logs/Scribe`。中书自己用系统的统一日志，子系统是 `io.github.itvx.inputmethod.Scribe`。可以在「控制台」里按子系统过滤，也可以在终端里看：

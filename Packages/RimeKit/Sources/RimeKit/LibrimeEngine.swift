@@ -118,7 +118,7 @@ public final class LibrimeEngine: RimeEngine {
     }
 
     public var isInMaintenance: Bool {
-        api.pointee.is_maintenance_mode()
+        isRunning && api.pointee.is_maintenance_mode()
     }
 
     public func joinMaintenance() {
@@ -139,7 +139,9 @@ public final class LibrimeEngine: RimeEngine {
         api.pointee.sync_user_data()
     }
 
+    /// Nil while librime is not running.
     public func createSession() -> RimeSessionID? {
+        guard isRunning else { return nil }
         let id = api.pointee.create_session()
         return id == 0 ? nil : RimeSessionID(rawValue: UInt(id))
     }
