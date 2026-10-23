@@ -99,6 +99,30 @@ import Testing
         #expect(engine.property("client_app", in: session) == "com.apple.TextEdit")
     }
 
+    /// Frontend config files such as squirrel.yaml are not part of the
+    /// workspace; the frontend deploys them itself, with the user's patches.
+    @Test func deployingAConfigFileAppliesTheUserPatch() throws {
+        defer { engine.destroySession(session) }
+        let patch = TestEngine.userDirectory.appending(path: "scribe_frontend_test.custom.yaml")
+        try "patch:\n  style/color_scheme: patched\n".write(to: patch, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: patch) }
+
+        #expect(engine.deployConfigFile("scribe_frontend_test.yaml", versionKey: "config_version"))
+        let built = try String(
+            contentsOf: TestEngine.userDirectory.appending(path: "build/scribe_frontend_test.yaml"),
+            encoding: .utf8
+        )
+        #expect(built.contains("color_scheme: patched"))
+    }
+
+    /// scribe.yaml may be missing from older or trimmed shared data.
+    @Test func deployingAMissingConfigFileBuildsNothing() {
+        defer { engine.destroySession(session) }
+        _ = engine.deployConfigFile("scribe_missing_test.yaml", versionKey: "config_version")
+        let built = TestEngine.userDirectory.appending(path: "build/scribe_missing_test.yaml")
+        #expect(!FileManager.default.fileExists(atPath: built.path(percentEncoded: false)))
+    }
+
     /// glog keeps the app name librime passes it and names log files it
     /// opens later, such as for the first warning, after it.
     @Test func logFilesAreNamedAfterTheApp() throws {
