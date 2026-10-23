@@ -2,43 +2,156 @@ import Foundation
 import Observation
 import ScribeConfig
 
-/// 外观: the themes Scribe draws its candidate panel with, read-only for now.
+/// 外观: the candidate window settings in scribe.custom.yaml. Never writes
+/// squirrel.custom.yaml.
 @MainActor @Observable
 final class LooksModel {
-    enum Phase {
-        case loading
-        case loaded(DeployedAppearance)
-        case unavailable(String)
-    }
-
     let directories: SettingsDirectories
-    private(set) var phase = Phase.loading
+    /// Nil until loaded, or when loading failed.
+    private(set) var settings: AppearanceSettings?
+    private(set) var loadError: String?
+    /// Why changes cannot be saved, or nil.
+    private(set) var readOnlyReason: String?
     private(set) var schemaID: String?
+    private(set) var schemaName: String?
+    private(set) var status: SaveStatus?
+    private(set) var edits = AppearanceEdits()
 
     init(directories: SettingsDirectories) {
         self.directories = directories
     }
 
-    func load(activeSchema: String?) {
+    /// The themes with the pending edits applied.
+    var preview: Appearance? {
+        settings?.appearance(with: edits.pending)
+    }
+
+    var hasEdits: Bool { !edits.isEmpty }
+
+    func load(activeSchema: String?, schemaName: String?) {
         schemaID = activeSchema
+        self.schemaName = schemaName
+        status = nil
+        edits.discard()
         guard let shared = directories.shared else {
-            phase = .unavailable("找不到中书，没法读取外观")
+            settings = nil
+            loadError = "找不到中书，没法读取和校验外观"
+            readOnlyReason = loadError
+            emit("Appearance load failed: Scribe not found")
             return
         }
         do {
-            if let deployed = try DeployedAppearance.load(userDirectory: directories.user, sharedDirectory: shared,
-                                                          schemaID: activeSchema ?? "") {
-                phase = .loaded(deployed)
-                let light = deployed.appearance.light.colorSchemeID ?? "native"
-                let dark = deployed.appearance.dark?.colorSchemeID ?? "none"
-                emit("Appearance loaded: light \(light), dark \(dark), schema \(activeSchema ?? "none")")
-            } else {
-                phase = .unavailable("中书还没有部署过这个目录，部署后才能看到外观")
-                emit("Appearance unavailable: no build/squirrel.yaml")
-            }
+            let settings = try AppearanceSettings.load(userDirectory: directories.user, sharedDirectory: shared, schemaID: activeSchema)
+            self.settings = settings
+            loadError = nil
+            readOnlyReason = settings.editProblem.map { DefaultsModel.message(for: $0, file: "scribe.custom.yaml") }
+            let appearance = settings.appearance()
+            emit("Appearance loaded: \(settings.themes.count) themes; light \(appearance.light.colorSchemeID ?? "native")"
+                 + "; dark \(appearance.dark?.colorSchemeID ?? "none"); diagnostics \(settings.diagnostics.count)"
+                 + "; schema \(activeSchema ?? "none")\(settings.schemaStyle == nil ? "" : " with style")"
+                 + "; scribe.custom.yaml \(settings.customText == nil ? "absent" : "\(settings.customKeys.count) entries")"
+                 + (readOnlyReason.map { "; read-only: \($0)" } ?? "")
+                 + "; live \(directories.isLive)")
         } catch {
-            phase = .unavailable(DefaultsModel.message(for: error))
-            emit("Appearance failed: \(error)")
+            settings = nil
+            loadError = DefaultsModel.message(for: error, file: "scribe.custom.yaml")
+            readOnlyReason = loadError
+            emit("Appearance load failed: \(error)")
+        }
+    }
+
+    // MARK: - Edits
+
+    func set(_ path: String, _ value: ConfigNode) {
+        guard let settings, readOnlyReason == nil else { return }
+        edits.set(path, to: value, loaded: settings)
+        status = nil
+    }
+
+    /// 恢复默认, or 跟随浅色主题 for the dark theme.
+    func reset(_ path: String) {
+        guard let settings, readOnlyReason == nil else { return }
+        edits.reset(path, loaded: settings)
+        status = nil
+    }
+
+    func isEdited(_ path: String) -> Bool {
+        edits.pending.keys.contains(path)
+    }
+
+    /// The raw value at a Scribe path, edits included, such as a theme ID.
+    func value(at path: String) -> String? {
+        guard let settings, case .scalar(let value) = settings.effectiveValue(at: path, with: edits.pending) else { return nil }
+        return value
+    }
+
+    /// Why a control may not show what is set, or where it is set.
+    func notes(for path: String) -> [String] {
+        guard let settings else { return [] }
+        var notes: [String] = []
+        if case .insideEntry(let entry) = settings.provenance(of: path) {
+            notes.append("在 scribe.custom.yaml 的 \(entry) 里设置")
+        }
+        if settings.isOverriddenBySchema(path) {
+            notes.append("当前方案（\(schemaName ?? schemaID ?? "")）自带这一项，修改不会在这个方案里生效")
+        }
+        let themes = settings.themesSetting(path, with: edits.pending).map { id in
+            let base = id.hasSuffix(":dark") ? String(id.dropLast(":dark".count)) : id
+            return settings.themes.first { $0.id == base }?.name ?? base
+        }
+        let names = themes.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        if !names.isEmpty {
+            notes.append("当前主题（\(names.joined(separator: "、"))）自带这一项，修改只在别的主题里生效")
+        }
+        return notes
+    }
+
+    /// Whether 恢复默认 applies: scribe.custom.yaml has exactly this entry.
+    func canReset(_ path: String) -> Bool {
+        settings?.provenance(of: path) == .ownEntry && readOnlyReason == nil
+    }
+
+    // MARK: - Saving
+
+    func revert() {
+        load(activeSchema: schemaID, schemaName: schemaName)
+    }
+
+    func save() {
+        guard let settings, let shared = directories.shared, readOnlyReason == nil, hasEdits else { return }
+        let changes = edits.changes
+        let writer = CustomPatchWriter(userDirectory: directories.user, sharedDirectory: shared)
+        do {
+            let result = try writer.save("scribe", changes: changes, expectedOriginal: settings.customText)
+            let (message, posted) = directories.announce(result)
+            let summary = changes.map { change -> String in
+                switch change {
+                case .set(let key, _): "set \(key)"
+                case .remove(let key): "remove \(key)"
+                }
+            }
+            emit("Appearance saved scribe.custom.yaml: \(summary.joined(separator: ", ")); file \(result.file.path(percentEncoded: false)); posted reload \(posted)")
+            load(activeSchema: schemaID, schemaName: schemaName)
+            status = SaveStatus(message: message, isError: false)
+        } catch {
+            emit("Appearance save failed: \(error)")
+            status = SaveStatus(message: DefaultsModel.message(for: error, file: "scribe.custom.yaml"), isError: true,
+                                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
+        }
+    }
+
+    // MARK: - Messages
+
+    static func message(for diagnostic: ConfigDiagnostic) -> String {
+        switch diagnostic.problem {
+        case .missingColor:
+            "\(diagnostic.path) 没有值：# 开头的颜色要加引号"
+        case .invalidColor(let value):
+            "\(diagnostic.path) 的 \(value ?? "（列表或映射）") 不是 #RRGGBB 或 #RRGGBBAA 颜色"
+        case .unknownTheme(let id):
+            "\(diagnostic.path) 指定的主题 \(id) 不存在"
+        case .invalidThemeID:
+            "\(diagnostic.path) 这个主题 ID 中书不会使用（native、含 / 或 :，或以 @ 开头）"
         }
     }
 

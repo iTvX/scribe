@@ -1,5 +1,6 @@
 import AppKit
 import ScribeConfig
+import ScribeCore
 
 /// Where Settings reads and writes, and whether that is the Scribe the user
 /// types with.
@@ -29,6 +30,28 @@ struct SettingsDirectories {
         user = location.userDirectory
         shared = location.sharedDirectory
         isLive = location.isLive
+    }
+
+    /// After a save: posts Reload to the installed Scribe when it is live
+    /// and running, and says what happens next.
+    @MainActor
+    func announce(_ result: PatchSaveResult) -> (message: String, postedReload: Bool) {
+        var message: String
+        var posted = false
+        if !isLive {
+            message = "已保存（测试目录，没有通知中书）"
+        } else if isScribeRunning {
+            DistributedNotificationCenter.default().postNotificationName(
+                Notification.Name(ServerNotification.reload), object: nil, userInfo: nil, deliverImmediately: true)
+            posted = true
+            message = "已保存，中书正在重新部署"
+        } else {
+            message = "已保存，中书下次启动时生效"
+        }
+        if !result.supersededKeys.isEmpty {
+            message += "。合并了 \(result.supersededKeys.joined(separator: "、")) 这几个补丁项"
+        }
+        return (message, posted)
     }
 
     /// Whether the installed Scribe is running. Always false unless live.

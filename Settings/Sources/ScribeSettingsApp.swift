@@ -26,7 +26,8 @@ struct ScribeSettingsApp: App {
     private func launch() {
         let refresh = { [defaults, looks] in
             defaults.load()
-            looks.load(activeSchema: defaults.activeSchema)
+            looks.load(activeSchema: defaults.activeSchema,
+                       schemaName: defaults.activeSchema.map { defaults.name(ofSchema: $0) })
         }
         importModel.onImported = refresh
         refresh()
