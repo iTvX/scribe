@@ -165,6 +165,14 @@ final class InputAdapter {
         session.option("ascii_mode")
     }
 
+    /// Commits what was typed and hides the window, for when Scribe stops
+    /// being the input source without being deactivated.
+    func finishComposition() {
+        if let client {
+            deactivate(client: client)
+        }
+    }
+
     /// The input method is no longer active for this client.
     func deactivate(client: TextClient) {
         commitComposition(client: client)

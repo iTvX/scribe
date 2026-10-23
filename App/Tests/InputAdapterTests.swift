@@ -143,6 +143,18 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls == ["insert ni", "hide"])
     }
 
+    /// For when a script switches the input source and InputMethodKit does
+    /// not deactivate Scribe, as on macOS 26.
+    @Test func finishingCommitsToTheLastClient() {
+        adapter.finishComposition()
+        #expect(log.calls.isEmpty)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        log.calls.removeAll()
+        adapter.finishComposition()
+        #expect(log.calls == ["insert ni", "hide", "hide"])
+    }
+
     @Test func deactivatingNeverDropsText() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)

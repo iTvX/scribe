@@ -8,6 +8,7 @@ final class FakeInputSources: InputSourceSystem {
     var sources: [String: InputSourceState] = [:]
     var log: [String] = []
     var status: OSStatus = 0
+    var currentInputSourceID: String?
 
     init(registered: Bool = true, enabled: Set<String> = [], selected: String? = nil) {
         if registered {
@@ -50,6 +51,17 @@ private let app = URL(filePath: "/Library/Input Methods/Scribe.app")
 
 @MainActor
 @Suite struct InputSourceInstallerTests {
+    @Test func scribeIsCurrentInEitherMode() {
+        let system = FakeInputSources()
+        for (id, isScribe) in [
+            (hansID, true), (hantID, true), ("com.apple.keylayout.ABC", false),
+            ("io.github.itvx.inputmethod.ScribeX.Hans", false), (nil, false),
+        ] {
+            system.currentInputSourceID = id
+            #expect(InputSourceInstaller(system: system).isScribeCurrent == isScribe, "\(id ?? "none")")
+        }
+    }
+
     @Test func registersWhenNothingIsEnabled() {
         let system = FakeInputSources(registered: false)
         #expect(InputSourceInstaller(system: system).register(bundleURL: app))

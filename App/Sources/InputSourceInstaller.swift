@@ -19,6 +19,8 @@ protocol InputSourceSystem {
     func enable(_ id: String) -> OSStatus
     func disable(_ id: String) -> OSStatus
     func select(_ id: String) -> OSStatus
+    /// The selected keyboard input source.
+    var currentInputSourceID: String? { get }
 }
 
 /// Registers, enables, disables and selects Scribe's input sources, with
@@ -36,6 +38,12 @@ struct InputSourceInstaller {
 
     /// Registers the input sources of the app at `bundleURL`, unless the user
     /// has already enabled one of Scribe's modes.
+    /// Whether one of Scribe's modes is the selected input source.
+    var isScribeCurrent: Bool {
+        guard let id = system.currentInputSourceID else { return false }
+        return id == Self.bundleIdentifier || id.hasPrefix(Self.bundleIdentifier + ".")
+    }
+
     func register(bundleURL: URL) -> Bool {
         let enabled = enabledModes
         if !enabled.isEmpty {
