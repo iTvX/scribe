@@ -158,6 +158,69 @@ struct CustomPatchWriterTests {
         #expect(!engine.isRunning)
     }
 
+    @Test func savesAConversionNextToExistingEntries() throws {
+        let fileManager = FileManager.default
+        let root = fileManager.temporaryDirectory.appending(path: "ScribeConfigTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? fileManager.removeItem(at: root) }
+        let shared = root.appending(path: "shared", directoryHint: .isDirectory)
+        let user = root.appending(path: "Scribe", directoryHint: .isDirectory)
+        try fileManager.createDirectory(at: shared, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: user, withIntermediateDirectories: true)
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        let squirrelCustom = user.appending(path: "squirrel.custom.yaml")
+        try fileManager.copyItem(at: ConfigFixtures.directory.appending(path: "max-sample/squirrel.custom.yaml"), to: squirrelCustom)
+        let squirrelBytes = fileManager.contents(atPath: squirrelCustom.path(percentEncoded: false))
+        let file = user.appending(path: "scribe.custom.yaml")
+        let original = """
+            # 中书测试：已有几项的 scribe.custom.yaml
+            patch:
+              # 自己写的字体
+              appearance/font:
+                face: Avenir
+              themes/mine:
+                name: 我的主题
+                light:
+                  background: "#FFFFFF"
+              appearance/theme: mine  # 先用自己的
+            # 结尾的注释
+
+            """
+        try Data(original.utf8).write(to: file)
+        let engine = LibrimeEngine.shared
+        defer { engine.stop() }
+
+        let settings = try AppearanceSettings.load(userDirectory: user, sharedDirectory: shared, schemaID: nil)
+        let conversion = try #require(settings.conversion)
+        #expect(!conversion.isEmpty)
+        // Nothing scribe.yaml already sets is converted.
+        for entry in conversion.entries {
+            #expect(settings.scribe.node(at: entry.key) == nil, "\(entry.key)")
+        }
+        #expect(!conversion.entries.contains { ["appearance/theme", "appearance/font/face", "themes/mine"].contains($0.key) })
+
+        let writer = CustomPatchWriter(userDirectory: user, sharedDirectory: shared)
+        _ = try writer.save("scribe", changes: conversion.entries.map { .set($0.key, $0.value) },
+                            expectedOriginal: settings.customText)
+        let saved = try String(contentsOf: file, encoding: .utf8)
+        // Taking the new entries out again gives back the file byte for byte.
+        var editor = try CustomPatchEditor(text: saved)
+        for entry in conversion.entries {
+            let removed = editor.remove(entry.key)
+            #expect(removed, "\(entry.key)")
+        }
+        #expect(editor.text == original)
+
+        let converted = try AppearanceSettings.load(userDirectory: user, sharedDirectory: shared, schemaID: nil)
+        #expect(converted.conversion?.isEmpty == true)
+        #expect(converted.appearance() == settings.appearance())
+        #expect(converted.loadedValue(at: "appearance/font/face") == "Avenir")
+        #expect(converted.loadedValue(at: "appearance/theme") == "mine")
+        #expect(fileManager.contents(atPath: squirrelCustom.path(percentEncoded: false)) == squirrelBytes)
+        #expect(try names(in: user) == ["scribe.custom.yaml", "squirrel.custom.yaml"])
+        #expect(!engine.isRunning)
+    }
+
     @Test func savesAppearanceToScribeCustom() throws {
         let fileManager = FileManager.default
         let root = fileManager.temporaryDirectory.appending(path: "ScribeConfigTests-\(UUID().uuidString)", directoryHint: .isDirectory)

@@ -117,5 +117,65 @@ struct AppearanceSettingsTests {
         let diagnosed = try load()
         #expect(diagnosed.diagnostics == [ConfigDiagnostic(path: "themes/plain/light/background", problem: .missingColor)])
         #expect(!engine.isRunning)
+
+        try checkConversions(in: root.appending(path: "conversions", directoryHint: .isDirectory))
+    }
+
+    /// The conversion offer, against Scribe's own squirrel.yaml as the baseline.
+    private func checkConversions(in root: URL) throws {
+        let fileManager = FileManager.default
+        let engine = LibrimeEngine.shared
+        func directories(_ name: String, shared sharedFiles: [URL], user userFiles: [(URL, String)]) throws -> (shared: URL, user: URL) {
+            let shared = root.appending(path: "\(name)/shared", directoryHint: .isDirectory)
+            let user = root.appending(path: "\(name)/Scribe", directoryHint: .isDirectory)
+            try fileManager.createDirectory(at: shared, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: user, withIntermediateDirectories: true)
+            for file in sharedFiles {
+                try fileManager.copyItem(at: file, to: shared.appending(path: file.lastPathComponent))
+            }
+            for (file, name) in userFiles {
+                try fileManager.copyItem(at: file, to: user.appending(path: name))
+            }
+            return (shared, user)
+        }
+        let sharedFiles = [ConfigFixtures.squirrelYAML, ConfigFixtures.scribeYAML]
+        let maxSampleCustom = ConfigFixtures.directory.appending(path: "max-sample/squirrel.custom.yaml")
+
+        // Max's sample: the same as converting the deployed files directly.
+        let sample = try directories("max-sample", shared: sharedFiles, user: [(maxSampleCustom, "squirrel.custom.yaml")])
+        let before = try snapshot(of: sample.user)
+        let settings = try AppearanceSettings.load(userDirectory: sample.user, sharedDirectory: sample.shared, schemaID: nil)
+        #expect(try snapshot(of: sample.user) == before)
+        let conversion = try #require(settings.conversion)
+        #expect(!conversion.isEmpty)
+        let copy = root.appending(path: "max-sample/copy", directoryHint: .isDirectory)
+        try fileManager.copyItem(at: sample.user, to: copy)
+        engine.start(RimeConfiguration(sharedDataDirectory: sample.shared, userDataDirectory: copy, minimumLogLevel: 2))
+        #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+        #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+        let direct = ScribeConversion.load(from: engine, baselineYAML: try ConfigFixtures.text(ConfigFixtures.squirrelYAML))
+        engine.stop()
+        #expect(conversion == direct)
+
+        // rime-ice's squirrel.yaml: its status icon stays with the Squirrel files.
+        let rimeIce = try directories("rime-ice", shared: sharedFiles, user: [(ConfigFixtures.rimeIceYAML, "squirrel.yaml")])
+        let rimeIceConversion = try #require(try AppearanceSettings.load(userDirectory: rimeIce.user, sharedDirectory: rimeIce.shared,
+                                                                         schemaID: nil).conversion)
+        #expect(!rimeIceConversion.isEmpty)
+        #expect(rimeIceConversion.unconverted == [
+            ScribeConversion.Unconverted(squirrelPath: "status_icon/show", scribePath: "status_icon", reason: .absentFromSquirrelConfig),
+        ])
+
+        // Nothing customised: nothing to convert.
+        let plain = try directories("plain", shared: sharedFiles, user: [])
+        #expect(try AppearanceSettings.load(userDirectory: plain.user, sharedDirectory: plain.shared, schemaID: nil).conversion?.isEmpty == true)
+
+        // Without Scribe's squirrel.yaml there is no baseline; the rest still loads.
+        let noBaseline = try directories("no-baseline", shared: [ConfigFixtures.scribeYAML],
+                                         user: [(ConfigFixtures.rimeIceYAML, "squirrel.yaml")])
+        let unconvertible = try AppearanceSettings.load(userDirectory: noBaseline.user, sharedDirectory: noBaseline.shared, schemaID: nil)
+        #expect(unconvertible.conversion == nil)
+        #expect(unconvertible.appearance().light.colorSchemeID == "purity_of_form_custom")
+        #expect(!engine.isRunning)
     }
 }

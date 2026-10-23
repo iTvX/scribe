@@ -28,11 +28,16 @@ public struct AppearanceSettings: Equatable, Sendable {
     public var editProblem: PatchSaveError?
     public var themes: [ThemeInfo]
     public var diagnostics: [ConfigDiagnostic]
+    /// The Squirrel-format settings that could move to scribe.custom.yaml;
+    /// nil when Scribe's own squirrel.yaml is missing or unreadable.
+    public var conversion: ScribeConversion?
 
     /// `written` is scribe.yaml as the user wrote it, for the diagnostics;
     /// it defaults to `scribe`.
     public init(squirrel: ConfigNode, scribe: ConfigNode, schemaStyle: ConfigNode? = nil, customText: String? = nil,
-                customKeys: [String] = [], editProblem: PatchSaveError? = nil, written: ConfigNode? = nil) {
+                customKeys: [String] = [], editProblem: PatchSaveError? = nil, written: ConfigNode? = nil,
+                conversion: ScribeConversion? = nil) {
+        self.conversion = conversion
         self.squirrel = squirrel
         self.scribe = scribe
         self.schemaStyle = schemaStyle
@@ -54,13 +59,18 @@ public struct AppearanceSettings: Equatable, Sendable {
             guard let squirrel = engine.withConfig(.deployed("squirrel"), { ConfigNode(snapshotOf: $0) }),
                   let scribe = engine.withConfig(.deployed("scribe"), { ConfigNode(snapshotOf: $0) })
             else { throw .deployFailed("librime 打不开部署后的 squirrel.yaml 或 scribe.yaml") }
+            // Converted against Scribe's own squirrel.yaml, keeping what the
+            // deployed scribe.yaml already sets.
+            let baseline = FileManager.default.contents(atPath: sharedDirectory.appending(path: "squirrel.yaml").path(percentEncoded: false))
+                .flatMap(CustomPatchWriter.utf8Text)
+            let conversion = baseline.flatMap { ScribeConversion.load(from: engine, baselineYAML: $0) }
             var style: ConfigNode?
             if let schemaID, !schemaID.isEmpty, !schemaID.hasPrefix(".") {
                 style = engine.withConfig(.schema(schemaID)) { schema in
                     schema.mapKeys(at: "style") == nil ? nil : ConfigNode(snapshotOf: schema, at: "style")
                 } ?? nil
             }
-            return (squirrel, scribe, style)
+            return (squirrel, scribe, style, conversion)
         }
         // librime drops null values when it applies a patch, so an unquoted
         // "#RRGGBB" (a YAML comment) leaves no trace in the deployed config.
@@ -69,7 +79,8 @@ public struct AppearanceSettings: Equatable, Sendable {
             config.setting(entry.key, to: entry.value)
         }
         return AppearanceSettings(squirrel: deployed.0, scribe: deployed.1, schemaStyle: deployed.2, customText: custom.text,
-                                  customKeys: custom.keys, editProblem: custom.problem, written: written)
+                                  customKeys: custom.keys, editProblem: custom.problem, written: written,
+                                  conversion: deployed.3)
     }
 
     /// The patch entries of a custom file with plain map paths, each value
