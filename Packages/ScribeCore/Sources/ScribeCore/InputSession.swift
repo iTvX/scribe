@@ -53,19 +53,27 @@ public struct CandidateSnapshot: Equatable, Sendable {
     public var isLastPage: Bool
     /// Nil when nothing is being composed.
     public var preedit: Preedit?
+    /// Rows whose comment a plugin marked for the accent colour.
+    public var accentCommentIndices: Set<Int>
+    /// Rows whose comment a plugin marked for the warning colour.
+    public var warningCommentIndices: Set<Int>
 
     public init(
         entries: [Entry],
         highlightedIndex: Int = 0,
         pageNumber: Int = 0,
         isLastPage: Bool = true,
-        preedit: Preedit? = nil
+        preedit: Preedit? = nil,
+        accentCommentIndices: Set<Int> = [],
+        warningCommentIndices: Set<Int> = []
     ) {
         self.entries = entries
         self.highlightedIndex = highlightedIndex
         self.pageNumber = pageNumber
         self.isLastPage = isLastPage
         self.preedit = preedit
+        self.accentCommentIndices = accentCommentIndices
+        self.warningCommentIndices = warningCommentIndices
     }
 
     /// Labels follow Squirrel: the menu's select keys, one per character;
@@ -178,6 +186,9 @@ public final class InputSession {
     private var candidates: CandidateSnapshot?
     private var chordKeys: [KeyEvent] = []
     private var clientApp: ClientApp?
+    /// Comment marks from plugins, kept until the composition changes.
+    private var accentCommentIndices: Set<Int> = []
+    private var warningCommentIndices: Set<Int> = []
 
     /// Without a chord timer, chord typing is off.
     public init(engine: any RimeEngine, chordTimer: ChordTimer? = nil) {
@@ -217,6 +228,22 @@ public final class InputSession {
         clientApp = app
         if let session, engine.sessionExists(session) {
             apply(app, to: session)
+        }
+    }
+
+    /// Takes a reserved property a plugin set, from a librime "property"
+    /// notification of this session. Comment marks wait for a refresh.
+    public func handleProperty(_ notificationValue: String) -> [SessionAction] {
+        guard let property = ReservedProperty(notificationValue), let session, engine.sessionExists(session) else { return [] }
+        switch property {
+        case .commentHighlight(let indices):
+            accentCommentIndices = indices
+            return []
+        case .commentWarning(let indices):
+            warningCommentIndices = indices
+            return []
+        case .refreshUI:
+            return update(session, keepingCommentMarks: true)
         }
     }
 
@@ -441,8 +468,12 @@ public final class InputSession {
         return MarkedText(text: text, caret: composition.cursor <= start ? composition.cursor : previewLength)
     }
 
-    private func update(_ session: RimeSessionID) -> [SessionAction] {
+    private func update(_ session: RimeSessionID, keepingCommentMarks: Bool = false) -> [SessionAction] {
         var actions: [SessionAction] = []
+        if !keepingCommentMarks {
+            accentCommentIndices = []
+            warningCommentIndices = []
+        }
         if let commit = engine.consumeCommit(in: session) {
             if markedText.text.isEmpty, !commit.isEmpty, engine.option("force_marked_text_for_direct_commit", in: session) {
                 // Some text views take text only after marked text, as
@@ -465,9 +496,11 @@ public final class InputSession {
         // A snapshot whenever something is composed, even with no candidates,
         // so the window can show the input alone. The window shows the input
         // only when the client does not.
-        let newCandidates = context.composition == nil && context.menu == nil
+        var newCandidates = context.composition == nil && context.menu == nil
             ? nil
             : CandidateSnapshot(menu: context.menu, composition: inline.preedit ? nil : context.composition)
+        newCandidates?.accentCommentIndices = accentCommentIndices
+        newCandidates?.warningCommentIndices = warningCommentIndices
         if newCandidates != candidates {
             actions.append(newCandidates.map(SessionAction.showCandidates) ?? .hideCandidates)
             candidates = newCandidates

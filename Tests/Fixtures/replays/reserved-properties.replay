@@ -1,0 +1,9 @@
+# A plugin marks candidate comments through reserved properties and then
+# asks the window to refresh, as Squirrel supports (rime/squirrel#1124). The
+# marks last until the composition changes.
+n
+i                                           => accent-comments none; warning-comments none
+!notify property _comment_highlight=1,3     => accent-comments none
+!notify property _comment_warning=value=2
+!notify property _refresh_ui=1              => accent-comments 1 3; warning-comments 2; candidates "你"
+Down                                        => accent-comments none; warning-comments none

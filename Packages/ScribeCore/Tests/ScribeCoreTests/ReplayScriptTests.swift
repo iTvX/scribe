@@ -58,3 +58,10 @@ import Testing
         try ReplayScript("@app com.apple.Terminal ascii_mode")
     }
 }
+
+@Test func parsesCommentMarks() throws {
+    let script = try ReplayScript("""
+        n => accent-comments 1 3; warning-comments none
+        """)
+    #expect(script.steps[0].expectations == [.accentComments([1, 3]), .warningComments([])])
+}

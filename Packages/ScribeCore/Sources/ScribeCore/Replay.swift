@@ -42,6 +42,8 @@ import ScribeConfig
 /// - `status "text"` or `status none`: what this step announced
 /// - `panel-preedit "text"` or `panel-preedit none`: the input the candidate
 ///   window shows afterwards
+/// - `accent-comments N ...` or `warning-comments N ...`, or `none`: the rows
+///   whose comments a plugin marked, through `!notify property ...`
 public struct ReplayScript: Equatable, Sendable {
     public enum Action: Equatable, Sendable {
         case commitComposition
@@ -68,6 +70,8 @@ public struct ReplayScript: Equatable, Sendable {
         case option(String, Bool)
         case status(String?)
         case panelPreedit(String?)
+        case accentComments(Set<Int>)
+        case warningComments(Set<Int>)
     }
 
     public struct App: Equatable, Sendable {
@@ -286,6 +290,10 @@ public struct ReplayScript: Equatable, Sendable {
             return argument == "none" ? .status(nil) : quoted(argument).first.map { .status($0) }
         case "panel-preedit":
             return argument == "none" ? .panelPreedit(nil) : quoted(argument).first.map { .panelPreedit($0) }
+        case "accent-comments":
+            return indices(argument).map { .accentComments($0) }
+        case "warning-comments":
+            return indices(argument).map { .warningComments($0) }
         case "marked":
             return quoted(argument).first.map { .marked($0) }
         case "caret":
@@ -311,6 +319,15 @@ public struct ReplayScript: Equatable, Sendable {
         default:
             return nil
         }
+    }
+
+    /// "none", or indices separated by spaces.
+    private static func indices(_ text: String) -> Set<Int>? {
+        if text == "none" {
+            return []
+        }
+        let indices = text.split(separator: " ").compactMap { Int($0) }
+        return indices.isEmpty || indices.count != text.split(separator: " ").count ? nil : Set(indices)
     }
 
     /// The double-quoted strings in `text`, such as `"a" "b"`.
@@ -438,6 +455,16 @@ public enum ReplayRunner {
                     if actual != expected {
                         fail("window shows input \(describe(actual)), expected \(describe(expected))")
                     }
+                case .accentComments(let expected):
+                    let actual = candidates?.accentCommentIndices ?? []
+                    if actual != expected {
+                        fail("accent comments \(actual.sorted()), expected \(expected.sorted())")
+                    }
+                case .warningComments(let expected):
+                    let actual = candidates?.warningCommentIndices ?? []
+                    if actual != expected {
+                        fail("warning comments \(actual.sorted()), expected \(expected.sorted())")
+                    }
                 case .option(let name, let expected):
                     let actual = session.option(name)
                     if actual != expected {
@@ -467,6 +494,8 @@ public enum ReplayRunner {
         case .tick:
             chordTimer?.fire()
             return []
+        case .notify("property", let value):
+            return session.handleProperty(value)
         case .notify(let type, let value):
             guard let sessionID = session.currentSessionID else { return [] }
             return session.status(
