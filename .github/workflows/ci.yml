@@ -72,6 +72,18 @@ jobs:
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             build
 
+      - name: Build settings app
+        run: |
+          xcodebuild \
+            -project Scribe.xcodeproj \
+            -scheme ScribeSettings \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            -destination "generic/platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            build
+
       - name: Test app
         run: |
           xcodebuild \
