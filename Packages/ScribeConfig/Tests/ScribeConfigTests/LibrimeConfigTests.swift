@@ -148,23 +148,13 @@ struct LibrimeConfigTests {
 
     @Test func deployPatchesTheUserCopy() throws {
         let fileManager = FileManager.default
-        let root = fileManager.temporaryDirectory
-            .appending(path: "scribe-config-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        let shared = root.appending(path: "shared", directoryHint: .isDirectory)
-        let user = root.appending(path: "user", directoryHint: .isDirectory)
-        try fileManager.createDirectory(at: shared, withIntermediateDirectories: true)
-        try fileManager.createDirectory(at: user, withIntermediateDirectories: true)
+        let (root, shared, user) = try Self.makeDataDirectories()
         defer { try? fileManager.removeItem(at: root) }
         try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
         try fileManager.copyItem(at: ConfigFixtures.rimeIceYAML, to: user.appending(path: "squirrel.yaml"))
         try fileManager.copyItem(at: ConfigFixtures.maxSampleCustomYAML, to: user.appending(path: "squirrel.custom.yaml"))
 
-        engine.start(RimeConfiguration(
-            sharedDataDirectory: shared,
-            userDataDirectory: user,
-            minimumLogLevel: 2,
-            appName: "rime.scribe-config-tests"
-        ))
+        engine.start(Self.configuration(shared: shared, user: user))
         defer { engine.stop() }
         #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
         #expect(!fileManager.fileExists(atPath: user.appending(path: "trash").path(percentEncoded: false)))
@@ -209,12 +199,7 @@ struct LibrimeConfigTests {
 
     @Test func schemaStyleThroughLibrime() throws {
         let fileManager = FileManager.default
-        let root = fileManager.temporaryDirectory
-            .appending(path: "scribe-config-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        let shared = root.appending(path: "shared", directoryHint: .isDirectory)
-        let user = root.appending(path: "user", directoryHint: .isDirectory)
-        try fileManager.createDirectory(at: shared, withIntermediateDirectories: true)
-        try fileManager.createDirectory(at: user, withIntermediateDirectories: true)
+        let (root, shared, user) = try Self.makeDataDirectories()
         defer { try? fileManager.removeItem(at: root) }
         try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
         let build = user.appending(path: "build", directoryHint: .isDirectory)
@@ -234,12 +219,7 @@ struct LibrimeConfigTests {
                 back_color: 0x000000
             """.write(to: build.appending(path: "plain.schema.yaml"), atomically: true, encoding: .utf8)
 
-        engine.start(RimeConfiguration(
-            sharedDataDirectory: shared,
-            userDataDirectory: user,
-            minimumLogLevel: 2,
-            appName: "rime.scribe-config-tests"
-        ))
+        engine.start(Self.configuration(shared: shared, user: user))
         defer { engine.stop() }
         #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
 
@@ -253,10 +233,51 @@ struct LibrimeConfigTests {
         #expect(styled.light.cornerRadius == 8)
     }
 
+    @Test(arguments: [true, false])
+    func scribeCompatibilityDeploy(patched: Bool) throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        if patched {
+            try "patch: {compatibility/report_as_squirrel: true}\n"
+                .write(to: user.appending(path: "scribe.custom.yaml"), atomically: true, encoding: .utf8)
+        }
+
+        engine.start(Self.configuration(shared: shared, user: user))
+        defer { engine.stop() }
+        #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+        let compatibility = try #require(ScribeCompatibility.load(from: engine))
+        #expect(compatibility.reportsAsSquirrel == patched)
+        #expect(compatibility.distributionCodeName == (patched ? "Squirrel" : "Scribe"))
+        #expect(compatibility.distributionName == (patched ? "鼠鬚管" : "Scribe"))
+        #expect(engine.withConfig(.deployed("scribe")) { $0.string(at: "config_version") } == "0.1")
+    }
+
     @Test func noConfigWhileStopped() {
         #expect(!engine.isRunning)
         #expect(engine.withConfig(.deployed("squirrel")) { _ in true } == nil)
         #expect(ScribeSettings.load(from: engine) == nil)
+    }
+
+    /// Empty shared and user data directories in a new temporary directory.
+    private static func makeDataDirectories() throws -> (root: URL, shared: URL, user: URL) {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "scribe-config-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let shared = root.appending(path: "shared", directoryHint: .isDirectory)
+        let user = root.appending(path: "user", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: shared, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: user, withIntermediateDirectories: true)
+        return (root, shared, user)
+    }
+
+    private static func configuration(shared: URL, user: URL) -> RimeConfiguration {
+        RimeConfiguration(
+            sharedDataDirectory: shared,
+            userDataDirectory: user,
+            minimumLogLevel: 2,
+            appName: "rime.scribe-config-tests"
+        )
     }
 
     /// The light theme of squirrel.yaml with `style/color_scheme` set to `id`.

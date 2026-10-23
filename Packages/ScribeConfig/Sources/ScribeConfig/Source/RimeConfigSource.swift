@@ -27,3 +27,12 @@ extension Appearance {
         }
     }
 }
+
+extension ScribeCompatibility {
+    /// The compatibility settings from the deployed scribe.yaml, or nil if
+    /// librime cannot open it.
+    @MainActor
+    public static func load(from engine: LibrimeEngine) -> ScribeCompatibility? {
+        engine.withConfig(.deployed("scribe")) { ScribeCompatibility(scribe: $0) }
+    }
+}

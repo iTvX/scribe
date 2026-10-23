@@ -14,6 +14,7 @@ enum ConfigFixtures {
 
     static let directory = repository.appending(path: "Tests/Fixtures/config", directoryHint: .isDirectory)
     static let squirrelYAML = repository.appending(path: "SharedSupport/squirrel.yaml")
+    static let scribeYAML = repository.appending(path: "SharedSupport/scribe.yaml")
     static let rimeIceYAML = directory.appending(path: "rime-ice/squirrel.yaml")
     static let maxSampleCustomYAML = directory.appending(path: "max-sample/squirrel.custom.yaml")
 
