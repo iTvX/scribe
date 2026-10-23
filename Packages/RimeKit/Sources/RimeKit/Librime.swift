@@ -12,4 +12,10 @@ public enum Librime {
         else { return nil }
         return String(cString: version)
     }
+
+    /// Whether librime has registered a module with this name, such as "lua"
+    /// once its plugin has loaded.
+    public static func hasModule(_ name: String) -> Bool {
+        RimeFindModule(name) != nil
+    }
 }

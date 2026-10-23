@@ -1,0 +1,8 @@
+# Shared data for tests: one minimal pinyin schema.
+config_version: "1"
+
+schema_list:
+  - schema: scribe_test
+
+menu:
+  page_size: 5

@@ -1,0 +1,10 @@
+# Return commits what was typed, not a candidate.
+z
+h
+o
+n
+g
+s
+h
+u       => candidates "中书"
+Return  => commit "zhongshu"; marked ""; candidates none

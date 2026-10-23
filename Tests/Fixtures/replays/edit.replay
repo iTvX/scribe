@@ -1,0 +1,10 @@
+# BackSpace removes input; Escape discards the composition.
+n
+i
+h
+a
+o           => marked "ni hao"
+BackSpace
+BackSpace
+BackSpace   => marked "ni"; candidates "你"; commit none
+Escape      => marked ""; candidates none; commit none; handled

@@ -6,6 +6,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "ScribeCore", targets: ["ScribeCore"]),
+        // A fake engine and test fixtures, for tests of code built on ScribeCore.
+        .library(name: "ScribeTestSupport", targets: ["ScribeTestSupport"]),
     ],
     dependencies: [
         .package(path: "../RimeKit"),
@@ -13,6 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "ScribeCore", dependencies: ["RimeKit", "ScribeConfig"]),
-        .testTarget(name: "ScribeCoreTests", dependencies: ["ScribeCore"]),
+        .target(name: "ScribeTestSupport", dependencies: ["ScribeCore", "RimeKit"]),
+        .testTarget(name: "ScribeCoreTests", dependencies: ["ScribeCore", "ScribeTestSupport", "RimeKit"]),
     ]
 )

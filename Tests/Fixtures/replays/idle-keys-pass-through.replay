@@ -1,0 +1,5 @@
+# With nothing composed, keys Rime does not use reach the application.
+space       => unhandled; commit none
+Return      => unhandled
+BackSpace   => unhandled
+Escape      => unhandled

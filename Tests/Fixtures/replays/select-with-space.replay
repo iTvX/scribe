@@ -1,0 +1,7 @@
+# Space commits the highlighted candidate and ends the composition.
+n
+i       => marked "ni"; candidates "你" "泥" "呢"; highlighted 0
+h
+a
+o       => marked "ni hao"; candidates "你好"
+space   => commit "你好"; marked ""; candidates none; handled
