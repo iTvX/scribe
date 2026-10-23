@@ -19,6 +19,8 @@ public struct PatchSaveResult: Equatable, Sendable {
 public enum PatchSaveError: Error, Equatable, Sendable {
     /// The file is no longer the text the page loaded.
     case changedOnDisk
+    /// The file is not valid UTF-8, so it cannot be edited byte for byte.
+    case notUTF8
     /// librime is running in this process; the checks need it to themselves.
     case engineBusy
     /// The file has a layout the editor cannot change safely.
@@ -63,8 +65,13 @@ public struct CustomPatchWriter {
         // Edit the target of a symbolic link, never the link.
         let file = Self.resolvedFile(userDirectory.appending(path: "\(configID).custom.yaml"))
         let originalData = FileManager.default.contents(atPath: file.path(percentEncoded: false))
-        let original = originalData.map { String(decoding: $0, as: UTF8.self) }
-        guard original == expectedOriginal else { throw .changedOnDisk }
+        var original: String?
+        if let originalData {
+            guard let text = Self.utf8Text(originalData) else { throw .notUTF8 }
+            original = text
+        }
+        // Bytes, since String equality ignores Unicode normalization.
+        guard originalData == expectedOriginal.map({ Data($0.utf8) }) else { throw .changedOnDisk }
 
         var editor: CustomPatchEditor
         do {
@@ -172,6 +179,13 @@ public struct CustomPatchWriter {
             }
             throw .writeFailed("写入后读回的内容不一致，已恢复原文件")
         }
+    }
+
+    /// The text of valid UTF-8 bytes, or nil; decoding is exact, so writing
+    /// the text back gives the same bytes.
+    static func utf8Text(_ data: Data) -> String? {
+        let text = String(decoding: data, as: UTF8.self)
+        return Data(text.utf8) == data ? text : nil
     }
 
     /// The file with every symbolic link resolved, the file itself included;

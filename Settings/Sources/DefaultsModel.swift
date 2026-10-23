@@ -76,7 +76,7 @@ final class DefaultsModel {
             let defaults = try RimeDefaults.load(userDirectory: directories.user, sharedDirectory: shared)
             loaded = defaults
             loadError = nil
-            readOnlyReason = Self.layoutProblem(in: defaults.customText)
+            readOnlyReason = defaults.editProblem.map(Self.message(for:))
             schemaItems = defaults.schemaList.listItems.map { SchemaItem(node: $0) }
             pageSize = defaults.pageSize ?? Self.defaultPageSize
             hotkeys = defaults.switcherHotkeys
@@ -225,19 +225,12 @@ final class DefaultsModel {
 
     // MARK: - Messages
 
-    private static func layoutProblem(in text: String?) -> String? {
-        do {
-            _ = try CustomPatchEditor(text: text ?? "")
-            return nil
-        } catch {
-            return message(for: .unsupportedLayout(line: error.line, reason: error.reason))
-        }
-    }
-
     static func message(for error: PatchSaveError) -> String {
         switch error {
         case .changedOnDisk:
             "default.custom.yaml 在读取之后被改过了，没有保存。点「还原」重新读取。"
+        case .notUTF8:
+            "default.custom.yaml 不是 UTF-8 编码，没法安全地修改"
         case .engineBusy:
             "librime 正在忙，稍后再试。"
         case .unsupportedLayout(let line, let reason):
@@ -262,16 +255,6 @@ final class DefaultsModel {
         Log.settings.notice("\(line, privacy: .public)")
         print(line)
         fflush(nil)
-    }
-}
-
-extension CustomPatchError {
-    var line: Int {
-        switch self { case .unsupportedLayout(let line, _): line }
-    }
-
-    var reason: UnsupportedLayout {
-        switch self { case .unsupportedLayout(_, let reason): reason }
     }
 }
 

@@ -13,14 +13,18 @@ public struct RimeDefaults: Equatable, Sendable {
     /// default.custom.yaml as it is now, or nil when there is none; a save
     /// passes it as `expectedOriginal`.
     public var customText: String?
+    /// Why default.custom.yaml cannot be edited, such as `.notUTF8` or an
+    /// unsupported layout; nil when it can.
+    public var editProblem: PatchSaveError?
 
     public init(schemaList: ConfigNode, pageSize: Int?, switcherHotkeys: [String], switchKey: [String: String],
-                customText: String?) {
+                customText: String?, editProblem: PatchSaveError? = nil) {
         self.schemaList = schemaList
         self.pageSize = pageSize
         self.switcherHotkeys = switcherHotkeys
         self.switchKey = switchKey
         self.customText = customText
+        self.editProblem = editProblem
     }
 
     /// The schema IDs in `schemaList`, in order.
@@ -35,8 +39,21 @@ public struct RimeDefaults: Equatable, Sendable {
     public static func load(userDirectory: URL, sharedDirectory: URL,
                             engine: LibrimeEngine = .shared) throws(PatchSaveError) -> RimeDefaults {
         let custom = CustomPatchWriter.resolvedFile(userDirectory.appending(path: "default.custom.yaml"))
-        let customText = FileManager.default.contents(atPath: custom.path(percentEncoded: false))
-            .map { String(decoding: $0, as: UTF8.self) }
+        let customData = FileManager.default.contents(atPath: custom.path(percentEncoded: false))
+        let customText = customData.flatMap(CustomPatchWriter.utf8Text)
+        var editProblem: PatchSaveError?
+        if customData != nil && customText == nil {
+            editProblem = .notUTF8
+        } else {
+            do {
+                _ = try CustomPatchEditor(text: customText ?? "")
+            } catch {
+                switch error {
+                case .unsupportedLayout(let line, let reason):
+                    editProblem = .unsupportedLayout(line: line, reason: reason)
+                }
+            }
+        }
         let deploy = TemporaryDeploy(engine: engine, userDirectory: userDirectory, sharedDirectory: sharedDirectory)
         return try deploy.run("default") { engine throws(PatchSaveError) in
             let defaults = engine.withConfig(.deployed("default")) { reader in
@@ -47,7 +64,8 @@ public struct RimeDefaults: Equatable, Sendable {
                     pageSize: reader.int(at: "menu/page_size"),
                     switcherHotkeys: hotkeys.scalars,
                     switchKey: switchKey.scalarMap,
-                    customText: customText
+                    customText: customText,
+                    editProblem: editProblem
                 )
             }
             guard let defaults else { throw .deployFailed("librime 打不开部署后的 default.yaml") }

@@ -100,9 +100,31 @@ struct CustomPatchWriterTests {
         }
         #expect(try String(contentsOf: file, encoding: .utf8) == conflict)
 
+        // Text that only differs in Unicode normalization is a different file.
+        try Data("# caf\u{E9}\n".utf8 + Array(saved.utf8)).write(to: file)
+        #expect(throws: PatchSaveError.changedOnDisk) {
+            try writer.save("default", changes: [.set("menu/page_size", 9)], expectedOriginal: "# cafe\u{301}\n" + saved)
+        }
+        #expect(fileManager.contents(atPath: file.path(percentEncoded: false)) == Data("# caf\u{E9}\n".utf8 + Array(saved.utf8)))
+
+        // A file that is not valid UTF-8, such as a GBK comment, is refused
+        // and left byte for byte as it was.
+        let gbk = Data([0x23, 0x20, 0xB2, 0xE2, 0xCA, 0xD4, 0x0A]) + Data(saved.utf8)
+        try gbk.write(to: file)
+        let notUTF8 = try RimeDefaults.load(userDirectory: user, sharedDirectory: Self.shared)
+        #expect(notUTF8.editProblem == .notUTF8)
+        #expect(notUTF8.pageSize == 8)
+        #expect(throws: PatchSaveError.notUTF8) {
+            try writer.save("default", changes: [.set("menu/page_size", 9)], expectedOriginal: notUTF8.customText)
+        }
+        #expect(fileManager.contents(atPath: file.path(percentEncoded: false)) == gbk)
+        try Data(saved.utf8).write(to: file)
+
         // A layout the editor refuses.
         let flow = "patch: {menu/page_size: 5}\n"
         try Data(flow.utf8).write(to: file)
+        #expect(try RimeDefaults.load(userDirectory: user, sharedDirectory: Self.shared).editProblem
+                == .unsupportedLayout(line: 1, reason: .flowPatch))
         #expect(throws: PatchSaveError.unsupportedLayout(line: 1, reason: .flowPatch)) {
             try writer.save("default", changes: [.set("menu/page_size", 9)], expectedOriginal: flow)
         }
@@ -149,7 +171,7 @@ struct DeployedAppearanceTests {
         let user = build.deletingLastPathComponent()
         let shared = CustomPatchWriterTests.shared
 
-        #expect(try Appearance.loadDeployed(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test") == nil)
+        #expect(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test") == nil)
 
         let squirrel = FakeRimeDirectory.fixture.deletingLastPathComponent().appending(path: "config/rime-ice/squirrel.yaml")
         try fileManager.copyItem(at: squirrel, to: build.appending(path: "squirrel.yaml"))
@@ -157,10 +179,10 @@ struct DeployedAppearanceTests {
             .write(to: build.appending(path: "scribe_test.schema.yaml"))
         let before = try snapshot(of: user)
 
-        let plain = try #require(try Appearance.loadDeployed(userDirectory: user, sharedDirectory: shared, schemaID: ""))
+        let plain = try #require(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: ""))
         #expect(plain.appearance.light.colorSchemeID == "purity_of_form_custom")
         #expect(plain.colorSchemeNames["purity_of_form_custom"] != nil)
-        let styled = try #require(try Appearance.loadDeployed(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test"))
+        let styled = try #require(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test"))
         #expect(styled.appearance.light.colorSchemeID == "lost_temple")
         #expect(styled.colorSchemeNames["lost_temple"] == "孤寺／Lost Temple")
         #expect(try snapshot(of: user) == before)
