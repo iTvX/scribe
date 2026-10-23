@@ -1,0 +1,5 @@
+# 合成的测试样本。
+patch:
+  translator/enable_user_dict: true
+  speller/algebra/+:
+    - derive/^([zcs])h/$1/

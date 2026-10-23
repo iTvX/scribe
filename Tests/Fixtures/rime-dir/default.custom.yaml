@@ -1,0 +1,5 @@
+# 合成的测试样本：选用雾凇拼音，候选九个一页。
+patch:
+  schema_list:
+    - schema: rime_ice
+  menu/page_size: 9

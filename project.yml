@@ -97,6 +97,26 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests
         GENERATE_INFOPLIST_FILE: YES
 
+  ScribeSettings:
+    type: application
+    platform: macOS
+    sources:
+      - path: Settings/Sources
+      - path: Settings/Resources
+    dependencies:
+      - package: ScribeConfig
+    settings:
+      base:
+        PRODUCT_NAME: ScribeSettings
+        # Keeps the module name apart from ScribeConfig's ScribeSettings type.
+        PRODUCT_MODULE_NAME: SettingsApp
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.Scribe.Settings
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        # ScribeConfig links librime through RimeKit; see the Scribe target.
+        CODE_SIGN_ENTITLEMENTS: Settings/ScribeSettings.entitlements
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+
 schemes:
   Scribe:
     build:
@@ -110,3 +130,9 @@ schemes:
       config: Debug
     archive:
       config: Release
+  ScribeSettings:
+    build:
+      targets:
+        ScribeSettings: all
+    run:
+      config: Debug

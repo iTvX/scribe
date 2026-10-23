@@ -1,0 +1,12 @@
+# 合成的测试样本：鼠须管默认配置的一小部分。
+config_version: "1.0"
+
+style:
+  color_scheme: native
+  font_point: 16
+  candidate_list_layout: stacked
+  inline_preedit: true
+
+preset_color_schemes:
+  native:
+    name: 系统配色

@@ -1,0 +1,8 @@
+# 合成的测试样本。
+---
+name: rime_ice
+version: "0.1"
+sort: by_weight
+import_tables:
+  - cn_dicts/8105
+...
