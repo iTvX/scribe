@@ -32,6 +32,8 @@ enum ReplayCommand {
             return false
         }
 
+        // As the input method runs, so the replay covers OpenCC too.
+        RimeService.useSharedDataAsWorkingDirectory()
         let engine = LibrimeEngine.shared
         engine.start(RimeService.configuration(userDirectory: copy, logDirectory: nil))
         defer { engine.stop() }

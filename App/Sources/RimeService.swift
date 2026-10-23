@@ -342,6 +342,12 @@ final class RimeService {
         bundle.sharedSupportURL ?? bundle.bundleURL.appending(path: "Contents/SharedSupport", directoryHint: .isDirectory)
     }
 
+    /// OpenCC resolves its dictionaries relative to the working directory,
+    /// so librime runs in the shared data directory, as in Squirrel.
+    static func useSharedDataAsWorkingDirectory(bundle: Bundle = .main) {
+        FileManager.default.changeCurrentDirectoryPath(sharedDataDirectory(bundle: bundle).path(percentEncoded: false))
+    }
+
     static let defaultLogDirectory: URL? = FileManager.default.homeDirectoryForCurrentUser
         .appending(path: "Library/Logs/Scribe", directoryHint: .isDirectory)
 
