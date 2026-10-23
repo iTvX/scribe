@@ -107,6 +107,24 @@ func snapshot(_ settings: ScribeSettings) -> String {
     return lines.sorted().joined(separator: "\n") + "\n"
 }
 
+/// Both themes as sorted lines under "light." and "dark.".
+func snapshot(_ appearance: Appearance) -> String {
+    var lines = ["forcesLightAppearance = \(appearance.forcesLightAppearance)"]
+    lines += snapshot(appearance.light).split(separator: "\n").map { "light.\($0)" }
+    if let dark = appearance.dark {
+        lines += snapshot(dark).split(separator: "\n").map { "dark.\($0)" }
+    } else {
+        lines.append("dark = nil")
+    }
+    return lines.sorted().joined(separator: "\n") + "\n"
+}
+
+/// The lines of `snapshot` whose key has the same value in `defaults`.
+func unchangedLines(_ snapshot: String, from defaults: String) -> [String] {
+    let defaultLines = Set(defaults.split(separator: "\n"))
+    return snapshot.split(separator: "\n").filter(defaultLines.contains).map(String.init)
+}
+
 /// A conversion as lines: its entries in order, then the theme IDs and the
 /// unconverted settings, sorted.
 func snapshot(_ conversion: ScribeConversion) -> String {

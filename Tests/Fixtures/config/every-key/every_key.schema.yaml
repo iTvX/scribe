@@ -1,0 +1,35 @@
+# A schema whose style sets every scheme-level key once more, with values
+# that differ from both the global style and the every_key preset in
+# squirrel.custom.yaml, plus the two keys only a style can set.
+schema:
+  schema_id: every_key
+  name: Every key
+style:
+  candidate_list_layout: linear
+  text_orientation: vertical
+  inline_preedit: true
+  inline_candidate: true
+  translucency: true
+  mutual_exclusive: true
+  memorize_size: false
+  show_paging: true
+  status_message_type: short
+  candidate_format: "[candidate] [comment]"
+  alpha: 0.7
+  corner_radius: 5
+  hilited_corner_radius: 4
+  surrounding_extra_expansion: 3
+  border_height: 6
+  border_width: 7
+  line_spacing: 8
+  spacing: 9
+  base_offset: 3
+  shadow_size: 4
+  font_face: Helvetica Neue
+  font_point: 19
+  label_font_face: Courier New
+  label_font_point: 13
+  comment_font_face: Times
+  comment_font_point: 15
+  preedit_font_face: Palatino
+  preedit_font_point: 18

@@ -405,6 +405,55 @@ struct LibrimeConfigTests {
         #expect(again.isEmpty)
     }
 
+    /// Every squirrel.yaml key Scribe reads, set to a non-default value, in
+    /// the deployed settings and under a schema's style.
+    @Test func everyKeySnapshots() throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        let fixture = ConfigFixtures.directory.appending(path: "every-key", directoryHint: .isDirectory)
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: fixture.appending(path: "squirrel.custom.yaml"), to: user.appending(path: "squirrel.custom.yaml"))
+
+        engine.start(Self.configuration(shared: shared, user: user))
+        defer { engine.stop() }
+        #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+        try fileManager.copyItem(
+            at: fixture.appending(path: "every_key.schema.yaml"),
+            to: user.appending(path: "build/every_key.schema.yaml")
+        )
+
+        let settings = try #require(ScribeSettings.load(from: engine))
+        try ConfigFixtures.expectSnapshot(snapshot(settings), named: "every-key-settings")
+        let schema = try #require(Appearance.load(from: engine, schemaID: "every_key"))
+        try ConfigFixtures.expectSnapshot(snapshot(schema), named: "every-key-schema")
+
+        // solarized_dark sets no colour space, candidate background, accent or
+        // warning colour, and a dark theme means the panel follows the system.
+        let darkDefaults = [
+            "colorSpace = sRGB", "colors.accentText = nil", "colors.candidateBackground = nil", "colors.warningText = nil",
+        ]
+        var defaultSettings = ScribeSettings(squirrel: ConfigNode.null)
+        defaultSettings.appearance = Appearance(light: Theme(), dark: Theme())
+        #expect(unchangedLines(snapshot(settings), from: snapshot(defaultSettings))
+            == darkDefaults.map { "appearance.dark.\($0)" } + ["appearance.forcesLightAppearance = false"])
+        #expect(unchangedLines(snapshot(schema), from: snapshot(defaultSettings.appearance))
+            == darkDefaults.map { "dark.\($0)" } + ["forcesLightAppearance = false"])
+
+        // The preset's scheme-level keys beat the global style, and the schema's
+        // style beats the global style but not the preset, as in Squirrel.
+        let light = settings.appearance.light
+        #expect(light.alpha == 0.8)
+        #expect(light.candidateFormat.template == "[label]: [candidate]")
+        #expect(light.memorizeSize == false)
+        #expect(light.statusMessageType == .long)
+        #expect(settings.appearance.dark?.alpha == 0.9)
+        #expect(schema.light.alpha == 0.8)
+        #expect(schema.light.statusMessageType == .short)
+        #expect(schema.dark?.alpha == 0.7)
+        #expect(schema.dark?.candidateFont == ThemeFont(faces: [FontFace(name: "Helvetica Neue")], pointSize: 19))
+    }
+
     @Test func noConfigWhileStopped() {
         #expect(!engine.isRunning)
         #expect(engine.withConfig(.deployed("squirrel")) { _ in true } == nil)
