@@ -307,6 +307,52 @@ struct LibrimeConfigTests {
         #expect(diagnostics == [ConfigDiagnostic(path: "themes/wechat/light/background", problem: .missingColor)])
     }
 
+    @Test func conversionKeepsTheDeployedSettings() throws {
+        let fileManager = FileManager.default
+        let (root, shared, user) = try Self.makeDataDirectories()
+        defer { try? fileManager.removeItem(at: root) }
+        try fileManager.copyItem(at: ConfigFixtures.squirrelYAML, to: shared.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.scribeYAML, to: shared.appending(path: "scribe.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.rimeIceYAML, to: user.appending(path: "squirrel.yaml"))
+        try fileManager.copyItem(at: ConfigFixtures.maxSampleCustomYAML, to: user.appending(path: "squirrel.custom.yaml"))
+        let baselineYAML = try ConfigFixtures.text(ConfigFixtures.squirrelYAML)
+
+        engine.start(Self.configuration(shared: shared, user: user))
+        defer { engine.stop() }
+        #expect(engine.deployConfigFile("squirrel.yaml", versionKey: "config_version"))
+        #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+        let before = try #require(ScribeSettings.load(from: engine))
+        let beforeAppearance = try #require(Appearance.load(from: engine, schemaID: ""))
+
+        let conversion = try #require(ScribeConversion.load(from: engine, baselineYAML: baselineYAML))
+        #expect(conversion.themeIDs == [
+            "purity_of_form_custom": "purity_of_form_custom",
+            "wechat_dark": "wechat_dark",
+            "wechat_light": "wechat_light",
+        ])
+        var editor = try CustomPatchEditor(text: "")
+        conversion.apply(to: &editor)
+        try editor.text.write(to: user.appending(path: "scribe.custom.yaml"), atomically: true, encoding: .utf8)
+        #expect(engine.deployConfigFile("scribe.yaml", versionKey: "config_version"))
+
+        let after = try #require(ScribeSettings.load(from: engine))
+        for bundleID in Set(before.appOptions.byBundleID.keys).union(after.appOptions.byBundleID.keys) {
+            #expect(after.appOptions.options(for: bundleID) == before.appOptions.options(for: bundleID), "\(bundleID)")
+        }
+        #expect(after.appOptions.byBundleID.count > before.appOptions.byBundleID.count)
+        var (beforeRest, afterRest) = (before, after)
+        beforeRest.appOptions = AppOptions()
+        afterRest.appOptions = AppOptions()
+        #expect(afterRest == beforeRest)
+        #expect(Appearance.load(from: engine, schemaID: "") == beforeAppearance)
+
+        // The deployed scribe.yaml now carries the setup, so nothing is left to convert.
+        let again = try #require(ScribeConversion.load(from: engine, baselineYAML: baselineYAML))
+        #expect(again.isEmpty)
+        #expect(again.themeIDs == conversion.themeIDs)
+        #expect(again.unconverted == conversion.unconverted)
+    }
+
     @Test func noConfigWhileStopped() {
         #expect(!engine.isRunning)
         #expect(engine.withConfig(.deployed("squirrel")) { _ in true } == nil)
