@@ -137,4 +137,12 @@ public protocol RimeEngine: AnyObject {
     func clearComposition(in session: RimeSessionID)
     func option(_ option: String, in session: RimeSessionID) -> Bool
     func setOption(_ option: String, _ value: Bool, in session: RimeSessionID)
+    /// The raw input being composed, such as "nihao".
+    func input(in session: RimeSessionID) -> String?
+    /// The caret position in the raw input, in UTF-8 bytes.
+    func caretPosition(in session: RimeSessionID) -> Int
+    func setCaretPosition(_ position: Int, in session: RimeSessionID)
+    /// The label the schema gives an option's state, such as "中文" or, when
+    /// abbreviated, "中"; nil when the schema has none.
+    func stateLabel(_ option: String, state: Bool, abbreviated: Bool, in session: RimeSessionID) -> String?
 }

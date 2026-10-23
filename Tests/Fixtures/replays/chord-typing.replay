@@ -1,0 +1,9 @@
+# With _chord_typing, keys pressed together are released together after the
+# chord duration, as Squirrel does; the fake engine commits each chord's keys.
+@engines fake
+@option _chord_typing true
+a           => handled; commit none
+s           => commit none
+!tick       => commit "as"
+d
+!tick       => commit "d"

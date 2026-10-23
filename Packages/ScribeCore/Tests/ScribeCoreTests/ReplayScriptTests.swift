@@ -12,7 +12,7 @@ import Testing
         Return => commit none; unhandled
         """)
     #expect(script.engines == ["fake"])
-    #expect(script.steps.map(\.key) == [KeyEvent(0x6e), KeyEvent(0x69), KeyEvent(Keysym.space), KeyEvent(Keysym.return)])
+    #expect(script.steps.map(\.input) == [.key(KeyEvent(0x6e)), .key(KeyEvent(0x69)), .key(KeyEvent(Keysym.space)), .key(KeyEvent(Keysym.return))])
     #expect(script.steps.map(\.line) == [4, 5, 6, 7])
     #expect(script.steps[0].expectations.isEmpty)
     #expect(script.steps[1].expectations == [.marked("ni"), .candidates(["你", "泥"]), .highlighted(0), .page(0)])

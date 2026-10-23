@@ -49,8 +49,13 @@ final class RimeService {
     func start() {
         engine.notificationHandler = { notification in
             Self.log(notification)
-            if notification.type == "deploy" {
+            switch notification.type {
+            case "deploy":
                 RimeService.shared.resumeMaintenance()
+            case "option", "schema":
+                RimeService.shared.announce(notification)
+            default:
+                break
             }
         }
         engine.start(Self.configuration())
@@ -90,7 +95,25 @@ final class RimeService {
     }
 
     func makeAdapter() -> InputAdapter {
-        InputAdapter(session: InputSession(engine: engine), candidates: candidatePanel)
+        let adapter = InputAdapter(session: InputSession(engine: engine, chordTimer: RunLoopChordTimer()), candidates: candidatePanel)
+        adapters.append(WeakAdapter(adapter: adapter))
+        return adapter
+    }
+
+    private struct WeakAdapter {
+        weak var adapter: InputAdapter?
+    }
+
+    /// Every client's adapter, for routing notifications to their sessions.
+    private var adapters: [WeakAdapter] = []
+
+    /// Shows option and schema changes to the client whose session they
+    /// concern.
+    private func announce(_ notification: RimeNotification) {
+        adapters.removeAll { $0.adapter == nil }
+        for adapter in adapters.compactMap(\.adapter) {
+            adapter.handle(notification, notifications: .appropriate, messageType: .mix)
+        }
     }
 
     /// Shared data from the app bundle, user data in ~/Library/Scribe, logs

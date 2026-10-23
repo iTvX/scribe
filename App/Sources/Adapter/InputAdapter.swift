@@ -1,4 +1,6 @@
 import AppKit
+import RimeKit
+import ScribeConfig
 import ScribeCore
 
 /// The text field Scribe types into.
@@ -17,6 +19,13 @@ protocol TextClient {
 protocol CandidatePresenting {
     func show(_ snapshot: CandidateSnapshot, near caretRect: NSRect)
     func hide()
+    /// Shows a short message, such as a mode change, that hides by itself.
+    func showStatus(_ message: String, near caretRect: NSRect)
+}
+
+extension CandidatePresenting {
+    /// Until the candidate window can show statuses, they are not shown.
+    func showStatus(_ message: String, near caretRect: NSRect) {}
 }
 
 /// The parts of a key event the adapter uses, copied out of the `NSEvent`
@@ -78,10 +87,21 @@ final class InputAdapter {
     private let session: InputSession
     private let candidates: CandidatePresenting
     private var modifiers: MacModifierFlags = []
+    /// The client of the last event, for actions that come without one,
+    /// such as a chord released after a delay.
+    private var client: TextClient?
 
     init(session: InputSession, candidates: CandidatePresenting) {
         self.session = session
         self.candidates = candidates
+        session.onAsyncActions = { [weak self] actions in
+            guard let self, let client = self.client else { return }
+            self.apply(actions, to: client)
+        }
+    }
+
+    var sessionID: RimeSessionID? {
+        session.currentSessionID
     }
 
     /// The input method became active for the client. It gets no modifier
@@ -99,6 +119,7 @@ final class InputAdapter {
     /// changes always reach the client, so its idea of the held modifiers
     /// stays right; an event that changes no modifier is consumed.
     func handle(_ input: KeyInput, client: TextClient) -> Bool {
+        self.client = client
         switch input.kind {
         case .keyDown:
             guard let key = MacKeyTranslator.keyDown(
@@ -122,9 +143,35 @@ final class InputAdapter {
         }
     }
 
-    /// Commits whatever is being composed, as when the client loses focus.
+    /// Commits what was typed, unconverted, as when the client loses focus.
     func commitComposition(client: TextClient) {
         apply(session.commitComposition(), to: client)
+    }
+
+    /// Announces an option or schema change of this adapter's session.
+    func handle(_ notification: RimeNotification, notifications: NotificationPolicy, messageType: StatusMessageType) {
+        guard session.owns(notification.sessionID), let client else { return }
+        apply(session.status(for: notification, notifications: notifications, messageType: messageType), to: client)
+    }
+
+    // Requests from the candidate window.
+
+    func selectCandidate(at index: Int) {
+        if let client {
+            apply(session.selectCandidate(at: index), to: client)
+        }
+    }
+
+    func changePage(_ direction: PageDirection) {
+        if let client {
+            apply(session.changePage(direction), to: client)
+        }
+    }
+
+    func moveCaret(_ move: CaretMove) {
+        if let client {
+            apply(session.moveCaret(move), to: client)
+        }
     }
 
     /// The input method is no longer active for this client.
@@ -136,6 +183,7 @@ final class InputAdapter {
     func close() {
         session.close()
         candidates.hide()
+        client = nil
     }
 
     func apply(_ actions: [SessionAction], to client: TextClient) {
@@ -152,6 +200,8 @@ final class InputAdapter {
                 candidates.show(snapshot, near: client.caretRect())
             case .hideCandidates:
                 candidates.hide()
+            case .showStatus(let message):
+                candidates.showStatus(message, near: client.caretRect())
             }
         }
     }

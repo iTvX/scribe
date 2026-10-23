@@ -27,9 +27,10 @@ import Testing
     private func play(_ file: URL, engineName: String, engine: some RimeEngine) throws {
         let script = try ReplayScript(String(contentsOf: file, encoding: .utf8))
         guard script.engines?.contains(engineName) ?? true else { return }
-        let session = InputSession(engine: engine)
+        let chordTimer = ManualChordTimer()
+        let session = InputSession(engine: engine, chordTimer: chordTimer)
         defer { session.close() }
-        for failure in ReplayRunner.run(script, in: session) {
+        for failure in ReplayRunner.run(script, in: session, chordTimer: chordTimer) {
             Issue.record("\(file.lastPathComponent) \(failure)")
         }
     }

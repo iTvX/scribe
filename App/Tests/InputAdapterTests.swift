@@ -1,4 +1,5 @@
 import AppKit
+import RimeKit
 import ScribeCore
 import ScribeTestSupport
 import Testing
@@ -26,6 +27,10 @@ final class CallLog: TextClient, CandidatePresenting {
         calls.append("show " + snapshot.entries.map(\.text).joined(separator: " "))
     }
 
+    func showStatus(_ message: String, near caretRect: NSRect) {
+        calls.append("status \(message)")
+    }
+
     func hide() {
         calls.append("hide")
     }
@@ -35,10 +40,13 @@ final class CallLog: TextClient, CandidatePresenting {
 @Suite struct InputAdapterTests {
     let log = CallLog()
     let engine = FakeRimeEngine()
+    let chordTimer = ManualChordTimer()
+    let session: InputSession
     let adapter: InputAdapter
 
     init() {
-        adapter = InputAdapter(session: InputSession(engine: engine), candidates: log)
+        session = InputSession(engine: engine, chordTimer: chordTimer)
+        adapter = InputAdapter(session: session, candidates: log)
     }
 
     func key(_ characters: String, code: UInt16, flags: NSEvent.ModifierFlags = []) -> NSEvent {
@@ -123,20 +131,54 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(engine.processedKeys == [KeyEvent(Keysym.capsLock, modifiers: .capsLock)])
     }
 
-    @Test func commitCompositionCommitsAndHides() {
+    @Test func commitCompositionCommitsTheUnconvertedInput() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)
         log.calls.removeAll()
         adapter.commitComposition(client: log)
-        #expect(log.calls == ["insert 你", "hide"])
+        #expect(log.calls == ["insert ni", "hide"])
     }
 
-    @Test func deactivatingCommitsAndHides() {
+    @Test func deactivatingNeverDropsText() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)
         log.calls.removeAll()
         adapter.deactivate(client: log)
-        #expect(log.calls == ["insert 你", "hide", "hide"])
+        #expect(log.calls == ["insert ni", "hide", "hide"])
+    }
+
+    @Test func chordReleasesReachTheLastClient() {
+        session.setOption("_chord_typing", true)
+        #expect(adapter.handle(input(key("a", code: 0)), client: log))
+        #expect(adapter.handle(input(key("s", code: 1)), client: log))
+        #expect(log.calls.isEmpty)
+        chordTimer.fire()
+        #expect(log.calls == ["insert as"])
+    }
+
+    @Test func statusIsShownNearTheCaret() throws {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        log.calls.removeAll()
+        let sessionID = try #require(session.currentSessionID)
+        adapter.handle(RimeNotification(sessionID: sessionID, type: "option", value: "ascii_mode"), notifications: .appropriate, messageType: .mix)
+        #expect(log.calls == ["caret", "status A"])
+    }
+
+    @Test func otherSessionsStatusIsIgnored() {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        log.calls.removeAll()
+        adapter.handle(RimeNotification(sessionID: RimeSessionID(rawValue: 999), type: "option", value: "ascii_mode"), notifications: .appropriate, messageType: .mix)
+        #expect(log.calls.isEmpty)
+    }
+
+    @Test func candidateWindowRequests() {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        log.calls.removeAll()
+        adapter.changePage(.down)
+        adapter.moveCaret(.towardStart)
+        adapter.selectCandidate(at: 1)
+        #expect(log.calls == ["caret", "show 拟 腻", "insert 腻", "hide"])
     }
 
     @Test func pageDownUpdatesOnlyTheWindow() {

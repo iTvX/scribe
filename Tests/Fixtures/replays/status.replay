@@ -1,0 +1,14 @@
+# Option and schema changes are announced with the schema's labels:
+# "mix" prefers the abbreviation, "long" the full label, "short" the
+# abbreviation or else the first character of the full label.
+!notify option ascii_mode       => status "A"
+!notify option !ascii_mode      => status "中"
+@status-message long
+!notify option ascii_mode       => status "西文"
+@status-message short
+!notify option !ascii_mode      => status "中"
+!notify schema scribe_test/Scribe Test  => status "Scribe Test"
+# Options the schema gives no labels are not announced.
+!notify option _linear          => status none
+@notifications never
+!notify option ascii_mode       => status none
