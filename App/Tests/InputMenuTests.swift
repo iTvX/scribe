@@ -35,6 +35,9 @@ import Testing
         #expect(keysByLanguage["en"]?.contains(command.title) == true, "\(command.title)")
     }
     #expect(keysByLanguage["en"]?.contains(LaunchGuard.warningKey) == true)
+    for message in DeployMessage.allCases {
+        #expect(keysByLanguage["en"]?.contains(message.key) == true, "\(message.key)")
+    }
 }
 
 @Suite struct LaunchGuardTests {

@@ -118,6 +118,7 @@ targets:
     sources:
       - path: App/Sources/Adapter
       - path: App/Sources/Command.swift
+      - path: App/Sources/DeployMessage.swift
       - path: App/Sources/DistributionIdentity.swift
       - path: App/Sources/FrontendConfig.swift
       - path: App/Sources/InputSourceInstaller.swift

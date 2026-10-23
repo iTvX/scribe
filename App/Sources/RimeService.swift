@@ -71,6 +71,7 @@ final class RimeService {
             Self.log(notification)
             switch notification.type {
             case "deploy":
+                DeployMessage(event: notification.value)?.post()
                 RimeService.shared.resumeMaintenance()
                 if notification.value != "start" {
                     RimeService.shared.updateIdentity()

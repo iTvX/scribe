@@ -4,3 +4,6 @@
 "User folder…" = "用戶目錄…";
 "Help…" = "使用說明…";
 "launch_problem" = "中書啟動時崩潰了，這次沒有載入 Rime。請撤銷最近對設定的改動，再重新部署。";
+"deploy_start" = "正在部署…";
+"deploy_success" = "部署完成。";
+"deploy_failure" = "部署出錯，請查看日誌。";
