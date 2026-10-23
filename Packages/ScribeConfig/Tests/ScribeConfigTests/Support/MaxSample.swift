@@ -51,7 +51,7 @@ let maxSampleScribe: ConfigNode = [
                 "font": ["face": "PingFangSC-Regular", "size": 16],
                 "label_font": ["size": 12],
                 "inline_preedit": true,
-                "candidate_format": "%c\u{2005}%@\u{2005}",
+                "candidate_format": "%c %@ ",
             ],
             "light": [
                 "background": "#FFFFFF",
@@ -128,7 +128,8 @@ let maxSample: ConfigNode = [
     ],
 ]
 
-/// The keys both skins share.
+/// The keys both skins share. Max's candidate_format has ASCII spaces,
+/// though the comment next to it in his file says U+2005.
 private func wechatSkin(extra: [String: ConfigNode]) -> ConfigNode {
     let shared: [String: ConfigNode] = [
         "candidate_list_layout": "linear",
@@ -139,7 +140,7 @@ private func wechatSkin(extra: [String: ConfigNode]) -> ConfigNode {
         "font_point": 16,
         "label_font_point": 12,
         "inline_preedit": true,
-        "candidate_format": "%c\u{2005}%@\u{2005}",
+        "candidate_format": "%c %@ ",
         "hilited_candidate_back_color": "0x75B100",
     ]
     return .map(shared.merging(extra) { _, extra in extra })
