@@ -137,6 +137,18 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(engine.processedKeys == [KeyEvent(Keysym.capsLock, modifiers: .capsLock)])
     }
 
+    /// keyboard_layout, as Squirrel applies it on activation.
+    @Test(arguments: [
+        (KeyboardLayout.last, nil),
+        (.named("com.apple.keylayout.ABC"), "com.apple.keylayout.ABC"),
+        (KeyboardLayout(squirrel: "default"), "com.apple.keylayout.ABC"),
+        (KeyboardLayout(squirrel: "USExtended"), "com.apple.keylayout.USExtended"),
+    ] as [(KeyboardLayout, String?)])
+    func activationNamesTheKeyboardLayoutToUse(layout: KeyboardLayout, expected: String?) {
+        adapter.configuration.keyboardLayout = layout
+        #expect(adapter.activate(capsLockOn: false) == expected)
+    }
+
     @Test func commitCompositionCommitsTheUnconvertedInput() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)
