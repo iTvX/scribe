@@ -34,6 +34,9 @@ struct CustomPatchErrorTests {
         ("patch:\n  \"unterminated: 5\n", 2, .invalidEntry),
         ("--- extra\npatch:\n", 1, .invalidEntry),
         ("- not a map\n", 1, .invalidEntry),
+        ("patch:\n- menu/page_size: 5\n", 2, .invalidEntry),
+        ("__patch: rime_ice_suggestion:/\n- extra\npatch:\n", 2, .invalidEntry),
+        ("patch:\n  menu/page_size: 5\n__patch:\n- x\nother: 1\n- y\n", 6, .invalidEntry),
     ])
     func rejectsLayouts(text: String, line: Int, reason: UnsupportedLayout) {
         #expect(throws: CustomPatchError.unsupportedLayout(line: line, reason: reason)) {

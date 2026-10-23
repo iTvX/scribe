@@ -7,10 +7,10 @@ import ScribeCore
 /// The state of the import screen: which directories, and how the import went.
 ///
 /// Launch arguments (or defaults) override the directories for testing:
-/// `-ScribeImportSource <path>`, `-ScribeUserDirectory <path>`, and
+/// `-ScribeImportSource <path>`, the overrides of `SettingsDirectories`, and
 /// `-ScribeImportOnLaunch YES` to import once at launch without asking.
-/// With the Scribe directory overridden, the app never looks for or
-/// notifies a running Scribe.
+/// With a directory overridden, the app never looks for or notifies a
+/// running Scribe.
 @MainActor @Observable
 final class ImportModel {
     enum Phase {
@@ -28,23 +28,25 @@ final class ImportModel {
     private(set) var userWords = UserWordsOutcome()
     /// Shown before an import that would move existing files to a backup.
     var isConfirmingBackup = false
+    /// Called after an import has finished, so other pages can reload.
+    var onImported: (() -> Void)?
 
     /// Whether the destination is the Scribe directory the input method uses.
     let isLive: Bool
+    private let directories: SettingsDirectories
     private let importsOnLaunch: Bool
     private var handledLaunch = false
 
-    static let scribeBundleIdentifier = "io.github.itvx.inputmethod.Scribe"
     /// How long to wait for a running Scribe to merge staged snapshots.
     static let syncTimeout: Duration = .seconds(120)
 
-    init(defaults: UserDefaults = .standard, home: URL = FileManager.default.homeDirectoryForCurrentUser) {
-        let directories = UserDirectories(home: home)
+    init(directories: SettingsDirectories, defaults: UserDefaults = .standard,
+         home: URL = FileManager.default.homeDirectoryForCurrentUser) {
         source = defaults.string(forKey: "ScribeImportSource").map { URL(filePath: $0, directoryHint: .isDirectory) }
-            ?? directories.squirrel
-        let override = defaults.string(forKey: "ScribeUserDirectory").map { URL(filePath: $0, directoryHint: .isDirectory) }
-        destination = override ?? directories.scribe
-        isLive = override == nil
+            ?? UserDirectories(home: home).squirrel
+        destination = directories.user
+        isLive = directories.isLive
+        self.directories = directories
         importsOnLaunch = defaults.bool(forKey: "ScribeImportOnLaunch")
     }
 
@@ -114,13 +116,13 @@ final class ImportModel {
     }
 
     private func finish(_ report: MigrationReport) async {
-        let serverRunning = isLive
-            && !NSRunningApplication.runningApplications(withBundleIdentifier: Self.scribeBundleIdentifier).isEmpty
+        let serverRunning = directories.isScribeRunning
         userWords = await migrateUserWords(report)
         phase = .finished(report)
         let summary = report.summary + "; " + userWords.summary
         Log.importer.notice("\(summary, privacy: .public)")
         emit(summary)
+        onImported?()
 
         guard serverRunning else { return }
         // The running Scribe still has the moved files open; a reload makes it

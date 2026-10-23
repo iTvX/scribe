@@ -178,6 +178,10 @@ struct PatchDocument: Equatable {
     /// Finds the top-level `patch:` key and where its block ends.
     private mutating func findPatch(_ infos: [LineInfo]) throws(CustomPatchError) {
         var seenTopLevel = false
+        // After a top-level key with no inline value other than patch, its
+        // value may be a compact sequence at column 0, such as `__patch:`
+        // followed by `- rime_ice_suggestion:/`.
+        var sequenceAllowed = false
         for (index, info) in infos.enumerated() where info.kind == .content {
             if !seenTopLevel && info.indent > 0 {
                 throw .unsupportedLayout(line: index + 1, reason: .indentedPatch)
@@ -187,9 +191,13 @@ struct PatchDocument: Equatable {
             if patchLine != nil && blockEnd == lines.count {
                 blockEnd = index
             }
+            if sequenceAllowed && Self.isSequenceItem(info.rest) {
+                continue
+            }
             guard let key = KeyLine(info.rest, scan: info.scan) else {
                 throw .unsupportedLayout(line: index + 1, reason: .invalidEntry)
             }
+            sequenceAllowed = key.value.isEmpty && key.key != "patch"
             guard key.key == "patch" else { continue }
             guard patchLine == nil else {
                 throw .unsupportedLayout(line: index + 1, reason: .duplicateKey)

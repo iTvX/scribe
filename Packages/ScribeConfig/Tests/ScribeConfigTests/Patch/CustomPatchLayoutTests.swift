@@ -124,6 +124,27 @@ struct CustomPatchLayoutTests {
         try expectEdit(.set("menu/page_size", 9), in: noPatch, gives: noPatch + "patch:\n  menu/page_size: 9\n")
     }
 
+    @Test func compactSequencesUnderOtherTopLevelKeys() throws {
+        let text = """
+            __patch:
+            - rime_ice_suggestion:/
+            - key_bindings:/emacs_editing
+              # 第二个补丁
+            patch:
+              menu/page_size: 5
+            customization:
+              list:
+              - a
+
+            """
+        #expect(try CustomPatchEditor(text: text).keys == ["menu/page_size"])
+        try expectEdit(.set("menu/page_size", 6), in: text, gives: text.replacingOccurrences(of: "size: 5", with: "size: 6"))
+        try expectEdit(.set("switcher/hotkeys", ["F4"]), in: text, gives: text.replacingOccurrences(
+            of: "  menu/page_size: 5\n", with: "  menu/page_size: 5\n  switcher/hotkeys:\n    - F4\n"))
+        try expectEdit(.remove("menu/page_size"), in: text, gives: text.replacingOccurrences(of: "  menu/page_size: 5\n", with: ""))
+        try expectEdit(.removeDescendants("menu"), in: text, gives: text.replacingOccurrences(of: "  menu/page_size: 5\n", with: ""))
+    }
+
     @Test func fourSpaceIndentation() throws {
         let text = """
             patch:
