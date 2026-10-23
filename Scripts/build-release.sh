@@ -100,10 +100,17 @@ mkdir -p "${OUTPUT}/root"
 APP="${OUTPUT}/root/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
 
-# Sign inside out: embedded libraries first, then the app.
+# Sign inside out: embedded libraries first, then the command line tools next
+# to Scribe, then the app. The tools load librime, so they get the app's
+# entitlements; rime-install is a shell script, signed in extended attributes.
 while IFS= read -r -d '' library; do
   codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${library}"
 done < <(find "${APP}/Contents/Frameworks" -depth -type f -name '*.dylib' -print0)
+for tool in rime_deployer rime_dict_manager; do
+  codesign --force --options runtime "${CODESIGN_ARGS[@]}" \
+    --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}/Contents/MacOS/${tool}"
+done
+codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/rime-install"
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" \
   --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}"
 codesign --verify --strict --deep "${APP}"

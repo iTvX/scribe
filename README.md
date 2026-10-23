@@ -41,7 +41,7 @@
 Scripts/fetch-librime.sh
 ```
 
-下载 librime 1.17.0 官方发布包和默认数据（plum 默认安装的那几套：prelude、essay、朙月拼音、地球拼音、注音、倉頡五代、速成、筆畫，和鼠须管自带的一致，都固定到具体提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
+下载 librime 1.17.0 官方发布包和默认数据（plum 默认安装的那几套：prelude、essay、朙月拼音、地球拼音、注音、倉頡五代、速成、筆畫，和鼠须管自带的一致，都固定到具体提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。`rime_deployer`、`rime_dict_manager` 和 plum 的 `rime-install` 放在 `Frameworks/bin`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`，三个命令行工具和鼠须管一样放在 `Contents/MacOS`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
 
 ### 运行测试
 
