@@ -233,6 +233,26 @@ private final class Recorder: CandidatePanelDelegate {
         #expect(abs(panel.frame.width - panel.view.frame.height) < 1)
     }
 
+    @Test func commentMarksFromTheSnapshotReachTheDrawing() throws {
+        var theme = Fixtures.lostTemple
+        theme.colors.accentText = Fixtures.color("0x3c9cff")
+        theme.colors.warningText = Fixtures.color("0x3030ff")
+        let (panel, _) = panel(theme)
+        // Rows 1 and 3 have comments; row 0 is highlighted.
+        var snapshot = Fixtures.pinyinPage
+        snapshot.accentCommentIndices = [1]
+        snapshot.warningCommentIndices = [3]
+        panel.show(snapshot, near: caret)
+        defer { panel.hide() }
+        let text = try #require(panel.view.text)
+        func commentColor(_ row: Int) -> NSColor? {
+            text.string.attribute(.foregroundColor, at: NSMaxRange(text.candidateRanges[row]) - 1, effectiveRange: nil) as? NSColor
+        }
+        let drawn = PanelTheme(theme, palette: Fixtures.lightPalette)
+        #expect(commentColor(1) == drawn.accentCommentTextColor)
+        #expect(commentColor(3) == drawn.warningCommentTextColor)
+    }
+
     @Test func pointsOutsideThePanelHitNothing() throws {
         let (panel, _) = panel()
         panel.show(Fixtures.pinyinPage, near: caret)

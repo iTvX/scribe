@@ -113,13 +113,15 @@ import Testing
     @Test func accentAndWarningColourUnhighlightedComments() throws {
         let snapshot = CandidateSnapshot(
             entries: (0..<4).map { .init(label: "\($0 + 1)", text: "字", comment: "c") },
-            highlightedIndex: 0
+            highlightedIndex: 0,
+            accentCommentIndices: [0, 1, 2],
+            warningCommentIndices: [2, 3]
         )
         let theme = panelTheme {
             $0.colors.accentText = .rgba(RGBAColor(red: 255, green: 0, blue: 0))
             $0.colors.warningText = .rgba(RGBAColor(red: 0, green: 0, blue: 255))
         }
-        let content = PanelContent(snapshot, accentCommentIndices: [0, 1, 2], warningCommentIndices: [2, 3])
+        let content = PanelContent(snapshot)
         let text = try #require(PanelText(content, theme: theme))
         func commentColor(_ row: Int) -> NSColor? {
             let range = text.candidateRanges[row]
