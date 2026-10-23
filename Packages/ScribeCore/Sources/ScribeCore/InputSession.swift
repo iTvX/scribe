@@ -172,10 +172,12 @@ public final class InputSession {
         activeSession().map { engine.option(name, in: $0) }
     }
 
-    public func setOption(_ name: String, _ value: Bool) {
-        if let session = activeSession() {
-            engine.setOption(name, value, in: session)
-        }
+    /// Sets a Rime option and reports what changed for the client.
+    @discardableResult
+    public func setOption(_ name: String, _ value: Bool) -> [SessionAction] {
+        guard let session = activeSession() else { return [] }
+        engine.setOption(name, value, in: session)
+        return update(session)
     }
 
     /// Commits the candidate at `index` on the current page.

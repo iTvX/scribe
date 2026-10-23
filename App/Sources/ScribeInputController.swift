@@ -31,6 +31,7 @@ final class ScribeInputController: IMKInputController {
         let state = state
         MainActor.assumeIsolated {
             state.adapter.activate(capsLockOn: capsLockOn)
+            RimeService.shared.activated(state.adapter)
         }
     }
 

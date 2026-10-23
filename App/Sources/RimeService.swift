@@ -35,6 +35,9 @@ final class RimeService {
 
     static let reloadNotification = Notification.Name(ServerNotification.reload)
     static let syncNotification = Notification.Name(ServerNotification.sync)
+    static let setASCIIModeNotification = Notification.Name(ServerNotification.setASCIIMode)
+    static let getASCIIModeNotification = Notification.Name(ServerNotification.getASCIIMode)
+    static let asciiModeResponseNotification = Notification.Name(ServerNotification.asciiModeResponse)
 
     let engine = LibrimeEngine.shared
     let candidatePanel = CandidatePanel()
@@ -71,6 +74,42 @@ final class RimeService {
                 RimeService.shared.request(.sync)
             }
         }
+        center.addObserver(forName: Self.setASCIIModeNotification, object: nil, queue: .main) { notification in
+            guard let mode = notification.object as? String, ["ascii", "nascii"].contains(mode) else { return }
+            MainActor.assumeIsolated {
+                RimeService.shared.setASCIIMode(mode == "ascii")
+            }
+        }
+        center.addObserver(forName: Self.getASCIIModeNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                RimeService.shared.reportASCIIMode()
+            }
+        }
+    }
+
+    /// The adapter of the client that was activated last.
+    private weak var activeAdapter: InputAdapter?
+
+    func activated(_ adapter: InputAdapter) {
+        activeAdapter = adapter
+    }
+
+    /// Sets ASCII mode in every client's session, as Squirrel does.
+    private func setASCIIMode(_ on: Bool) {
+        adapters.removeAll { $0.adapter == nil }
+        for adapter in adapters.compactMap(\.adapter) {
+            adapter.setASCIIMode(on)
+        }
+    }
+
+    private func reportASCIIMode() {
+        guard let isASCIIMode = activeAdapter?.isASCIIMode else { return }
+        DistributedNotificationCenter.default().postNotificationName(
+            Self.asciiModeResponseNotification,
+            object: isASCIIMode ? "ascii" : "nascii",
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
 
     /// Queues a reload or a sync; it starts once librime is not busy.
