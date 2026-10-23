@@ -72,6 +72,18 @@ final class PanelTextLayout {
         return CGRect(x: min(0, x0), y: min(0, y0), width: x1 - min(0, x0), height: y1 - min(0, y0))
     }
 
+    /// The index of the character under `point`, in text container
+    /// coordinates; nil between or beside lines.
+    func characterIndex(at point: CGPoint) -> Int? {
+        guard let fragment = textLayoutManager.textLayoutFragment(for: point) else { return nil }
+        let frame = fragment.layoutFragmentFrame
+        let inFragment = CGPoint(x: point.x - frame.minX, y: point.y - frame.minY)
+        let start = textLayoutManager.offset(from: textLayoutManager.documentRange.location, to: fragment.rangeInElement.location)
+        guard let line = fragment.textLineFragments.first(where: { $0.typographicBounds.contains(inFragment) }) else { return nil }
+        let bounds = line.typographicBounds
+        return start + line.characterIndex(for: CGPoint(x: inFragment.x - bounds.minX, y: inFragment.y - bounds.minY))
+    }
+
     /// Draws the text with the container origin at `origin`, in flipped
     /// coordinates.
     func draw(at origin: CGPoint, in context: CGContext) {

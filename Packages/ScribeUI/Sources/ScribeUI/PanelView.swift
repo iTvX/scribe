@@ -1,4 +1,5 @@
 import AppKit
+import ScribeCore
 
 /// What laying out the panel text decided about the panel's size.
 struct PanelSizing: Equatable {
@@ -9,6 +10,14 @@ struct PanelSizing: Equatable {
     var isOversized: Bool
     /// The height of the preedit text; nil without a preedit.
     var preeditHeight: CGFloat?
+}
+
+/// What a point in the panel falls on.
+struct PanelHit: Equatable {
+    var candidate: Int?
+    /// A UTF-16 offset into the preedit.
+    var preeditIndex: Int?
+    var page: PageDirection?
 }
 
 /// Draws the candidate panel: backgrounds, border and highlights with Core
@@ -72,11 +81,8 @@ final class PanelView: NSView {
         drawPanel(in: context)
     }
 
-    /// Draws the whole panel into `context`, whose user space must be this
-    /// view's flipped coordinates.
-    func drawPanel(in context: CGContext) {
-        guard let theme, let text else { return }
-        let shapes = PanelShapes(
+    private func shapes(_ text: PanelText, theme: PanelTheme) -> PanelShapes {
+        PanelShapes(
             size: bounds.size,
             metrics: theme.metrics,
             text: textGeometry(text),
@@ -84,6 +90,55 @@ final class PanelView: NSView {
             canPageUp: text.canPageUp,
             canPageDown: text.canPageDown
         )
+    }
+
+    /// What is under `point`, in this view's coordinates, found the way
+    /// Squirrel's `click(at:)` finds it.
+    func hit(at point: CGPoint) -> PanelHit {
+        guard let theme, let text else { return PanelHit() }
+        let shapes = shapes(text, theme: theme)
+        if shapes.pageDown?.contains(point) == true {
+            return PanelHit(page: .down)
+        }
+        if shapes.pageUp?.contains(point) == true {
+            return PanelHit(page: .up)
+        }
+        var panel = CGAffineTransform(translationX: theme.pagingOffset, y: 0)
+        guard shapes.background.copy(using: &panel)?.contains(point) == true else { return PanelHit() }
+        let inContainer = CGPoint(x: point.x - theme.edgeInset.width - theme.pagingOffset, y: point.y - theme.edgeInset.height)
+        guard let index = textLayout.characterIndex(at: inContainer) else { return PanelHit() }
+        if let preeditRange = text.preeditRange, NSLocationInRange(index, preeditRange) {
+            return PanelHit(preeditIndex: index)
+        }
+        return PanelHit(candidate: text.candidateRanges.firstIndex { NSLocationInRange(index, $0) })
+    }
+
+    /// Where candidate row `index`'s text is, in this view's coordinates.
+    func textRect(ofCandidate index: Int) -> CGRect? {
+        guard let theme, let text, text.candidateRanges.indices.contains(index) else { return nil }
+        let rect = PanelGeometry.union(of: textLayout.segments(of: text.candidateRanges[index]))
+        return rect.offsetBy(dx: theme.pagingOffset + theme.edgeInset.width, dy: theme.edgeInset.height)
+    }
+
+    /// The panel's outline and paging arrows for masking a sibling view of
+    /// the same frame, in unflipped coordinates.
+    func outline() -> CGPath? {
+        guard let theme, let text else { return nil }
+        let shapes = shapes(text, theme: theme)
+        let flip = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -bounds.height)
+        let path = CGMutablePath()
+        path.addPath(shapes.background, transform: CGAffineTransform(translationX: theme.pagingOffset, y: 0).concatenating(flip))
+        for arrow in [shapes.pageDown, shapes.pageUp].compactMap({ $0 }) {
+            path.addPath(arrow, transform: flip)
+        }
+        return path
+    }
+
+    /// Draws the whole panel into `context`, whose user space must be this
+    /// view's flipped coordinates.
+    func drawPanel(in context: CGContext) {
+        guard let theme, let text else { return }
+        let shapes = shapes(text, theme: theme)
 
         context.saveGState()
         context.clip(to: bounds)
@@ -103,6 +158,9 @@ final class PanelView: NSView {
             fill(arrow, with: theme.backgroundColor, in: context)
         }
 
+        // TextKit smooths fonts in the layers it draws Squirrel's text into;
+        // matching that keeps Scribe's text as heavy as Squirrel's.
+        context.setShouldSmoothFonts(true)
         textLayout.draw(at: CGPoint(x: theme.pagingOffset + theme.edgeInset.width, y: theme.edgeInset.height), in: context)
 
         if fades {
@@ -184,18 +242,49 @@ final class PanelView: NSView {
     /// Draws only the shadow `path` would cast, matching a Core Animation
     /// shadow: black at 20% opacity, `radius` as `shadowRadius`, and an
     /// offset in this view's flipped coordinates.
+    ///
+    /// Core Graphics applies shadow offsets in the context's base space,
+    /// which differs between a bitmap and AppKit's layer contexts, so the
+    /// shadow is made in a bitmap of its own and drawn from there.
     private func drawShadow(of path: CGPath, offset: CGSize, radius: CGFloat, in context: CGContext) {
-        // Core Graphics takes shadow offsets and blur in device space; the
-        // shape itself is drawn far away so only its shadow lands here.
-        let away: CGFloat = 100_000
         let transform = context.ctm
-        let deviceOffset = CGSize(width: offset.width - away, height: offset.height).applying(transform)
-        let scale = (abs(transform.a * transform.d - transform.b * transform.c)).squareRoot()
-        context.setShadow(offset: deviceOffset, blur: 2 * radius * scale, color: NSColor.black.withAlphaComponent(0.2).cgColor)
-        context.translateBy(x: away, y: 0)
-        context.addPath(path)
-        context.setFillColor(NSColor.black.cgColor)
-        context.fillPath()
+        let scale = abs(transform.a * transform.d - transform.b * transform.c).squareRoot()
+        // Core Animation's shadowRadius blurs about as much as twice that
+        // value does in Core Graphics.
+        let blur = 2 * radius
+        let margin = 2 * blur + abs(offset.width) + abs(offset.height)
+        let box = path.boundingBoxOfPath.insetBy(dx: -margin, dy: -margin).integral
+        let width = Int((box.width * scale).rounded(.up))
+        let height = Int((box.height * scale).rounded(.up))
+        guard width > 0, height > 0, let shadow = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: PanelRenderer.colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return }
+        shadow.translateBy(x: 0, y: CGFloat(height))
+        shadow.scaleBy(x: scale, y: -scale)
+        shadow.translateBy(x: -box.minX, y: -box.minY)
+        // The shape goes beside the bitmap; only its shadow falls inside.
+        let away = box.width
+        shadow.setShadow(
+            offset: CGSize(width: (offset.width - away) * scale, height: -offset.height * scale),
+            blur: blur * scale,
+            color: NSColor.black.withAlphaComponent(0.2).cgColor
+        )
+        shadow.translateBy(x: away, y: 0)
+        shadow.addPath(path)
+        shadow.setFillColor(NSColor.black.cgColor)
+        shadow.fillPath()
+        guard let image = shadow.makeImage() else { return }
+        context.saveGState()
+        context.translateBy(x: box.minX, y: box.maxY)
+        context.scaleBy(x: 1, y: -1)
+        context.draw(image, in: CGRect(origin: .zero, size: box.size))
+        context.restoreGState()
     }
 
     private func textGeometry(_ text: PanelText) -> PanelTextGeometry {

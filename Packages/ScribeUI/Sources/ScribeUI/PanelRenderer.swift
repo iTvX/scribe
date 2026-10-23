@@ -39,7 +39,8 @@ enum PanelRenderer {
         guard width > 0, height > 0, let context = bitmap(width: width, height: height) else { return nil }
         context.translateBy(x: 0, y: CGFloat(height))
         context.scaleBy(x: pixelScale, y: -pixelScale)
-        context.setAllowsFontSmoothing(false)
+        // PanelView smooths its text, as Squirrel's TextKit layers do.
+        context.setAllowsFontSmoothing(true)
 
         let previous = NSGraphicsContext.current
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
