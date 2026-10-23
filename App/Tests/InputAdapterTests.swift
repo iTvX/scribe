@@ -196,6 +196,14 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(session.chordDuration == 0.4)
     }
 
+    @Test func theModeIndicatorFollowsASCIIMode() {
+        #expect(adapter.modeIndicator == nil)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        #expect(adapter.modeIndicator == "中")
+        adapter.setASCIIMode(true)
+        #expect(adapter.modeIndicator == "A")
+    }
+
     @Test func otherSessionsStatusIsIgnored() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         log.calls.removeAll()

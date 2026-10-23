@@ -185,6 +185,16 @@ final class InputAdapter {
         session.option("ascii_mode")
     }
 
+    /// What the menu bar shows for this session's input mode.
+    var modeIndicator: String? {
+        session.modeIndicator
+    }
+
+    /// Whether a librime notification concerns this adapter's session.
+    func owns(_ notification: RimeNotification) -> Bool {
+        session.owns(notification.sessionID)
+    }
+
     /// Commits what was typed and hides the window, for when Scribe stops
     /// being the input source without being deactivated.
     func finishComposition() {

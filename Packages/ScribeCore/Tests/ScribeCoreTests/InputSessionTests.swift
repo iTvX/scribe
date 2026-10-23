@@ -60,6 +60,14 @@ import Testing
         #expect(schemas == ["scribe_test", "scribe_test"])
     }
 
+    @Test func theModeIndicatorUsesTheSchemasShortLabel() {
+        #expect(session.modeIndicator == nil, "no session yet")
+        _ = type("n")
+        #expect(session.modeIndicator == "中")
+        session.setOption("ascii_mode", true)
+        #expect(session.modeIndicator == "A")
+    }
+
     // The client app, as Squirrel handles it.
 
     @Test func appOptionsAreSetWhenTheSessionStarts() throws {

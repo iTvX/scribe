@@ -62,6 +62,7 @@ final class RimeService {
             setenv("RIME_LOG_DIR", logDirectory.path(percentEncoded: false), 1)
         }
         observeServerNotifications()
+        modeStatusItem.isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
         if LaunchGuard.standard.isRelaunchTooSoon() {
             Log.app.fault("Relaunched within two seconds; starting without Rime")
             Self.speak(Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil))
@@ -93,6 +94,7 @@ final class RimeService {
     func startMaintenance(fullCheck: Bool) {
         let started = FrontendConfig.startMaintenance(engine, fullCheck: fullCheck)
         settings = ScribeSettings.load(from: engine)
+        modeStatusItem.isEnabled = settings?.showsStatusIcon ?? true
         if !started {
             loadAppearance()
         }
@@ -184,13 +186,21 @@ final class RimeService {
     /// input source, as tools such as macism do (rime/squirrel#1140). Commit
     /// what was typed then, as deactivating would.
     private func inputSourceChanged() {
-        guard !InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent else { return }
+        let isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
+        modeStatusItem.isScribeCurrent = isScribeCurrent
+        guard !isScribeCurrent else { return }
         activeAdapter?.finishComposition()
     }
 
     func activated(_ adapter: InputAdapter) {
         activeAdapter = adapter
+        modeStatusItem.isScribeCurrent = true
+        if let indicator = adapter.modeIndicator {
+            modeStatusItem.title = indicator
+        }
     }
+
+    let modeStatusItem = ModeStatusItem()
 
     /// Sets ASCII mode in every client's session, as Squirrel does.
     private func setASCIIMode(_ on: Bool) {
@@ -280,6 +290,10 @@ final class RimeService {
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
             adapter.handle(notification)
+            if notification.type == "option", notification.value.hasSuffix("ascii_mode"),
+               adapter.owns(notification), let indicator = adapter.modeIndicator {
+                modeStatusItem.title = indicator
+            }
         }
     }
 
