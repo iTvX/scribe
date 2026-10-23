@@ -48,7 +48,7 @@
 | 鼠标：点击、悬停、点输入码、翻页箭头 | 完成 | UI `CandidatePanelTests`（`clickingACandidateSelectsIt`、`releasingOnAnotherCandidateSelectsNothing`、`hoveringHighlightsOnlyInTheWindow`、`pagingArrowsPage`、`clickingThePreeditMovesTheCaretOneStep`）；App `InputAdapterTests`（`clickingACandidateCommitsIt`、`clickingThePreeditMovesTheCaret`、`requestsGoToTheClientShownLast`） | |
 | 滚轮和轻扫翻页（竖排时对调） | 完成 | UI `ScrollPagerTests`；App `InputAdapterTests.scrollingPagesTheCandidates` | |
 | 状态消息约 1.2 秒 | 完成 | UI `CandidatePanelTests.statusMessagesHideByThemselves`、`candidatesReplaceTheStatusMessage`；App `InputAdapterTests.statusIsShownNearTheCaret` | |
-| 候选窗位置 | 完成 | UI `PanelPlacementTests`、`SquirrelReferenceTests`（和鼠须管自己的渲染对比） | 手动 F1–F3 |
+| 候选窗位置 | 部分 | UI `PanelPlacementTests` | 手动 F1–F3。`SquirrelReferenceTests` 只比绘制，不比位置；等 line 3 和鼠须管候选窗代码的位置对比测试 |
 | 方案 `style` 切换 | 完成 | App `FrontendConfigTests.aSchemasStyleOverridesSquirrelYAML`（真 librime：方案的 style 盖过 squirrel.yaml，外观和会话的显示方式都跟着变）、`InputAdapterTests.theSessionsSchemaIsReported`；Core `InputSessionTests.theSchemaIsReportedOncePerSession`；Config `LibrimeConfigTests.schemaStyleThroughLibrime` | |
 | 失焦、切换输入法、脚本切走时上屏 | 完成 | 回放 `commit-composition`；App `InputAdapterTests.deactivatingNeverDropsText`、`finishingCommitsToTheLastClient`、`InputSourceInstallerTests.scribeIsCurrentInEitherMode` | 手动 B10、B11、B13 |
 | 输入法菜单 | 完成 | App `menuOffersTheMaintenanceCommandsInOrder`、`everyLanguageHasEveryString` | 手动 B12 |
