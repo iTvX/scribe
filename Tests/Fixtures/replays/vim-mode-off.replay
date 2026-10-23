@@ -1,0 +1,3 @@
+# Without vim_mode, Escape never changes the mode.
+Escape      => unhandled; option ascii_mode false
+Control+c   => unhandled; option ascii_mode false

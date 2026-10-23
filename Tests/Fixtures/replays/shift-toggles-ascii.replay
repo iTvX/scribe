@@ -1,0 +1,13 @@
+# A Shift press and release with nothing typed in between switches between
+# Chinese and ASCII; with commit_code, what was typed is committed as is.
+# Keys as MacKeyTranslator sends them: the press carries Shift, the release
+# carries the state after it.
+@engines rime
+n
+i                   => marked "ni"
+Shift+Shift_L
+Release+Shift_L     => commit "ni"; marked ""; candidates none; option ascii_mode true
+a                   => unhandled
+Shift+Shift_R
+Release+Shift_R     => option ascii_mode false
+n                   => marked "n"; handled

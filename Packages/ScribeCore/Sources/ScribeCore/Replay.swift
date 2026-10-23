@@ -6,6 +6,7 @@ import Foundation
 ///
 ///     # Comments start with "#"; blank lines are ignored.
 ///     @engines fake rime        # optional: engines this file applies to
+///     @option vim_mode true     # sets a Rime option before the next key
 ///     n
 ///     i       => marked "ni"; candidates "你" "泥"
 ///     space   => commit "你"; marked ""; candidates none
@@ -19,6 +20,7 @@ import Foundation
 ///   these; `candidates none` means there are none
 /// - `highlighted N`, `page N`: zero-based highlighted candidate and page
 /// - `handled` or `unhandled`: whether the key was consumed
+/// - `option NAME true|false`: a Rime option afterwards
 public struct ReplayScript: Equatable, Sendable {
     public enum Expectation: Equatable, Sendable {
         case commit(String?)
@@ -27,12 +29,20 @@ public struct ReplayScript: Equatable, Sendable {
         case highlighted(Int)
         case page(Int)
         case handled(Bool)
+        case option(String, Bool)
     }
 
     public struct Step: Equatable, Sendable {
         public var key: KeyEvent
         public var expectations: [Expectation]
         public var line: Int
+        /// Options set just before the key.
+        public var options: [(String, Bool)] = []
+
+        public static func == (lhs: Step, rhs: Step) -> Bool {
+            lhs.key == rhs.key && lhs.expectations == rhs.expectations && lhs.line == rhs.line
+                && lhs.options.map(\.0) == rhs.options.map(\.0) && lhs.options.map(\.1) == rhs.options.map(\.1)
+        }
     }
 
     public struct ParseError: Error, Equatable, CustomStringConvertible {
@@ -56,6 +66,7 @@ public struct ReplayScript: Equatable, Sendable {
     public init(_ source: String) throws {
         engines = nil
         steps = []
+        var pendingOptions: [(String, Bool)] = []
         for (index, rawLine) in source.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let lineNumber = index + 1
             let line = Self.stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
@@ -64,6 +75,14 @@ public struct ReplayScript: Equatable, Sendable {
             }
             if line.hasPrefix("@engines") {
                 engines = Set(line.dropFirst("@engines".count).split(separator: " ").map(String.init))
+                continue
+            }
+            if line.hasPrefix("@option") {
+                let words = line.split(separator: " ").map(String.init)
+                guard words.count == 3, let value = Bool(words[2]) else {
+                    throw ParseError(line: lineNumber, message: "expected \"@option NAME true|false\"")
+                }
+                pendingOptions.append((words[1], value))
                 continue
             }
             let parts: [String] = line.range(of: "=>").map {
@@ -86,7 +105,8 @@ public struct ReplayScript: Equatable, Sendable {
                     expectations.append(expectation)
                 }
             }
-            steps.append(Step(key: key, expectations: expectations, line: lineNumber))
+            steps.append(Step(key: key, expectations: expectations, line: lineNumber, options: pendingOptions))
+            pendingOptions = []
         }
     }
 
@@ -144,6 +164,10 @@ public struct ReplayScript: Equatable, Sendable {
             return argument.isEmpty ? .handled(true) : nil
         case "unhandled":
             return argument.isEmpty ? .handled(false) : nil
+        case "option":
+            let parts = argument.split(separator: " ").map(String.init)
+            guard parts.count == 2, let value = Bool(parts[1]) else { return nil }
+            return .option(parts[0], value)
         default:
             return nil
         }
@@ -177,6 +201,9 @@ public enum ReplayRunner {
         var candidates: CandidateSnapshot?
         var failures: [Failure] = []
         for step in script.steps {
+            for (name, value) in step.options {
+                session.setOption(name, value)
+            }
             let result = session.handle(step.key)
             var committed: [String] = []
             for action in result.actions {
@@ -227,6 +254,11 @@ public enum ReplayRunner {
                 case .handled(let expected):
                     if result.handled != expected {
                         fail(expected ? "key was not handled" : "key was handled")
+                    }
+                case .option(let name, let expected):
+                    let actual = session.option(name)
+                    if actual != expected {
+                        fail("option \(name) is \(actual.map(String.init) ?? "unavailable"), expected \(expected)")
                     }
                 }
             }

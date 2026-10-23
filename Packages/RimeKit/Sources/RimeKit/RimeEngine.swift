@@ -135,4 +135,6 @@ public protocol RimeEngine: AnyObject {
     /// Commits whatever is being composed.
     func commitComposition(in session: RimeSessionID) -> Bool
     func clearComposition(in session: RimeSessionID)
+    func option(_ option: String, in session: RimeSessionID) -> Bool
+    func setOption(_ option: String, _ value: Bool, in session: RimeSessionID)
 }

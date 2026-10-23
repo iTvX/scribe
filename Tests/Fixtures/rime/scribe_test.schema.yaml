@@ -19,6 +19,17 @@ engine:
   translators:
     - script_translator
 
+# As in rime-ice: a lone Shift commits what was typed and switches between
+# Chinese and ASCII; Caps Lock clears it and switches.
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Shift_L: commit_code
+    Shift_R: commit_code
+    Control_L: noop
+    Control_R: noop
+    Caps_Lock: clear
+
 speller:
   alphabet: zyxwvutsrqponmlkjihgfedcba
   delimiter: " '"

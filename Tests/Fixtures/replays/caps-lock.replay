@@ -1,0 +1,9 @@
+# Caps Lock reaches Rime with the lock state from before the toggle: turning
+# it on clears the composition and switches to ASCII, turning it off
+# switches back.
+@engines rime
+n
+i                   => marked "ni"
+Caps_Lock           => marked ""; candidates none; option ascii_mode true
+Lock+Caps_Lock      => option ascii_mode false
+n                   => marked "n"

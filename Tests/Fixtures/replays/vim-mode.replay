@@ -1,0 +1,12 @@
+# With vim_mode, an Escape, Control+c or Control+[ that Rime does not use
+# switches to ASCII, as Vim goes back to normal mode.
+@option vim_mode true
+Escape                  => unhandled; option ascii_mode true
+@option ascii_mode false
+Control+c               => unhandled; option ascii_mode true
+@option ascii_mode false
+Control+bracketleft     => unhandled; option ascii_mode true
+@option ascii_mode false
+# An Escape that cancels a composition is Rime's own.
+n
+Escape                  => handled; marked ""; option ascii_mode false

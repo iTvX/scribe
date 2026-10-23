@@ -34,10 +34,11 @@ final class CallLog: TextClient, CandidatePresenting {
 @MainActor
 @Suite struct InputAdapterTests {
     let log = CallLog()
+    let engine = FakeRimeEngine()
     let adapter: InputAdapter
 
     init() {
-        adapter = InputAdapter(session: InputSession(engine: FakeRimeEngine()), candidates: log)
+        adapter = InputAdapter(session: InputSession(engine: engine), candidates: log)
     }
 
     func key(_ characters: String, code: UInt16, flags: NSEvent.ModifierFlags = []) -> NSEvent {
@@ -84,19 +85,42 @@ final class CallLog: TextClient, CandidatePresenting {
 
     @Test func eventsAreCopiedFaithfully() {
         let event = key("A", code: 0, flags: [.shift, .command])
-        #expect(KeyInput(event) == KeyInput(kind: .keyDown, keyCode: 0, charactersIgnoringModifiers: "A", flags: [.shift, .command]))
+        #expect(KeyInput(event) == KeyInput(kind: .keyDown, keyCode: 0, characters: "A", charactersIgnoringModifiers: "A", flags: [.shift, .command]))
         #expect(KeyInput(flags(.option, code: 58)).kind == .flagsChanged)
     }
 
-    @Test func shortcutsReachTheClient() {
+    @Test func commandShortcutsNeverReachRime() {
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
         #expect(!adapter.handle(input(key("c", code: 8, flags: .command)), client: log))
+        #expect(engine.processedKeys == [KeyEvent(0x6e)])
+        // The composition is untouched.
+        #expect(adapter.handle(input(key("i", code: 34)), client: log))
+        #expect(log.calls.contains("mark ni|2"))
+    }
+
+    @Test func modifierChangesGoToRimeAndTheClient() {
+        #expect(!adapter.handle(input(flags(.shift, code: 56)), client: log))
+        #expect(!adapter.handle(input(flags([], code: 56)), client: log))
+        #expect(engine.processedKeys == [
+            KeyEvent(Keysym.shiftL, modifiers: .shift),
+            KeyEvent(Keysym.shiftL, modifiers: .release),
+        ])
         #expect(log.calls.isEmpty)
     }
 
-    @Test func modifierChangesAlwaysReachTheClient() {
-        #expect(!adapter.handle(input(flags(.shift, code: 56)), client: log))
-        #expect(!adapter.handle(input(flags([], code: 56)), client: log))
-        #expect(log.calls.isEmpty)
+    @Test func unchangedModifiersAreConsumed() {
+        _ = adapter.handle(input(flags(.shift, code: 56)), client: log)
+        #expect(adapter.handle(input(flags(.shift, code: 56)), client: log))
+        #expect(engine.processedKeys.count == 1)
+    }
+
+    /// Activation brings no modifier event, so the Caps Lock state comes
+    /// from the hardware; otherwise the next toggle would look like no
+    /// change and be dropped.
+    @Test func capsLockStateIsSeededOnActivation() {
+        adapter.activate(capsLockOn: true)
+        #expect(!adapter.handle(input(flags([], code: 57)), client: log))
+        #expect(engine.processedKeys == [KeyEvent(Keysym.capsLock, modifiers: .capsLock)])
     }
 
     @Test func commitCompositionCommitsAndHides() {
