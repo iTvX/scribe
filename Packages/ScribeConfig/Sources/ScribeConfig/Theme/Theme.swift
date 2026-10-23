@@ -1,14 +1,14 @@
-public enum CandidateListLayout: String, Sendable {
+public enum CandidateListLayout: String, CaseIterable, Sendable {
     case stacked, linear
 }
 
-public enum TextOrientation: String, Sendable {
+public enum TextOrientation: String, CaseIterable, Sendable {
     case horizontal, vertical
 }
 
 /// How a schema or option change is announced: `long` shows the full state
 /// label, `short` its abbreviation, `mix` the abbreviation when there is one.
-public enum StatusMessageType: String, Sendable {
+public enum StatusMessageType: String, CaseIterable, Sendable {
     case long, short, mix
 }
 

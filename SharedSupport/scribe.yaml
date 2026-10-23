@@ -6,3 +6,79 @@ compatibility:
   # Report librime's distribution_code_name as "Squirrel" and distribution_name
   # as "鼠鬚管" instead of "Scribe", for Lua scripts that check which frontend runs.
   report_as_squirrel: false
+
+# Everything below is documentation. Set these keys in scribe.custom.yaml,
+# under `patch:`. Each key you set overrides the same setting in
+# squirrel.yaml (and squirrel.custom.yaml); a key you leave out keeps
+# Squirrel's value, and a schema's `style` still overrides both. A value
+# set in this file would override every user's Squirrel settings, so none
+# is set here.
+#
+# Colours are "#RRGGBB" or "#RRGGBBAA" in normal RGB order. Quote them:
+# YAML reads an unquoted # as the start of a comment.
+#
+# keyboard_layout: last           # last | default | a keylayout ID such as USExtended
+# chord_duration: 0.1             # seconds
+# notifications: appropriate      # always | appropriate | never
+# status_icon: true               # show the menu bar icon
+# report_bundle_id: false         # tell librime the app's bundle ID (client_app)
+#
+# app_options:                    # each app listed here replaces Squirrel's options for that app
+#   com.googlecode.iterm2:
+#     ascii_mode: false
+#
+# appearance:
+#   theme: native                 # native, a theme under `themes`, or a Squirrel preset
+#   dark_theme: wechat            # for dark mode; defaults to the theme's dark palette
+#   layout: stacked               # stacked | linear
+#   orientation: horizontal       # horizontal | vertical
+#   inline_preedit: true
+#   inline_candidate: false
+#   translucency: false
+#   mutual_exclusive: false
+#   memorize_size: true
+#   show_paging: false
+#   status_message: mix           # long | short | mix
+#   candidate_format: "[label]. [candidate] [comment]"
+#   font: { face: "Avenir", size: 16 }
+#   label_font: { face: "Avenir", size: 12 }
+#   comment_font: { face: "Avenir", size: 16 }
+#   preedit_font: { face: "Avenir", size: 16 }
+#   alpha: 1                      # 0 to 1
+#   corner_radius: 7
+#   highlight_corner_radius: 0
+#   padding: { horizontal: -2, vertical: -2 }
+#   line_spacing: 5               # between candidates
+#   preedit_spacing: 8            # between the preedit and the candidates
+#   baseline_offset: 0
+#   shadow_size: 0
+#   highlight_expansion: 0        # size of the other candidates' background
+#
+# themes:
+#   wechat:                       # lowercase letters, digits and _
+#     name: 微信键盘
+#     author: Someone
+#     color_space: srgb           # srgb | display_p3
+#     style:                      # any appearance key above except theme,
+#       layout: linear            # dark_theme, memorize_size and status_message;
+#       corner_radius: 5          # applies to both palettes
+#     light:
+#       background: "#FFFFFF"
+#       border: "#E0E0E0"
+#       preedit_background: "#FFFFFF"
+#       candidate_background: "#FFFFFF"
+#       preedit_highlight_background: "#E0E0E0"
+#       highlight_background: "#00B175"
+#       preedit_text: "#424242"
+#       preedit_highlight_text: "#000000"
+#       candidate_text: "#424242"
+#       highlight_text: "#FFFFFF"
+#       label: "#888888"
+#       highlight_label: "#FFFFFF"
+#       comment: "#999999"
+#       highlight_comment: "#FFFFFF"
+#       accent: "#00B175"         # comments a plugin highlights
+#       warning: "#E53935"        # comments a plugin marks as warnings
+#       style: { corner_radius: 6 }   # beats the theme's style for this palette
+#     dark:                       # optional, same keys as light
+#       background: "#2D2D2D"

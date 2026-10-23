@@ -2,28 +2,40 @@ import RimeKit
 
 extension RimeConfigReader: ConfigSource {}
 
+extension LibrimeEngine {
+    /// Runs `body` with the deployed squirrel.yaml and scribe.yaml, using an
+    /// empty Scribe config when scribe.yaml cannot be opened. Nil when
+    /// squirrel.yaml cannot be opened.
+    fileprivate func withSquirrelAndScribe<T>(_ body: (RimeConfigReader, any ConfigSource) -> T) -> T? {
+        withConfig(.deployed("squirrel")) { squirrel in
+            withConfig(.deployed("scribe")) { body(squirrel, $0) } ?? body(squirrel, ConfigNode.null)
+        }
+    }
+}
+
 extension ScribeSettings {
-    /// The settings from the deployed squirrel.yaml, or nil if librime cannot
-    /// open it (for instance while the engine is stopped).
+    /// The settings from the deployed squirrel.yaml and scribe.yaml, or nil
+    /// if librime cannot open squirrel.yaml (for instance while the engine is
+    /// stopped).
     @MainActor
     public static func load(from engine: LibrimeEngine) -> ScribeSettings? {
-        engine.withConfig(.deployed("squirrel")) { ScribeSettings(squirrel: $0) }
+        engine.withSquirrelAndScribe { ScribeSettings(squirrel: $0, scribe: $1) }
     }
 }
 
 extension Appearance {
-    /// The themes for a schema, from the deployed squirrel.yaml and the
-    /// schema's `style`. An empty schema ID or one starting with "." (which
-    /// Squirrel skips) gives the themes of squirrel.yaml alone.
+    /// The themes for a schema, from the deployed squirrel.yaml, scribe.yaml
+    /// and the schema's `style`. An empty schema ID or one starting with "."
+    /// (which Squirrel skips) leaves the schema out.
     @MainActor
     public static func load(from engine: LibrimeEngine, schemaID: String) -> Appearance? {
-        engine.withConfig(.deployed("squirrel")) { squirrel in
+        engine.withSquirrelAndScribe { squirrel, scribe in
             guard !schemaID.isEmpty, !schemaID.hasPrefix(".") else {
-                return Appearance(squirrel: squirrel)
+                return Appearance(squirrel: squirrel, scribe: scribe)
             }
             return engine.withConfig(.schema(schemaID)) { schema in
-                Appearance(squirrel: squirrel, schema: schema)
-            } ?? Appearance(squirrel: squirrel)
+                Appearance(squirrel: squirrel, scribe: scribe, schema: schema)
+            } ?? Appearance(squirrel: squirrel, scribe: scribe)
         }
     }
 }
