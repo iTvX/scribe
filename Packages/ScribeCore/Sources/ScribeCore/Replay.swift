@@ -16,7 +16,7 @@ import Foundation
 /// - `commit "text"` or `commit none`: what this key committed
 /// - `marked "text"`: the marked text afterwards; `marked ""` means none
 /// - `candidates "a" "b" ...`: the candidates shown afterwards start with
-///   these; `candidates none` means the window is hidden
+///   these; `candidates none` means there are none
 /// - `highlighted N`, `page N`: zero-based highlighted candidate and page
 /// - `handled` or `unhandled`: whether the key was consumed
 public struct ReplayScript: Equatable, Sendable {
@@ -207,7 +207,8 @@ public enum ReplayRunner {
                         fail("marked text \(describe(marked)), expected \(describe(expected))")
                     }
                 case .candidates(let expected):
-                    let actual = candidates?.entries.map(\.text)
+                    let texts = candidates?.entries.map(\.text) ?? []
+                    let actual = texts.isEmpty ? nil : texts
                     if let expected {
                         if actual.map({ Array($0.prefix(expected.count)) }) != expected {
                             fail("candidates \(describe(actual)), expected to start with \(describe(expected))")
