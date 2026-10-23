@@ -16,6 +16,8 @@ final class LooksModel {
     private(set) var schemaName: String?
     private(set) var status: SaveStatus?
     private(set) var edits = AppearanceEdits()
+    /// Set when a conversion found the file changed: the page reloads when it opens again.
+    private(set) var needsReload = false
 
     init(directories: SettingsDirectories) {
         self.directories = directories
@@ -50,6 +52,7 @@ final class LooksModel {
                  + "; dark \(appearance.dark?.colorSchemeID ?? "none"); diagnostics \(settings.diagnostics.count)"
                  + "; schema \(activeSchema ?? "none")\(settings.schemaStyle == nil ? "" : " with style")"
                  + "; scribe.custom.yaml \(settings.customText == nil ? "absent" : "\(settings.customKeys.count) entries")"
+                 + "; conversion \(settings.conversion.map { $0.isEmpty ? "none" : "\($0.entries.count) entries" } ?? "unavailable")"
                  + (readOnlyReason.map { "; read-only: \($0)" } ?? "")
                  + "; live \(directories.isLive)")
         } catch {
@@ -138,6 +141,71 @@ final class LooksModel {
             status = SaveStatus(message: DefaultsModel.message(for: error, file: "scribe.custom.yaml"), isError: true,
                                 file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
         }
+    }
+
+    // MARK: - Converting
+
+    /// The offer when Squirrel-format settings could move to scribe.custom.yaml.
+    var conversionOffer: ConversionOffer? {
+        guard let settings, let conversion = settings.conversion, !conversion.isEmpty else { return nil }
+        return ConversionOffer(conversion: conversion, themes: settings.themes)
+    }
+
+    /// Why 查看并转换 is not available now, or nil.
+    var conversionUnavailableReason: String? {
+        ConversionOffer.unavailableReason(conversion: settings?.conversion, hasEdits: hasEdits, readOnlyReason: readOnlyReason)
+    }
+
+    /// Whether the user directory has its own squirrel.yaml besides squirrel.custom.yaml.
+    var hasUserSquirrelYAML: Bool {
+        FileManager.default.fileExists(atPath: directories.user.appending(path: "squirrel.yaml").path(percentEncoded: false))
+    }
+
+    /// Writes the conversion to scribe.custom.yaml. The Squirrel files stay as they are.
+    func convert() {
+        guard let settings, let shared = directories.shared, let offer = conversionOffer, conversionUnavailableReason == nil
+        else { return }
+        let writer = CustomPatchWriter(userDirectory: directories.user, sharedDirectory: shared)
+        do {
+            let result = try writer.save("scribe", changes: offer.conversion.entries.map { .set($0.key, $0.value) },
+                                         expectedOriginal: settings.customText)
+            let (message, posted) = directories.announce(result)
+            emit("Appearance converted scribe.custom.yaml: \(offer.conversion.entries.count) entries"
+                 + " (global \(offer.count(.general)), appearance \(offer.count(.appearance)), apps \(offer.count(.apps)), themes \(offer.count(.themes)))"
+                 + "; unconverted \(offer.unconverted.count); file \(result.file.path(percentEncoded: false)); posted reload \(posted)")
+            load(activeSchema: schemaID, schemaName: schemaName)
+            status = SaveStatus(message: message, isError: false)
+        } catch {
+            emit("Appearance conversion failed: \(error)")
+            var message = DefaultsModel.message(for: error, file: "scribe.custom.yaml")
+            if error == .changedOnDisk {
+                message = "scribe.custom.yaml 在读取之后被改过了，没有转换。请重新打开外观页再试。"
+                needsReload = true
+            }
+            status = SaveStatus(message: message, isError: true,
+                                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
+        }
+    }
+
+    /// -ScribeConvertOnLaunch: converts once without the sheet, only in an
+    /// overridden user directory.
+    func convertOnLaunch() {
+        guard !directories.isLive else {
+            emit("Convert on launch ignored: live directory")
+            return
+        }
+        guard conversionOffer != nil else {
+            emit("Convert on launch: nothing to convert")
+            return
+        }
+        convert()
+    }
+
+    /// Reloads after a conversion found the file changed.
+    func reloadIfNeeded() {
+        guard needsReload else { return }
+        needsReload = false
+        load(activeSchema: schemaID, schemaName: schemaName)
     }
 
     // MARK: - Messages
