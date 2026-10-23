@@ -121,12 +121,18 @@ final class InputAdapter {
     /// The input method became active for the client. It gets no modifier
     /// event for keys already locked, so the Caps Lock state comes from the
     /// hardware.
-    func activate(capsLockOn: Bool) {
+    ///
+    /// Returns the keyboard layout the client should type with while Scribe
+    /// is active, from `keyboard_layout`, or nil to keep the last one.
+    @discardableResult
+    func activate(capsLockOn: Bool) -> String? {
         if capsLockOn {
             modifiers.insert(.capsLock)
         } else {
             modifiers.remove(.capsLock)
         }
+        guard case .named(let layout) = configuration.keyboardLayout else { return nil }
+        return layout
     }
 
     /// Returns whether the key was consumed. Command shortcuts and modifier
