@@ -29,6 +29,12 @@ public final class CandidatePanel {
     var statusDuration: Duration = .seconds(1.2)
     /// The system colours for an appearance; tests pass fixed ones.
     var palette: (NSAppearance) -> SystemPalette = { SystemPalette(resolvingIn: $0) }
+    /// The system's light or dark appearance; tests pass a fixed one.
+    var systemAppearance: () -> NSAppearance = { NSApplication.shared.effectiveAppearance }
+    /// The frame of the screen a caret point is on; tests pass a fixed one.
+    var screenFrame: (NSPoint) -> NSRect = { CandidatePanel.screenFrame(containing: $0) }
+    /// Where the panel last went, before AppKit rounds the window frame.
+    private(set) var placement: PanelPlacement.Placement?
 
     private lazy var window = makeWindow()
     private let panelView = PanelView()
@@ -101,9 +107,9 @@ public final class CandidatePanel {
     /// The theme for the current system appearance, and the appearance the
     /// window draws in.
     private func currentTheme() -> (theme: PanelTheme, appearance: NSAppearance) {
-        let systemAppearance = NSApplication.shared.effectiveAppearance
-        let isDark = systemAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let windowAppearance = appearance.forcesLightAppearance ? NSAppearance(named: .aqua)! : systemAppearance
+        let system = systemAppearance()
+        let isDark = system.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let windowAppearance = appearance.forcesLightAppearance ? NSAppearance(named: .aqua)! : system
         return (PanelTheme(appearance.theme(isDark: isDark), palette: palette(windowAppearance)), windowAppearance)
     }
 
@@ -118,7 +124,7 @@ public final class CandidatePanel {
         }
         displayedIndex = index
 
-        let screen = Self.screenFrame(containing: caretRect.origin)
+        let screen = screenFrame(caretRect.origin)
         let sizing = panelView.update(text, theme: theme, screen: screen)
         let placement = PanelPlacement.place(PanelPlacement.Input(
             caret: caretRect,
@@ -134,6 +140,7 @@ public final class CandidatePanel {
             memorizedLength: memorizedLength
         ))
         memorizedLength = placement.memorizedLength
+        self.placement = placement
 
         window.appearance = windowAppearance
         window.setFrame(placement.frame, display: false)
@@ -157,7 +164,7 @@ public final class CandidatePanel {
             var backdropFrame = viewFrame
             backdropFrame.size.width += theme.pagingOffset
             backdrop.frame = backdropFrame
-            backdrop.appearance = NSApplication.shared.effectiveAppearance
+            backdrop.appearance = systemAppearance()
             backdropMask.path = panelView.outline()
             backdrop.isHidden = false
         } else {
@@ -172,7 +179,7 @@ public final class CandidatePanel {
     }
 
     /// The screen under `point`, else the main screen, as Squirrel picks it.
-    private static func screenFrame(containing point: NSPoint) -> NSRect {
+    static func screenFrame(containing point: NSPoint) -> NSRect {
         NSScreen.screens.first { $0.frame.contains(point) }?.frame
             ?? NSScreen.main?.frame
             ?? PanelRenderer.referenceScreen
@@ -282,6 +289,11 @@ public final class CandidatePanel {
     /// The window frame, for tests.
     var frame: NSRect {
         window.frame
+    }
+
+    /// The appearance the window draws in, for tests.
+    var windowAppearance: NSAppearance? {
+        window.appearance
     }
 
     /// The window's content view, for tests.

@@ -8,7 +8,9 @@ import QuartzCore
 // Shows each case in Squirrel's own SquirrelPanel, then composites the
 // window's layers with CARenderer into <output>/<suite>/<name>.png: the
 // panel's area only, at 2x, in sRGB. Also writes <output>/screen.json, the
-// screen Squirrel laid the text out for.
+// screen Squirrel laid the text out for, and <output>/placements.json, where
+// Squirrel put its window for each case of placements.json next to
+// cases.json.
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write(Data("error: \(message)\n".utf8))
@@ -38,20 +40,28 @@ for (cls, selector) in [(NSWindow.self, #selector(getter: NSWindow.backingScaleF
     }
 }
 
+// Every screen is the same fixed 1440×900 display, so line lengths and
+// placement do not depend on this Mac's displays.
+let fixedScreen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+for selector in [#selector(getter: NSScreen.frame), #selector(getter: NSScreen.visibleFrame)] {
+    if let method = class_getInstanceMethod(NSScreen.self, selector) {
+        let fixed: @convention(block) (AnyObject) -> CGRect = { _ in fixedScreen }
+        method_setImplementation(method, imp_implementationWithBlock(fixed))
+    }
+}
+recordRequestedFrames()
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 guard let screen = NSScreen.main else { fail("no screen") }
 guard let device = MTLCreateSystemDefaultDevice() else { fail("no Metal device") }
 let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
 
-/// Shows `content` in a new panel and returns it once its layers are drawn,
-/// along with the alpha Squirrel gave the window.
+/// Loads `config` into `panel` as Squirrel's app delegate does, for both
+/// appearances, with an input controller carrying the content's comment
+/// marks.
 @MainActor
-func show(_ content: Cases.Content, config: SquirrelConfig, dark: Bool) -> (SquirrelPanel, CGFloat) {
-    app.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-    // Upper middle of the screen, with room on every side.
-    let caret = NSRect(x: screen.frame.midX, y: screen.frame.midY + 100, width: 1, height: 18)
-    let panel = SquirrelPanel(position: caret)
+func load(_ panel: SquirrelPanel, config: SquirrelConfig, content: Cases.Content) {
     panel.load(config: config, forDarkMode: false)
     panel.load(config: config, forDarkMode: true)
     let controller = SquirrelInputController()
@@ -62,37 +72,53 @@ func show(_ content: Cases.Content, config: SquirrelConfig, dark: Bool) -> (Squi
         controller.specialCommentIndices[.commentWarning] = Set(warning)
     }
     panel.inputController = controller
+}
 
+/// Passes `content` to `panel` as SquirrelInputController would.
+@MainActor
+func update(_ panel: SquirrelPanel, with content: Cases.Content) {
     if let status = content.status {
         panel.updateStatus(long: status, short: status)
         panel.update(preedit: "", selRange: .empty, caretPos: 0, candidates: [], comments: [], labels: [],
                      highlighted: 0, page: 0, lastPage: true, update: true)
-    } else {
-        // A case's preedit is what SquirrelInputController passes on: it
-        // leaves the preedit out when it is inline for the app.
-        let preedit = content.preedit
-        let selection = preedit.map { NSRange(location: $0.selection[0], length: $0.selection[1] - $0.selection[0]) } ?? .empty
-        let labels = content.labels ?? content.candidates.indices.map { "\($0 + 1)" }
-        panel.update(
-            preedit: preedit?.text ?? "",
-            selRange: selection,
-            caretPos: preedit?.caret ?? 0,
-            candidates: content.candidates.map(\.text),
-            comments: content.candidates.map { $0.comment ?? "" },
-            labels: labels,
-            highlighted: content.highlighted ?? 0,
-            page: content.page ?? 0,
-            lastPage: content.lastPage ?? true,
-            update: true
-        )
+        return
     }
+    // A case's preedit is what SquirrelInputController passes on: it
+    // leaves the preedit out when it is inline for the app.
+    let preedit = content.preedit
+    let selection = preedit.map { NSRange(location: $0.selection[0], length: $0.selection[1] - $0.selection[0]) } ?? .empty
+    let labels = content.labels ?? content.candidates.indices.map { "\($0 + 1)" }
+    panel.update(
+        preedit: preedit?.text ?? "",
+        selRange: selection,
+        caretPos: preedit?.caret ?? 0,
+        candidates: content.candidates.map(\.text),
+        comments: content.candidates.map { $0.comment ?? "" },
+        labels: labels,
+        highlighted: content.highlighted ?? 0,
+        page: content.page ?? 0,
+        lastPage: content.lastPage ?? true,
+        update: true
+    )
+}
+
+/// Shows `content` in a new panel and returns it once its layers are drawn,
+/// along with the alpha Squirrel gave the window.
+@MainActor
+func show(_ content: Cases.Content, config: SquirrelConfig, dark: Bool) -> (SquirrelPanel, CGFloat) {
+    app.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+    // Upper middle of the screen, with room on every side.
+    let caret = NSRect(x: screen.frame.midX, y: screen.frame.midY + 100, width: 1, height: 18)
+    let panel = SquirrelPanel(position: caret)
+    load(panel, config: config, content: content)
+    update(panel, with: content)
     // Keep the window off the screen while it draws; the alpha is applied
     // when compositing instead. The translucent backdrop shows what is
     // behind the window, so it is left out, as in Scribe's renders.
     let alpha = panel.alphaValue
     panel.alphaValue = 0
     panel.contentView?.subviews.first?.isHidden = true
-    RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+    RunLoop.current.run(until: Date().addingTimeInterval(0.25))
     return (panel, alpha)
 }
 
@@ -194,4 +220,9 @@ MainActor.assumeIsolated {
     let screenJSON = "{\n  \"width\": \(Int(size.width)),\n  \"height\": \(Int(size.height))\n}\n"
     try? Data(screenJSON.utf8).write(to: outputURL.appending(path: "screen.json"))
     print("Rendered \(rendered) cases for a \(Int(size.width))×\(Int(size.height)) screen")
+
+    let placementsURL = casesURL.deletingLastPathComponent().appending(path: "placements.json")
+    if FileManager.default.fileExists(atPath: placementsURL.path) {
+        recordPlacements(from: placementsURL, cases: cases, to: outputURL.appending(path: "placements.json"), only: only)
+    }
 }

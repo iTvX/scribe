@@ -94,8 +94,12 @@ struct SnapshotCases: Decodable {
     }
 
     func content(for testCase: Case) -> PanelContent {
-        let content = switch testCase.content {
-        case let .named(name): contents[name]!
+        content(testCase.content)
+    }
+
+    func content(_ reference: ContentReference, extra: [String: Content] = [:]) -> PanelContent {
+        let content = switch reference {
+        case let .named(name): extra[name] ?? contents[name]!
         case let .inline(content): content
         }
         var snapshot: CandidateSnapshot?
