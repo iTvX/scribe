@@ -55,6 +55,12 @@ targets:
         buildPhase:
           copyFiles:
             destination: sharedSupport
+      # Squirrel's frontend settings, deployed with config_version like
+      # Squirrel does.
+      - path: SharedSupport/squirrel.yaml
+        buildPhase:
+          copyFiles:
+            destination: sharedSupport
       # rime_deployer, rime_dict_manager and rime-install, next to Scribe as
       # in Squirrel; signed by the script below.
       - path: Frameworks/bin
