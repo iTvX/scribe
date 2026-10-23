@@ -29,7 +29,8 @@ import Testing
                     .init(label: "1", text: "你"), .init(label: "2", text: "泥"), .init(label: "3", text: "呢"),
                     .init(label: "4", text: "尼"), .init(label: "5", text: "逆"),
                 ],
-                isLastPage: false
+                isLastPage: false,
+                preedit: Preedit(text: "ni", selectedRange: 0..<2, caret: 2)
             )),
         ])
     }
@@ -58,6 +59,18 @@ import Testing
     @Test func escapeClearsMarkedTextAndCandidates() {
         _ = type("ni")
         #expect(session.handle(KeyEvent(Keysym.escape)).actions == [.setMarkedText(.empty), .hideCandidates])
+    }
+
+    @Test func aCompositionWithoutCandidatesStillHasASnapshot() {
+        // "x" spells nothing in the test dictionary.
+        let result = session.handle(KeyEvent(name: "x")!)
+        #expect(result.actions == [
+            .setMarkedText(MarkedText(text: "x", caret: 1)),
+            .showCandidates(CandidateSnapshot(
+                entries: [],
+                preedit: Preedit(text: "x", selectedRange: 0..<1, caret: 1)
+            )),
+        ])
     }
 
     @Test func idleKeysAreNotHandled() {

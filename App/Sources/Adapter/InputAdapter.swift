@@ -129,6 +129,9 @@ final class InputAdapter {
                 client.insertText(text)
             case .setMarkedText(let marked):
                 client.setMarkedText(marked.text, caret: marked.caret)
+            case .showCandidates(let snapshot) where snapshot.entries.isEmpty:
+                // The preedit is shown inline, so there is nothing to show.
+                candidates.hide()
             case .showCandidates(let snapshot):
                 candidates.show(snapshot, near: client.caretRect())
             case .hideCandidates:

@@ -14,6 +14,21 @@ public struct MarkedText: Equatable, Sendable {
     public static let empty = MarkedText(text: "", caret: 0)
 }
 
+/// The text being composed, as the candidate window may show it. Offsets
+/// count UTF-16 code units of `text`.
+public struct Preedit: Equatable, Sendable {
+    public var text: String
+    /// The part of the input currently being converted.
+    public var selectedRange: Range<Int>
+    public var caret: Int
+
+    public init(text: String, selectedRange: Range<Int>, caret: Int) {
+        self.text = text
+        self.selectedRange = selectedRange
+        self.caret = caret
+    }
+}
+
 /// Everything the candidate window shows for one page.
 public struct CandidateSnapshot: Equatable, Sendable {
     public struct Entry: Equatable, Sendable {
@@ -28,36 +43,56 @@ public struct CandidateSnapshot: Equatable, Sendable {
         }
     }
 
+    /// Empty while composing input that has no candidates.
     public var entries: [Entry]
     public var highlightedIndex: Int
     /// Zero-based.
     public var pageNumber: Int
     public var isLastPage: Bool
+    /// Nil when nothing is being composed.
+    public var preedit: Preedit?
 
-    public init(entries: [Entry], highlightedIndex: Int = 0, pageNumber: Int = 0, isLastPage: Bool = true) {
+    public init(
+        entries: [Entry],
+        highlightedIndex: Int = 0,
+        pageNumber: Int = 0,
+        isLastPage: Bool = true,
+        preedit: Preedit? = nil
+    ) {
         self.entries = entries
         self.highlightedIndex = highlightedIndex
         self.pageNumber = pageNumber
         self.isLastPage = isLastPage
+        self.preedit = preedit
     }
 
-    init(_ menu: CandidateMenu) {
-        let labels = Self.labels(for: menu)
+    /// Labels follow Squirrel: the menu's select keys, one per character;
+    /// otherwise its select labels; otherwise, or past the end of either,
+    /// the candidate's number on the page, so the tenth is "10".
+    public init(menu: CandidateMenu?, composition: Composition?) {
+        let labels = menu.map(Self.labels) ?? []
         self.init(
-            entries: menu.candidates.enumerated().map { index, candidate in
-                Entry(label: index < labels.count ? labels[index] : "", text: candidate.text, comment: candidate.comment)
+            entries: (menu?.candidates ?? []).enumerated().map { index, candidate in
+                Entry(label: index < labels.count ? labels[index] : "\(index + 1)", text: candidate.text, comment: candidate.comment)
             },
-            highlightedIndex: menu.highlightedIndex,
-            pageNumber: menu.pageNumber,
-            isLastPage: menu.isLastPage
+            highlightedIndex: menu?.highlightedIndex ?? 0,
+            pageNumber: menu?.pageNumber ?? 0,
+            isLastPage: menu?.isLastPage ?? true,
+            preedit: composition.map { composition in
+                Preedit(
+                    text: composition.preedit,
+                    selectedRange: composition.selectionStart..<max(composition.selectionStart, composition.selectionEnd),
+                    caret: composition.cursor
+                )
+            }
         )
     }
 
     private static func labels(for menu: CandidateMenu) -> [String] {
-        if let labels = menu.selectLabels, !labels.allSatisfy(\.isEmpty) {
-            return labels
+        if let keys = menu.selectKeys, !keys.isEmpty {
+            return keys.map(String.init)
         }
-        return (menu.selectKeys ?? "1234567890").map(String.init)
+        return menu.selectLabels ?? []
     }
 }
 
@@ -168,7 +203,11 @@ public final class InputSession {
             actions.append(.setMarkedText(newMarkedText))
             markedText = newMarkedText
         }
-        let newCandidates = context.menu.map(CandidateSnapshot.init)
+        // A snapshot whenever something is composed, even with no candidates,
+        // so the window can show the preedit alone.
+        let newCandidates = context.composition == nil && context.menu == nil
+            ? nil
+            : CandidateSnapshot(menu: context.menu, composition: context.composition)
         if newCandidates != candidates {
             actions.append(newCandidates.map(SessionAction.showCandidates) ?? .hideCandidates)
             candidates = newCandidates

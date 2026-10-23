@@ -70,6 +70,12 @@ final class CallLog: TextClient, CandidatePresenting {
         ])
     }
 
+    @Test func noCandidatesHidesTheWindow() {
+        // "x" spells nothing in the test dictionary; the preedit is inline.
+        #expect(adapter.handle(input(key("x", code: 7)), client: log))
+        #expect(log.calls == ["mark x|1", "hide"])
+    }
+
     @Test func idleKeysReachTheClient() {
         #expect(!adapter.handle(input(key(" ", code: 49)), client: log))
         #expect(!adapter.handle(input(key("\r", code: 36)), client: log))
