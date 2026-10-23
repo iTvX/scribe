@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: xcode-27
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_27.0.app
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Cache librime downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/downloads
+          key: librime-${{ hashFiles('Scripts/fetch-librime.sh') }}
+
+      - name: Fetch librime
+        run: Scripts/fetch-librime.sh
+
+      - name: Check that only RimeKit imports librime
+        run: |
+          if grep -rnE '^[[:space:]]*(@[A-Za-z_]+[[:space:]]+)*((public|package|internal|fileprivate|private)[[:space:]]+)?import[[:space:]]+librime([[:space:]]|$)' \
+              --include='*.swift' App Packages | grep -v '^Packages/RimeKit/'; then
+            echo "::error::Only RimeKit may import librime"
+            exit 1
+          fi
+
+      - name: Test packages
+        run: |
+          for package in Packages/*/; do
+            echo "::group::swift test ${package}"
+            swift test --package-path "${package}" -Xswiftc -warnings-as-errors
+            echo "::endgroup::"
+          done
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project Scribe.xcodeproj \
+            -scheme Scribe \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            -destination "generic/platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            build
