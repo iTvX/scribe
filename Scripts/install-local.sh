@@ -35,10 +35,10 @@ if [[ -x "${INSTALLED_APP}/${EXECUTABLE}" ]]; then
   "${INSTALLED_APP}/${EXECUTABLE}" --quit || true
 fi
 for _ in {1..50}; do
-  pgrep -f "${INSTALLED_APP}/${EXECUTABLE}" >/dev/null || break
+  pgrep -f "^${INSTALLED_APP}/${EXECUTABLE}" >/dev/null || break
   sleep 0.1
 done
-pkill -f "${INSTALLED_APP}/${EXECUTABLE}" || true
+pkill -f "^${INSTALLED_APP}/${EXECUTABLE}" || true
 
 mkdir -p "${INSTALL_DIR}"
 rm -rf "${INSTALLED_APP}"

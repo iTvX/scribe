@@ -12,8 +12,8 @@ if [[ -n "${console_user}" && "${console_user}" != "root" && "${console_user}" !
 fi
 
 for _ in {1..50}; do
-  /usr/bin/pgrep -f "${executable}" >/dev/null || exit 0
+  /usr/bin/pgrep -f "^${executable}" >/dev/null || exit 0
   /bin/sleep 0.1
 done
-/usr/bin/pkill -f "${executable}" || true
+/usr/bin/pkill -f "^${executable}" || true
 exit 0
