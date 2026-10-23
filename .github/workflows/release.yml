@@ -1,0 +1,71 @@
+name: Release
+
+# Runs on the self-hosted runner on Max's Mac, which holds the signing
+# identities and the notarytool profile. Never triggered by pull requests.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      validate_only:
+        description: "Build, sign, notarize and verify without publishing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scribe-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign and notarize
+    if: github.repository == 'iTvX/scribe'
+    runs-on: [self-hosted, macOS, ARM64, scribe-local]
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Fetch librime
+        env:
+          SCRIBE_DOWNLOAD_CACHE: ${{ runner.tool_cache }}/scribe/downloads
+        run: Scripts/fetch-librime.sh
+
+      - name: Test packages
+        run: |
+          for package in Packages/*/; do
+            echo "::group::swift test ${package}"
+            swift test --package-path "${package}"
+            echo "::endgroup::"
+          done
+
+      # Signing and notarization settings (KEYCHAIN_DB, KEYCHAIN_PASSWORD_FILE,
+      # NOTARY_PROFILE, NOTARY_KEYCHAIN) come from the runner's environment.
+      - name: Build, sign and notarize
+        id: build
+        run: Scripts/build-release.sh
+
+      - name: Verify package
+        env:
+          PACKAGE: ${{ steps.build.outputs.package }}
+        run: Scripts/check-release.sh "${PACKAGE}"
+
+      # Publishing a GitHub Release and the Sparkle appcast arrives in M4 and
+      # will run only when validate_only is false.
+      - name: Upload package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.build.outputs.name }}${{ inputs.validate_only && '-validation' || '' }}
+          path: ${{ steps.build.outputs.package }}
+          if-no-files-found: error
+          retention-days: ${{ inputs.validate_only && 7 || 30 }}

@@ -71,3 +71,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             build
+
+      # Checks the release packaging without credentials: an ad hoc signed app
+      # in an unsigned package. Signing and notarization run in release.yml.
+      - name: Build unsigned package
+        id: package
+        run: Scripts/build-release.sh --unsigned
+
+      - name: Verify unsigned package
+        env:
+          PACKAGE: ${{ steps.package.outputs.package }}
+        run: Scripts/check-release.sh --unsigned "${PACKAGE}"

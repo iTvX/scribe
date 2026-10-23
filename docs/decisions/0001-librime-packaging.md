@@ -16,4 +16,4 @@
 
 ## 签名
 
-工程开启了 hardened runtime。本地构建用 ad-hoc 签名，ad-hoc 签名没有 Team ID，库验证会拒绝加载 `librime.1.dylib`，所以 `App/Scribe.entitlements` 里加了 `com.apple.security.cs.disable-library-validation`（鼠须管也有这一项）。正式发布用 Developer ID 签名时所有 dylib 同属一个 Team ID，是否保留这一项在搭发布流程时决定。
+工程开启了 hardened runtime。本地构建用 ad-hoc 签名，ad-hoc 签名没有 Team ID，库验证会拒绝加载 `librime.1.dylib`，所以 `App/Scribe.entitlements` 里加了 `com.apple.security.cs.disable-library-validation`（鼠须管也有这一项）。发布版也保留这一项，见 [0002](0002-release-signing-and-packaging.md)。
