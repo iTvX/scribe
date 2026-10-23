@@ -31,6 +31,10 @@ struct ScribeSettingsApp: App {
         }
         importModel.onImported = refresh
         refresh()
+        // -ScribeConvertOnLaunch YES, for smoke tests in an overridden user directory.
+        if UserDefaults.standard.bool(forKey: "ScribeConvertOnLaunch") {
+            looks.convertOnLaunch()
+        }
         importModel.launch()
     }
 }

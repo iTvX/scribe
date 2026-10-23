@@ -7,11 +7,15 @@ import ScribeConfig
 /// pending edits applied, and says where it comes from.
 struct LooksView: View {
     var model: LooksModel
+    @State private var showingConversion = false
 
     var body: some View {
         VStack(spacing: 0) {
             if let settings = model.settings, let preview = model.preview {
                 Form {
+                    if let offer = model.conversionOffer {
+                        ConversionBanner(model: model, offer: offer) { showingConversion = true }
+                    }
                     if !settings.diagnostics.isEmpty {
                         Section("scribe.custom.yaml 里的问题") {
                             ForEach(settings.diagnostics, id: \.path) { diagnostic in
@@ -40,6 +44,101 @@ struct LooksView: View {
                     revert: model.revert, save: model.save)
         }
         .navigationTitle("外观")
+        .onAppear(perform: model.reloadIfNeeded)
+        .sheet(isPresented: $showingConversion) {
+            if let offer = model.conversionOffer {
+                ConversionSheet(offer: offer, cancel: { showingConversion = false }, convert: {
+                    showingConversion = false
+                    model.convert()
+                })
+            }
+        }
+    }
+}
+
+/// The offer at the top of the page while settings are in Squirrel's format.
+private struct ConversionBanner: View {
+    var model: LooksModel
+    var offer: ConversionOffer
+    var open: () -> Void
+
+    var body: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("鼠须管格式的设置")
+                    .font(.headline)
+                let files = model.hasUserSquirrelYAML ? "squirrel.yaml 和 squirrel.custom.yaml" : "squirrel.custom.yaml"
+                Text(verbatim: "\(files) 里有 \(offer.conversion.entries.count) 项设置，中书照常读取。"
+                     + "转换会把它们写进 scribe.custom.yaml，以后都在这里修改。鼠须管的文件不会改动，删掉这些条目就回到原样。")
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("查看并转换…", action: open)
+                    .disabled(model.conversionUnavailableReason != nil)
+                    .help(model.conversionUnavailableReason ?? "")
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+/// What the conversion writes, before it writes it.
+private struct ConversionSheet: View {
+    var offer: ConversionOffer
+    var cancel: () -> Void
+    var convert: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("转换成中书的格式")
+                .font(.title2)
+            List {
+                ForEach(offer.sections) { section in
+                    Section(section.group.title) {
+                        ForEach(section.rows) { row in
+                            VStack(alignment: .leading, spacing: 2) {
+                                LabeledContent {
+                                    Text(verbatim: row.value)
+                                        .textSelection(.enabled)
+                                } label: {
+                                    Text(verbatim: row.path)
+                                        .font(.callout.monospaced())
+                                }
+                                if let note = row.note {
+                                    Text(verbatim: note)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                if !offer.unconverted.isEmpty {
+                    Section("仍由鼠须管的文件决定") {
+                        ForEach(offer.unconverted, id: \.self) { path in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: path)
+                                    .font(.callout.monospaced())
+                                Text("中书的格式没法写“不设置”，保留鼠须管的文件它就照常生效")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            Text("转换后 scribe.custom.yaml 优先。之后再改 squirrel.custom.yaml 里的同一项不会生效，请在这里改。")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("取消", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("转换", action: convert)
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 600, minHeight: 520)
     }
 }
 
