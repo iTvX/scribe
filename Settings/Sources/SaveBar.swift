@@ -1,15 +1,26 @@
 import AppKit
 import SwiftUI
 
-/// The bottom of the 方案 and 快捷键 pages: the outcome of the last save,
-/// and 还原 and 保存.
+/// The outcome of the last save on a page.
+struct SaveStatus: Equatable {
+    var message: String
+    var isError: Bool
+    /// The file to show in Finder after a failure.
+    var file: URL?
+}
+
+/// The bottom of an editing page: the outcome of the last save, and 还原
+/// and 保存.
 struct SaveBar: View {
-    var model: DefaultsModel
-    var page: DefaultsModel.Page
+    var status: SaveStatus?
+    var readOnlyReason: String?
+    var hasEdits: Bool
+    var revert: () -> Void
+    var save: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            if let status = model.statuses[page] {
+            if let status {
                 Label(status.message, systemImage: status.isError ? "exclamationmark.triangle.fill" : "checkmark.circle")
                     .foregroundStyle(status.isError ? .red : .secondary)
                     .textSelection(.enabled)
@@ -18,20 +29,27 @@ struct SaveBar: View {
                         NSWorkspace.shared.activateFileViewerSelecting([file])
                     }
                 }
-            } else if let reason = model.readOnlyReason {
-                Label(reason, systemImage: "lock")
+            } else if let readOnlyReason {
+                Label(readOnlyReason, systemImage: "lock")
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("还原") { model.revert(page) }
-                .disabled(!model.hasEdits(page))
-            Button("保存") { model.save(page) }
+            Button("还原", action: revert)
+                .disabled(!hasEdits)
+            Button("保存", action: save)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut("s")
-                .disabled(!model.hasEdits(page) || model.readOnlyReason != nil)
+                .disabled(!hasEdits || readOnlyReason != nil)
         }
         .padding(12)
         .background(.bar)
+    }
+}
+
+extension SaveBar {
+    init(model: DefaultsModel, page: DefaultsModel.Page) {
+        self.init(status: model.statuses[page], readOnlyReason: model.readOnlyReason, hasEdits: model.hasEdits(page),
+                  revert: { model.revert(page) }, save: { model.save(page) })
     }
 }
 

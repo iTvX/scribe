@@ -21,13 +21,7 @@ final class DefaultsModel {
         }
     }
 
-    /// The outcome of the last save on a page.
-    struct Status: Equatable {
-        var message: String
-        var isError: Bool
-        /// The file to show in Finder after a failure.
-        var file: URL?
-    }
+    typealias Status = SaveStatus
 
     enum Page { case schemas, shortcuts }
 
@@ -76,7 +70,7 @@ final class DefaultsModel {
             let defaults = try RimeDefaults.load(userDirectory: directories.user, sharedDirectory: shared)
             loaded = defaults
             loadError = nil
-            readOnlyReason = defaults.editProblem.map(Self.message(for:))
+            readOnlyReason = defaults.editProblem.map { Self.message(for: $0) }
             schemaItems = defaults.schemaList.listItems.map { SchemaItem(node: $0) }
             pageSize = defaults.pageSize ?? Self.defaultPageSize
             hotkeys = defaults.switcherHotkeys
@@ -196,24 +190,10 @@ final class DefaultsModel {
         let keys = changes.map { if case .set(let key, _) = $0 { key } else { "" } }
         do {
             let result = try writer.save("default", changes: changes, expectedOriginal: loaded.customText)
-            var message: String
-            var notified = false
-            if !directories.isLive {
-                message = "已保存（测试目录，没有通知中书）"
-            } else if directories.isScribeRunning {
-                DistributedNotificationCenter.default().postNotificationName(
-                    Notification.Name(ServerNotification.reload), object: nil, userInfo: nil, deliverImmediately: true)
-                notified = true
-                message = "已保存，中书正在重新部署"
-            } else {
-                message = "已保存，中书下次启动时生效"
-            }
-            if !result.supersededKeys.isEmpty {
-                message += "。合并了 \(result.supersededKeys.joined(separator: "、")) 这几个补丁项"
-            }
+            let (message, posted) = directories.announce(result)
             emit("Settings saved default.custom.yaml: set \(keys.joined(separator: ", "))"
                  + "; superseded \(result.supersededKeys.joined(separator: ", ")); file \(result.file.path(percentEncoded: false))"
-                 + "; posted reload \(notified)")
+                 + "; posted reload \(posted)")
             load(keeping: page == .schemas ? .shortcuts : .schemas)
             statuses[page] = Status(message: message, isError: false)
         } catch {
@@ -225,16 +205,16 @@ final class DefaultsModel {
 
     // MARK: - Messages
 
-    static func message(for error: PatchSaveError) -> String {
+    static func message(for error: PatchSaveError, file: String = "default.custom.yaml") -> String {
         switch error {
         case .changedOnDisk:
-            "default.custom.yaml 在读取之后被改过了，没有保存。点「还原」重新读取。"
+            "\(file) 在读取之后被改过了，没有保存。点「还原」重新读取。"
         case .notUTF8:
-            "default.custom.yaml 不是 UTF-8 编码，没法安全地修改"
+            "\(file) 不是 UTF-8 编码，没法安全地修改"
         case .engineBusy:
             "librime 正在忙，稍后再试。"
         case .unsupportedLayout(let line, let reason):
-            "default.custom.yaml 第 \(line) 行\(reason.title)，没法安全地修改。"
+            "\(file) 第 \(line) 行\(reason.title)，没法安全地修改。"
         case .unreadable:
             "librime 读不了修改后的文件，没有保存。"
         case .unexpectedKeys(let expected, let actual):
