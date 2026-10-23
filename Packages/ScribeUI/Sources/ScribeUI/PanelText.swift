@@ -23,12 +23,13 @@ struct PanelText {
     var canPageUp: Bool
     var canPageDown: Bool
 
-    /// Nil when the window has nothing to show. The preedit only shows when
-    /// the theme does not put it inline.
+    /// Nil when the window has nothing to show. The session leaves the
+    /// preedit out of the snapshot when it is inline, which Squirrel decides
+    /// per app, so a preedit is drawn whenever there is one.
     init?(_ content: PanelContent, theme: PanelTheme) {
         let snapshot = content.snapshot
         let entries = snapshot?.entries ?? []
-        let preedit = theme.inlinePreedit ? nil : snapshot?.preedit.flatMap { $0.text.isEmpty ? nil : $0 }
+        let preedit = snapshot?.preedit.flatMap { $0.text.isEmpty ? nil : $0 }
         if preedit == nil && entries.isEmpty {
             guard let message = content.statusMessage, !message.isEmpty else { return nil }
             self.init(statusMessage: message, theme: theme)

@@ -35,7 +35,7 @@ import Testing
         #expect(text.separatorWidth > 0)
     }
 
-    @Test func preeditComesFirstUnlessInline() throws {
+    @Test func preeditComesFirst() throws {
         var snapshot = page
         snapshot.preedit = Preedit(text: "zhong shu", selectedRange: 6..<9, caret: 9)
         let shown = try #require(PanelText(PanelContent(snapshot), theme: panelTheme { $0.inlinePreedit = false }))
@@ -44,17 +44,29 @@ import Testing
         #expect(shown.highlightedPreeditRange == NSRange(location: 6, length: 3))
         #expect(shown.candidateRanges.first?.location == 10)
 
-        let inline = try #require(PanelText(PanelContent(snapshot), theme: panelTheme()))
-        #expect(inline.preeditRange == nil)
-        #expect(inline.string.string.hasPrefix("1. 中书"))
+        let noPreedit = try #require(PanelText(PanelContent(page), theme: panelTheme { $0.inlinePreedit = false }))
+        #expect(noPreedit.preeditRange == nil)
+        #expect(noPreedit.string.string.hasPrefix("1. 中书"))
+    }
+
+    /// The session decides whether the preedit is inline, per app (Squirrel's
+    /// no_inline and inline options); the panel draws whatever preedit the
+    /// snapshot has, whatever the theme says.
+    @Test func preeditShowsWhateverTheTheme() throws {
+        var snapshot = page
+        snapshot.preedit = Preedit(text: "zhong shu", selectedRange: 6..<9, caret: 9)
+        let inlineTheme = try #require(PanelText(PanelContent(snapshot), theme: panelTheme { $0.inlinePreedit = true }))
+        #expect(inlineTheme.preeditRange == NSRange(location: 0, length: 9))
+        #expect(inlineTheme.string.string.hasPrefix("zhong shu\n1. 中书"))
     }
 
     @Test func preeditAloneHasNoTrailingNewline() throws {
         let snapshot = CandidateSnapshot(entries: [], preedit: Preedit(text: "zh", selectedRange: 0..<2, caret: 2))
-        let text = try #require(PanelText(PanelContent(snapshot), theme: panelTheme { $0.inlinePreedit = false }))
+        let text = try #require(PanelText(PanelContent(snapshot), theme: panelTheme()))
         #expect(text.string.string == "zh")
         #expect(text.candidateRanges.isEmpty)
-        #expect(PanelText(PanelContent(snapshot), theme: panelTheme()) == nil)
+        let empty = CandidateSnapshot(entries: [], preedit: Preedit(text: "", selectedRange: 0..<0, caret: 0))
+        #expect(PanelText(PanelContent(empty), theme: panelTheme()) == nil)
     }
 
     @Test func statusMessageShowsOnlyWithoutCandidates() throws {
