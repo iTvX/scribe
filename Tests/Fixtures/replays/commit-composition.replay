@@ -1,0 +1,9 @@
+# When the client loses focus, the input source changes or a script switches
+# away, what was typed is committed unconverted; nothing is dropped.
+n
+i
+h
+a
+o                       => marked "ni hao"; candidates "你好"
+!commit-composition     => commit "nihao"; marked ""; candidates none
+!commit-composition     => commit none

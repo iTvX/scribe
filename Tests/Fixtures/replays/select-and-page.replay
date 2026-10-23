@@ -1,0 +1,7 @@
+# The candidate window selects and pages through the session.
+n
+i               => page 0
+!page down      => page 1; candidates "拟" "腻"
+!page down      => page 1
+!page up        => page 0; candidates "你"
+!select 2       => commit "呢"; marked ""; candidates none

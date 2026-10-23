@@ -92,6 +92,7 @@ targets:
         product: ScribeCore
       - package: ScribeCore
         product: ScribeTestSupport
+      - package: RimeKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests

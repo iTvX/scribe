@@ -195,6 +195,24 @@ public final class LibrimeEngine: RimeEngine {
         api.pointee.get_option(RimeSessionId(session.rawValue), option)
     }
 
+    public func input(in session: RimeSessionID) -> String? {
+        api.pointee.get_input(RimeSessionId(session.rawValue)).map { String(cString: $0) }
+    }
+
+    public func caretPosition(in session: RimeSessionID) -> Int {
+        Int(api.pointee.get_caret_pos(RimeSessionId(session.rawValue)))
+    }
+
+    public func setCaretPosition(_ position: Int, in session: RimeSessionID) {
+        api.pointee.set_caret_pos(RimeSessionId(session.rawValue), position)
+    }
+
+    public func stateLabel(_ option: String, state: Bool, abbreviated: Bool, in session: RimeSessionID) -> String? {
+        let slice = api.pointee.get_state_label_abbreviated(RimeSessionId(session.rawValue), option, state, abbreviated)
+        guard let start = slice.str, slice.length > 0 else { return nil }
+        return String(decoding: UnsafeRawBufferPointer(start: start, count: slice.length), as: UTF8.self)
+    }
+
     fileprivate func deliver(_ notification: RimeNotification) {
         notificationHandler?(notification)
     }

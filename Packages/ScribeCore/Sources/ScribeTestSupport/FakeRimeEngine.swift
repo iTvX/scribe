@@ -32,9 +32,13 @@ public final class FakeRimeEngine: RimeEngine {
 
     private struct State {
         var input = ""
+        var caret: Int?
         var page = 0
         var highlighted = 0
         var commit: String?
+        /// With _chord_typing: keys held now, and every key of the chord.
+        var held: Set<Int32> = []
+        var chord = ""
     }
 
     public init(dictionary: [(String, [String])] = FakeRimeEngine.testDictionary, pageSize: Int = 5) {
@@ -65,6 +69,19 @@ public final class FakeRimeEngine: RimeEngine {
         guard var state = sessions[session] else { return false }
         defer { sessions[session] = state }
         let modifiers = KeyModifiers(rawValue: modifiers)
+        if option("_chord_typing", in: session), (0x21...0x7e).contains(keycode) {
+            // A chord commits its keys once all of them are released.
+            if modifiers.contains(.release) {
+                guard state.held.remove(keycode) != nil else { return false }
+                if state.held.isEmpty {
+                    state.commit = state.chord
+                    state.chord = ""
+                }
+            } else if state.held.insert(keycode).inserted, let scalar = Unicode.Scalar(UInt32(keycode)) {
+                state.chord.unicodeScalars.append(scalar)
+            }
+            return true
+        }
         guard modifiers.isDisjoint(with: [.release, .control, .alt, .super]) else { return false }
         // In ASCII mode everything goes to the application.
         guard !option("ascii_mode", in: session) else { return false }
@@ -165,6 +182,30 @@ public final class FakeRimeEngine: RimeEngine {
 
     public func clearComposition(in session: RimeSessionID) {
         sessions[session] = sessions[session].map { _ in State() }
+    }
+
+    public func input(in session: RimeSessionID) -> String? {
+        sessions[session]?.input
+    }
+
+    public func caretPosition(in session: RimeSessionID) -> Int {
+        guard let state = sessions[session] else { return 0 }
+        return state.caret ?? state.input.utf8.count
+    }
+
+    public func setCaretPosition(_ position: Int, in session: RimeSessionID) {
+        sessions[session]?.caret = position
+    }
+
+    /// The labels the scribe_test schema gives ascii_mode.
+    public func stateLabel(_ option: String, state: Bool, abbreviated: Bool, in session: RimeSessionID) -> String? {
+        guard option == "ascii_mode" else { return nil }
+        return switch (state, abbreviated) {
+        case (false, false): "中文"
+        case (true, false): "西文"
+        case (false, true): "中"
+        case (true, true): "A"
+        }
     }
 
     public func option(_ option: String, in session: RimeSessionID) -> Bool {

@@ -86,9 +86,10 @@ import Testing
         #expect(result.actions.isEmpty)
     }
 
-    @Test func commitCompositionCommitsTheHighlightedCandidate() {
+    @Test func commitCompositionCommitsTheUnconvertedInput() {
         _ = type("nihao")
-        #expect(session.commitComposition() == [.commit("你好"), .hideCandidates])
+        #expect(session.commitComposition() == [.commit("nihao"), .hideCandidates])
+        #expect(session.commitComposition().isEmpty)
     }
 
     @Test func selectCandidateCommitsIt() {

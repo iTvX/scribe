@@ -1,0 +1,13 @@
+# The candidate window moves the caret one position in the raw input; the
+# marked text follows. Past either end nothing changes.
+@engines rime
+n
+i
+h
+a
+o               => marked "ni hao"; caret 6
+!caret start    => caret 5; marked "ni hao"
+!caret start    => caret 4
+!caret end      => caret 5
+!caret end      => caret 6
+!caret end      => caret 6

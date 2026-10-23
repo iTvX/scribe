@@ -1,4 +1,6 @@
+import Foundation
 import RimeKit
+import ScribeConfig
 
 /// Text shown inline in the client while composing.
 public struct MarkedText: Equatable, Sendable {
@@ -104,6 +106,8 @@ public enum SessionAction: Equatable, Sendable {
     case setMarkedText(MarkedText)
     case showCandidates(CandidateSnapshot)
     case hideCandidates
+    /// Announce a mode or schema change briefly near the caret.
+    case showStatus(String)
 }
 
 public struct KeyResult: Equatable, Sendable {
@@ -124,13 +128,23 @@ public struct KeyResult: Equatable, Sendable {
 /// then candidates.
 @MainActor
 public final class InputSession {
+    /// How long to wait for more keys of a chord, from `chord_duration`.
+    public var chordDuration: TimeInterval = 0.1
+    /// Receives actions that happen without a key, such as a chord being
+    /// released after `chordDuration`.
+    public var onAsyncActions: (([SessionAction]) -> Void)?
+
     private let engine: any RimeEngine
+    private let chordTimer: ChordTimer?
     private var session: RimeSessionID?
     private var markedText = MarkedText.empty
     private var candidates: CandidateSnapshot?
+    private var chordKeys: [KeyEvent] = []
 
-    public init(engine: any RimeEngine) {
+    /// Without a chord timer, chord typing is off.
+    public init(engine: any RimeEngine, chordTimer: ChordTimer? = nil) {
         self.engine = engine
+        self.chordTimer = chordTimer
     }
 
     /// Passes the key to Rime. While librime deploys, every key goes to the
@@ -138,10 +152,16 @@ public final class InputSession {
     public func handle(_ key: KeyEvent) -> KeyResult {
         guard let session = activeSession() else { return KeyResult(handled: false, actions: []) }
         let handled = engine.processKey(key.keycode, modifiers: key.modifiers.rawValue, in: session)
-        if !handled, Self.leavesVimInsertMode(key), engine.option("vim_mode", in: session),
-           !engine.option("ascii_mode", in: session) {
-            // Back in Vim's normal mode, commands are typed in ASCII.
-            engine.setOption("ascii_mode", true, in: session)
+        if !handled {
+            if Self.leavesVimInsertMode(key), engine.option("vim_mode", in: session),
+               !engine.option("ascii_mode", in: session) {
+                // Back in Vim's normal mode, commands are typed in ASCII.
+                engine.setOption("ascii_mode", true, in: session)
+            }
+        } else if Self.isChordKey(key), engine.option("_chord_typing", in: session) {
+            addToChord(key, in: session)
+        } else if !key.modifiers.contains(.release) {
+            clearChord()
         }
         return KeyResult(handled: handled, actions: update(session))
     }
@@ -165,18 +185,80 @@ public final class InputSession {
         return update(session)
     }
 
-    public func changePage(backward: Bool) -> [SessionAction] {
+    public func changePage(_ direction: PageDirection) -> [SessionAction] {
         guard let session = activeSession() else { return [] }
-        _ = engine.changePage(backward: backward, in: session)
+        _ = engine.changePage(backward: direction == .up, in: session)
         return update(session)
     }
 
-    /// Commits whatever is being composed, for when the client asks the input
-    /// method to finish, such as on a focus change.
-    public func commitComposition() -> [SessionAction] {
-        guard let session = activeSession() else { return [] }
-        _ = engine.commitComposition(in: session)
+    /// Moves the caret one position in the raw input.
+    public func moveCaret(_ move: CaretMove) -> [SessionAction] {
+        guard let session = activeSession(), let input = engine.input(in: session) else { return [] }
+        let position = engine.caretPosition(in: session)
+        switch move {
+        case .towardStart where position > 0:
+            engine.setCaretPosition(position - 1, in: session)
+        case .towardEnd where position < input.utf8.count:
+            engine.setCaretPosition(position + 1, in: session)
+        default:
+            return []
+        }
         return update(session)
+    }
+
+    /// Commits what was typed, unconverted, and ends the composition: for
+    /// when the client loses focus or the input source changes, so that no
+    /// text is lost.
+    public func commitComposition() -> [SessionAction] {
+        guard let session = activeSession(), let input = engine.input(in: session), !input.isEmpty else { return [] }
+        engine.clearComposition(in: session)
+        clearChord()
+        // Inserting text replaces the client's marked text.
+        markedText = .empty
+        return [.commit(input)] + update(session)
+    }
+
+    /// The Rime session, started if there is none yet; nil while librime
+    /// deploys.
+    public var currentSessionID: RimeSessionID? {
+        activeSession()
+    }
+
+    /// Whether a notification concerns this session.
+    public func owns(_ sessionID: RimeSessionID) -> Bool {
+        session == sessionID
+    }
+
+    /// The announcement for an option or schema change, as Squirrel shows
+    /// it, or nothing when notifications are off or there is nothing to say.
+    public func status(
+        for notification: RimeNotification,
+        notifications: NotificationPolicy,
+        messageType: StatusMessageType
+    ) -> [SessionAction] {
+        guard notifications != .never, let session else { return [] }
+        let long: String
+        let short: String
+        switch notification.type {
+        case "option":
+            let state = !notification.value.hasPrefix("!")
+            let option = state ? notification.value : String(notification.value.dropFirst())
+            long = engine.stateLabel(option, state: state, abbreviated: false, in: session) ?? ""
+            short = engine.stateLabel(option, state: state, abbreviated: true, in: session) ?? ""
+        case "schema":
+            // "luna_pinyin/朙月拼音"
+            guard let slash = notification.value.firstIndex(of: "/") else { return [] }
+            long = String(notification.value[notification.value.index(after: slash)...])
+            short = long
+        default:
+            return []
+        }
+        let message = switch messageType {
+        case .mix: short.isEmpty ? long : short
+        case .long: long
+        case .short: short.isEmpty ? long.first.map(String.init) ?? "" : short
+        }
+        return message.isEmpty ? [] : [.showStatus(message)]
     }
 
     /// Discards whatever is being composed.
@@ -188,12 +270,47 @@ public final class InputSession {
 
     /// Ends the Rime session. A later key starts a new one.
     public func close() {
+        clearChord()
         if let session {
             engine.destroySession(session)
         }
         session = nil
         markedText = .empty
         candidates = nil
+    }
+
+    /// Printable keys and the Shift, Control and Alt keys take part in chords.
+    private static func isChordKey(_ key: KeyEvent) -> Bool {
+        (0x20...0x7e).contains(key.keycode)
+            || [Keysym.controlL, Keysym.controlR, Keysym.altL, Keysym.altR, Keysym.shiftL, Keysym.shiftR].contains(key.keycode)
+    }
+
+    /// Keys pressed together are released together once no new key has come
+    /// for `chordDuration`.
+    private func addToChord(_ key: KeyEvent, in session: RimeSessionID) {
+        guard let chordTimer, !chordKeys.contains(where: { $0.keycode == key.keycode }), chordKeys.count < 50 else { return }
+        chordKeys.append(key)
+        chordTimer.start(after: chordDuration) { [weak self] in
+            self?.releaseChord()
+        }
+    }
+
+    private func releaseChord() {
+        let keys = chordKeys
+        chordKeys = []
+        guard let session, engine.sessionExists(session) else { return }
+        var handled = false
+        for key in keys where engine.processKey(key.keycode, modifiers: key.modifiers.union(.release).rawValue, in: session) {
+            handled = true
+        }
+        if handled {
+            onAsyncActions?(update(session))
+        }
+    }
+
+    private func clearChord() {
+        chordKeys = []
+        chordTimer?.cancel()
     }
 
     /// Escape, Control+C and Control+[ return Vim to normal mode.
