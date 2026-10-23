@@ -38,22 +38,7 @@ public struct RimeDefaults: Equatable, Sendable {
     @MainActor
     public static func load(userDirectory: URL, sharedDirectory: URL,
                             engine: LibrimeEngine = .shared) throws(PatchSaveError) -> RimeDefaults {
-        let custom = CustomPatchWriter.resolvedFile(userDirectory.appending(path: "default.custom.yaml"))
-        let customData = FileManager.default.contents(atPath: custom.path(percentEncoded: false))
-        let customText = customData.flatMap(CustomPatchWriter.utf8Text)
-        var editProblem: PatchSaveError?
-        if customData != nil && customText == nil {
-            editProblem = .notUTF8
-        } else {
-            do {
-                _ = try CustomPatchEditor(text: customText ?? "")
-            } catch {
-                switch error {
-                case .unsupportedLayout(let line, let reason):
-                    editProblem = .unsupportedLayout(line: line, reason: reason)
-                }
-            }
-        }
+        let custom = CustomFile(userDirectory: userDirectory, configID: "default")
         let deploy = TemporaryDeploy(engine: engine, userDirectory: userDirectory, sharedDirectory: sharedDirectory)
         return try deploy.run("default") { engine throws(PatchSaveError) in
             let defaults = engine.withConfig(.deployed("default")) { reader in
@@ -64,8 +49,8 @@ public struct RimeDefaults: Equatable, Sendable {
                     pageSize: reader.int(at: "menu/page_size"),
                     switcherHotkeys: hotkeys.scalars,
                     switchKey: switchKey.scalarMap,
-                    customText: customText,
-                    editProblem: editProblem
+                    customText: custom.text,
+                    editProblem: custom.problem
                 )
             }
             guard let defaults else { throw .deployFailed("librime 打不开部署后的 default.yaml") }

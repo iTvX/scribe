@@ -183,14 +183,14 @@ public struct CustomPatchWriter {
 
     /// The text of valid UTF-8 bytes, or nil; decoding is exact, so writing
     /// the text back gives the same bytes.
-    static func utf8Text(_ data: Data) -> String? {
+    nonisolated static func utf8Text(_ data: Data) -> String? {
         let text = String(decoding: data, as: UTF8.self)
         return Data(text.utf8) == data ? text : nil
     }
 
     /// The file with every symbolic link resolved, the file itself included;
     /// for a file that does not exist yet, its resolved directory.
-    static func resolvedFile(_ url: URL) -> URL {
+    nonisolated static func resolvedFile(_ url: URL) -> URL {
         if let real = realpath(url.path(percentEncoded: false), nil) {
             defer { free(real) }
             return URL(filePath: String(cString: real), directoryHint: .notDirectory)

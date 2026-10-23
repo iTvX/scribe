@@ -157,36 +157,59 @@ struct CustomPatchWriterTests {
         #expect(try String(contentsOf: file, encoding: .utf8) == "patch:\n  menu/page_size: 6\n")
         #expect(!engine.isRunning)
     }
-}
 
-@MainActor
-@Suite("deployed appearance", .serialized)
-struct DeployedAppearanceTests {
-    @Test func readsBuildFilesFromACopy() throws {
+    @Test func savesAppearanceToScribeCustom() throws {
         let fileManager = FileManager.default
         let root = fileManager.temporaryDirectory.appending(path: "ScribeConfigTests-\(UUID().uuidString)", directoryHint: .isDirectory)
-        let build = root.appending(path: "Scribe/build", directoryHint: .isDirectory)
-        try fileManager.createDirectory(at: build, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: root) }
-        let user = build.deletingLastPathComponent()
-        let shared = CustomPatchWriterTests.shared
+        let (shared, user) = try AppearanceSettingsTests.makeDirectories(in: root)
+        let file = user.appending(path: "scribe.custom.yaml")
+        try Data("""
+            # 中书测试：手写的 scribe.custom.yaml
+            patch:
+              # 外观
+              appearance/theme: native
+              appearance/font/size: 14  # 字号
+            # 结尾的注释
 
-        #expect(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test") == nil)
+            """.utf8).write(to: file)
+        let engine = LibrimeEngine.shared
+        defer { engine.stop() }
 
-        let squirrel = FakeRimeDirectory.fixture.deletingLastPathComponent().appending(path: "config/rime-ice/squirrel.yaml")
-        try fileManager.copyItem(at: squirrel, to: build.appending(path: "squirrel.yaml"))
-        try Data("schema:\n  schema_id: scribe_test\nstyle:\n  color_scheme: lost_temple\n".utf8)
-            .write(to: build.appending(path: "scribe_test.schema.yaml"))
-        let before = try snapshot(of: user)
+        let loaded = try AppearanceSettings.load(userDirectory: user, sharedDirectory: shared, schemaID: nil)
+        let writer = CustomPatchWriter(userDirectory: user, sharedDirectory: shared)
+        let result = try writer.save("scribe", changes: [
+            .set("appearance/theme", "lost_temple"),
+            .set("appearance/dark_theme", "mojave_dark"),
+            .set("appearance/font/size", "18"),
+            .set("appearance/layout", "linear"),
+        ], expectedOriginal: loaded.customText)
+        #expect(result.supersededKeys.isEmpty)
+        #expect(try String(contentsOf: file, encoding: .utf8) == """
+            # 中书测试：手写的 scribe.custom.yaml
+            patch:
+              # 外观
+              appearance/theme: lost_temple
+              appearance/font/size: 18  # 字号
+              appearance/dark_theme: mojave_dark
+              appearance/layout: linear
+            # 结尾的注释
 
-        let plain = try #require(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: ""))
-        #expect(plain.appearance.light.colorSchemeID == "purity_of_form_custom")
-        #expect(plain.colorSchemeNames["purity_of_form_custom"] != nil)
-        let styled = try #require(try DeployedAppearance.load(userDirectory: user, sharedDirectory: shared, schemaID: "scribe_test"))
-        #expect(styled.appearance.light.colorSchemeID == "lost_temple")
-        #expect(styled.colorSchemeNames["lost_temple"] == "孤寺／Lost Temple")
-        #expect(try snapshot(of: user) == before)
-        #expect(!LibrimeEngine.shared.isRunning)
+            """)
+        let saved = try AppearanceSettings.load(userDirectory: user, sharedDirectory: shared, schemaID: nil)
+        #expect(saved.appearance().light.colorSchemeID == "lost_temple")
+        #expect(saved.appearance().dark?.colorSchemeID == "mojave_dark")
+        #expect(saved.loadedValue(at: "appearance/font/size") == "18")
+        #expect(saved.loadedValue(at: "appearance/layout") == "linear")
+        #expect(saved.provenance(of: "appearance/layout") == .ownEntry)
+
+        // 恢复默认 removes the entry; Squirrel's value applies again.
+        _ = try writer.save("scribe", changes: [.remove("appearance/font/size")], expectedOriginal: saved.customText)
+        #expect(try String(contentsOf: file, encoding: .utf8).contains("appearance/font/size") == false)
+        let reset = try AppearanceSettings.load(userDirectory: user, sharedDirectory: shared, schemaID: nil)
+        #expect(reset.provenance(of: "appearance/font/size") == .squirrelOrDefault)
+        #expect(reset.loadedValue(at: "appearance/font/size") == loaded.squirrel.node(at: "style/font_point"))
+        #expect(!engine.isRunning)
     }
 }
 
