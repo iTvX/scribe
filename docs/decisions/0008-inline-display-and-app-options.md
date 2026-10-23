@@ -24,3 +24,9 @@
 ## 插件的保留属性
 
 和鼠须管一样（rime/squirrel#1124），插件可以通过 librime 的属性通知前端：`_comment_highlight`、`_comment_warning` 标出本页哪些候选的注释用强调色、警告色，值是逗号分隔的序号，或者带 `value` 字段的查询串；`_refresh_ui` 让候选窗重画。标记保存在会话里，重画时带上，下一次正常更新（比如按键）就清掉。标记通过 `CandidateSnapshot.accentCommentIndices`、`warningCommentIndices` 交给候选窗。
+
+## 什么时候读配置
+
+- 每次开始维护（启动、重新部署、`--reload`）时，先部署 squirrel.yaml 和 scribe.yaml，紧接着读设置（scribe.yaml 里设了的键覆盖 squirrel.yaml）：这两个文件在主线程上同步部署，读的时候已经是新的。
+- 方案的 `style` 在部署结束后读，也在某个会话开始用一个方案时读（新会话的第一次更新或切换方案之后），和鼠须管一样；部署进行中不读，因为方案文件正在重写。
+- 读到的设置和主题一起交给每个会话（`SessionConfiguration`）：`chord_duration`、`show_notifications_when`、`status_message_type`、行内显示、`_linear`/`_vertical`、`app_options`、`unsafe/report_bundleid`、`keyboard_layout`；主题交给候选窗。

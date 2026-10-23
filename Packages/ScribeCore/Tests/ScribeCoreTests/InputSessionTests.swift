@@ -50,6 +50,16 @@ import Testing
         ])
     }
 
+    @Test func theSchemaIsReportedOncePerSession() {
+        var schemas: [String] = []
+        session.onSchemaChange = { schemas.append($0) }
+        _ = type("ni")
+        #expect(schemas == ["scribe_test"])
+        session.close()
+        _ = type("n")
+        #expect(schemas == ["scribe_test", "scribe_test"])
+    }
+
     // The client app, as Squirrel handles it.
 
     @Test func appOptionsAreSetWhenTheSessionStarts() throws {

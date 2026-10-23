@@ -1,5 +1,6 @@
 import AppKit
 import RimeKit
+import ScribeConfig
 import ScribeCore
 import ScribeTestSupport
 import ScribeUI
@@ -177,14 +178,28 @@ final class CallLog: TextClient, CandidatePresenting {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         log.calls.removeAll()
         let sessionID = try #require(session.currentSessionID)
-        adapter.handle(RimeNotification(sessionID: sessionID, type: "option", value: "ascii_mode"), notifications: .appropriate, messageType: .mix)
+        adapter.handle(RimeNotification(sessionID: sessionID, type: "option", value: "ascii_mode"))
         #expect(log.calls == ["caret", "status A"])
+    }
+
+    @Test func statusFollowsTheConfiguration() throws {
+        adapter.configuration.notifications = .never
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        log.calls.removeAll()
+        let sessionID = try #require(session.currentSessionID)
+        adapter.handle(RimeNotification(sessionID: sessionID, type: "option", value: "ascii_mode"))
+        #expect(log.calls.isEmpty)
+    }
+
+    @Test func theChordDurationReachesTheSession() {
+        adapter.configuration.chordDuration = 0.4
+        #expect(session.chordDuration == 0.4)
     }
 
     @Test func otherSessionsStatusIsIgnored() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         log.calls.removeAll()
-        adapter.handle(RimeNotification(sessionID: RimeSessionID(rawValue: 999), type: "option", value: "ascii_mode"), notifications: .appropriate, messageType: .mix)
+        adapter.handle(RimeNotification(sessionID: RimeSessionID(rawValue: 999), type: "option", value: "ascii_mode"))
         #expect(log.calls.isEmpty)
     }
 
@@ -241,22 +256,28 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls == ["hide"])
     }
 
+    func configuration(appOptions: [String: [String: Bool]]) -> SessionConfiguration {
+        var configuration = SessionConfiguration()
+        configuration.appOptions = AppOptions(byBundleID: appOptions)
+        return configuration
+    }
+
     @Test func theClientsAppOptionsApply() throws {
-        adapter.clientApp = { InputSession.ClientApp(bundleID: $0, options: $0 == "com.apple.Terminal" ? ["ascii_mode": true] : [:]) }
+        adapter.configuration = configuration(appOptions: ["com.apple.Terminal": ["ascii_mode": true]])
         log.bundleIdentifier = "com.apple.Terminal"
         #expect(!adapter.handle(input(key("n", code: 45)), client: log))
         #expect(adapter.isASCIIMode == true)
     }
 
     @Test func theWindowShowsTheInputAloneWhenTheClientDoesNot() {
-        session.presentation.inlinePreedit = false
+        adapter.configuration.presentation.inlinePreedit = false
         // "x" spells nothing in the test dictionary.
         _ = adapter.handle(input(key("x", code: 7)), client: log)
         #expect(log.calls == ["mark 　|0", "caret", "show "])
     }
 
     @Test func aNoInlineAppSeesTheInputInTheWindowEvenWithoutCandidates() {
-        adapter.clientApp = { InputSession.ClientApp(bundleID: $0, options: ["no_inline": true]) }
+        adapter.configuration = configuration(appOptions: ["com.googlecode.iterm2": ["no_inline": true]])
         log.bundleIdentifier = "com.googlecode.iterm2"
         _ = adapter.handle(input(key("x", code: 7)), client: log)
         #expect(log.calls == ["mark 　|0", "caret", "show "])
@@ -268,7 +289,7 @@ final class CallLog: TextClient, CandidatePresenting {
         log.calls.removeAll()
         let sessionID = try #require(session.currentSessionID)
         for value in ["_comment_highlight=1", "_refresh_ui=1"] {
-            adapter.handle(RimeNotification(sessionID: sessionID, type: "property", value: value), notifications: .appropriate, messageType: .mix)
+            adapter.handle(RimeNotification(sessionID: sessionID, type: "property", value: value))
         }
         #expect(log.calls == ["caret", "show 你 泥 呢 尼 逆"])
     }

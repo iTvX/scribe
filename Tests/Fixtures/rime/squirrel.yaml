@@ -1,0 +1,7 @@
+# The frontend config for tests: a small squirrel.yaml.
+config_version: "1"
+
+chord_duration: 0.1
+
+style:
+  inline_preedit: true

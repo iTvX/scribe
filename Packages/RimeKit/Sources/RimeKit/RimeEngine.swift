@@ -130,6 +130,7 @@ public protocol RimeEngine: AnyObject {
     /// Returns and clears the text committed since the last call.
     func consumeCommit(in session: RimeSessionID) -> String?
     func context(in session: RimeSessionID) -> EngineContext
+    func status(in session: RimeSessionID) -> EngineStatus?
     func selectCandidate(onCurrentPage index: Int, in session: RimeSessionID) -> Bool
     func changePage(backward: Bool, in session: RimeSessionID) -> Bool
     /// Commits whatever is being composed.

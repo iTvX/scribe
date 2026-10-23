@@ -91,8 +91,19 @@ final class InputAdapter {
     /// The client of the last event, for actions that come without one,
     /// such as a chord released after a delay.
     private var client: TextClient?
-    /// The app's options for its session, from the app's bundle identifier.
-    var clientApp: (String) -> InputSession.ClientApp = { InputSession.ClientApp(bundleID: $0) }
+    /// From squirrel.yaml and the current schema's style.
+    var configuration = SessionConfiguration() {
+        didSet {
+            session.chordDuration = configuration.chordDuration
+            session.presentation = configuration.presentation
+        }
+    }
+    /// Called when the session starts using a schema, whose style may change
+    /// the configuration.
+    var onSchemaChange: ((String) -> Void)? {
+        get { session.onSchemaChange }
+        set { session.onSchemaChange = newValue }
+    }
 
     init(session: InputSession, candidates: CandidatePresenting) {
         self.session = session
@@ -123,7 +134,7 @@ final class InputAdapter {
     /// stays right; an event that changes no modifier is consumed.
     func handle(_ input: KeyInput, client: TextClient) -> Bool {
         self.client = client
-        session.setClientApp(clientApp(client.bundleIdentifier))
+        session.setClientApp(configuration.clientApp(client.bundleIdentifier))
         switch input.kind {
         case .keyDown:
             guard let key = MacKeyTranslator.keyDown(
@@ -154,11 +165,11 @@ final class InputAdapter {
 
     /// Announces an option or schema change of this adapter's session, or
     /// takes a property a plugin set in it.
-    func handle(_ notification: RimeNotification, notifications: NotificationPolicy, messageType: StatusMessageType) {
+    func handle(_ notification: RimeNotification) {
         guard session.owns(notification.sessionID), let client else { return }
         let actions = notification.type == "property"
             ? session.handleProperty(notification.value)
-            : session.status(for: notification, notifications: notifications, messageType: messageType)
+            : session.status(for: notification, notifications: configuration.notifications, messageType: configuration.statusMessageType)
         apply(actions, to: client)
     }
 

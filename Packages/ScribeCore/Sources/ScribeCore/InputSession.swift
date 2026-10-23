@@ -178,6 +178,10 @@ public final class InputSession {
     /// Receives actions that happen without a key, such as a chord being
     /// released after `chordDuration`.
     public var onAsyncActions: (([SessionAction]) -> Void)?
+    /// Called with the schema ID when the session starts using a schema: at
+    /// its first update and after a switch. As in Squirrel, this is when the
+    /// schema's style applies.
+    public var onSchemaChange: ((String) -> Void)?
 
     private let engine: any RimeEngine
     private let chordTimer: ChordTimer?
@@ -186,6 +190,7 @@ public final class InputSession {
     private var candidates: CandidateSnapshot?
     private var chordKeys: [KeyEvent] = []
     private var clientApp: ClientApp?
+    private var schemaID: String?
     /// Comment marks from plugins, kept until the composition changes.
     private var accentCommentIndices: Set<Int> = []
     private var warningCommentIndices: Set<Int> = []
@@ -413,6 +418,7 @@ public final class InputSession {
         session = engine.createSession()
         markedText = .empty
         candidates = nil
+        schemaID = nil
         if let session, let clientApp {
             apply(clientApp, to: session)
         }
@@ -483,6 +489,11 @@ public final class InputSession {
             actions.append(.commit(commit))
             // Inserting text replaces the client's marked text.
             markedText = .empty
+        }
+        if let status = engine.status(in: session), status.schemaID != schemaID {
+            schemaID = status.schemaID
+            // May change the presentation used below.
+            onSchemaChange?(status.schemaID)
         }
         let inline = inlineMode(in: session)
         let context = engine.context(in: session)

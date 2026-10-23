@@ -29,9 +29,14 @@ final class ScribeInputController: IMKInputController {
         // for the Caps Lock state.
         let capsLockOn = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
         let state = state
-        MainActor.assumeIsolated {
+        let layout = MainActor.assumeIsolated {
             state.adapter.activate(capsLockOn: capsLockOn)
             RimeService.shared.activated(state.adapter)
+            return state.adapter.configuration.keyboardLayout
+        }
+        // keyboard_layout, as Squirrel applies it.
+        if case .named(let id) = layout {
+            IMKTextClient(sender)?.overrideKeyboard(named: id)
         }
     }
 

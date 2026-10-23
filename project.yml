@@ -118,6 +118,8 @@ targets:
     sources:
       - path: App/Sources/Adapter
       - path: App/Sources/Command.swift
+      - path: App/Sources/DistributionIdentity.swift
+      - path: App/Sources/FrontendConfig.swift
       - path: App/Sources/InputSourceInstaller.swift
       - path: App/Sources/InputMenu.swift
       - path: App/Sources/LaunchGuard.swift
@@ -131,6 +133,7 @@ targets:
         product: ScribeTestSupport
       - package: RimeKit
       - package: ScribeUI
+      - package: ScribeConfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests

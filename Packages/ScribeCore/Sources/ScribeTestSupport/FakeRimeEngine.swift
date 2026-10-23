@@ -167,6 +167,18 @@ public final class FakeRimeEngine: RimeEngine {
         )
     }
 
+    /// Always the scribe_test schema.
+    public func status(in session: RimeSessionID) -> EngineStatus? {
+        guard let state = sessions[session] else { return nil }
+        return EngineStatus(
+            schemaID: "scribe_test",
+            schemaName: "Scribe Test",
+            isDisabled: false,
+            isComposing: !state.input.isEmpty,
+            isASCIIMode: option("ascii_mode", in: session)
+        )
+    }
+
     public func selectCandidate(onCurrentPage index: Int, in session: RimeSessionID) -> Bool {
         guard var state = sessions[session] else { return false }
         let page = currentPage(state)
