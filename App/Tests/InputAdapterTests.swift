@@ -243,6 +243,13 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls == ["mark 　|0", "caret", "show "])
     }
 
+    @Test func aNoInlineAppSeesTheInputInTheWindowEvenWithoutCandidates() {
+        adapter.clientApp = { InputSession.ClientApp(bundleID: $0, options: ["no_inline": true]) }
+        log.bundleIdentifier = "com.googlecode.iterm2"
+        _ = adapter.handle(input(key("x", code: 7)), client: log)
+        #expect(log.calls == ["mark 　|0", "caret", "show "])
+    }
+
     @Test func pageDownUpdatesOnlyTheWindow() {
         _ = adapter.handle(input(key("n", code: 45)), client: log)
         _ = adapter.handle(input(key("i", code: 34)), client: log)

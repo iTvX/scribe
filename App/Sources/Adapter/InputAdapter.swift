@@ -189,8 +189,8 @@ final class InputAdapter {
                 client.insertText(text)
             case .setMarkedText(let marked):
                 client.setMarkedText(marked.text, caret: marked.caret)
-            case .showCandidates(let snapshot) where snapshot.entries.isEmpty && snapshot.preedit == nil:
-                // The input is shown inline, so there is nothing to show.
+            case .showCandidates(let snapshot) where snapshot.entries.isEmpty && snapshot.preedit?.text.isEmpty ?? true:
+                // No candidates, and the input is shown inline: nothing to show.
                 candidates.hide()
             case .showCandidates(let snapshot):
                 // The window shows this client's candidates, so clicks in it
