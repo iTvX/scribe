@@ -62,7 +62,7 @@
 
 - 更新签名用 Ed25519 密钥。私钥以 generic password 的形式存在发布用的钥匙串（和 Developer ID 证书同一个钥匙串），service 是 `https://sparkle-project.org`，account 是 `io.github.itvx.inputmethod.Scribe`；`make-appcast.sh` 用 `security find-generic-password -w` 读出后只通过管道交给 `sign_update` 和 `scribe-release`，不存进变量、文件或日志。
 - 私钥不离开发布用的 Mac，但必须另外备份（密码管理器）：丢了私钥，已安装的中书就再也收不到更新，只能让用户手动重装。
-- 真正的密钥要等 Max 同意后才生成。在那之前 `release.yml` 里的 `SPARKLE_PUBLIC_KEY` 是空的，发布会直接拒绝运行；验证运行用每次新生成、用完即删的临时密钥，app 和 appcast 都只信任这把临时密钥。步骤见 `docs/releasing.md`。
+- 密钥在 Max 同意后于 2026-10-23 生成，公钥写在 `release.yml` 的 `SPARKLE_PUBLIC_KEY` 里。从此验证运行和正式发布一样用真密钥签名；用完即删的临时密钥只用于 CI 和本地的无签名构建。记录和备份方法见 `docs/releasing.md`。
 
 ## 原因
 
