@@ -15,9 +15,28 @@ enum ScribeApp {
             exit(1)
         }
 
+        let installer = InputSourceInstaller(system: CarbonInputSources())
         switch Command(arguments: CommandLine.arguments) {
         case .install:
-            exit(InputSourceInstaller.register(bundleURL: bundle.bundleURL, bundleIdentifier: bundleIdentifier) ? 0 : 1)
+            exit(installer.register(bundleURL: bundle.bundleURL) ? 0 : 1)
+        case .enableInputSource(let modes):
+            installer.enable(modes)
+            exit(0)
+        case .disableInputSource(let modes):
+            installer.disable(modes)
+            exit(0)
+        case .selectInputSource(let mode):
+            installer.select(mode)
+            exit(0)
+        case .build:
+            let directory = URL(filePath: FileManager.default.currentDirectoryPath, directoryHint: .isDirectory)
+            exit(LibrimeEngine.shared.buildWorkspace(in: directory) ? 0 : 1)
+        case .ascii(let on):
+            post(RimeService.setASCIIModeNotification, object: on ? "ascii" : "nascii")
+            exit(0)
+        case .getASCII:
+            print(askASCIIMode() ?? "nascii")
+            exit(0)
         case .quit:
             quitRunningInstances(bundleIdentifier: bundleIdentifier)
             exit(0)
@@ -63,8 +82,26 @@ enum ScribeApp {
     }
 
     /// Delivered at once, even though Scribe runs in the background.
-    private static func post(_ name: Notification.Name) {
-        DistributedNotificationCenter.default().postNotificationName(name, object: nil, userInfo: nil, deliverImmediately: true)
+    private static func post(_ name: Notification.Name, object: String? = nil) {
+        DistributedNotificationCenter.default().postNotificationName(name, object: object, userInfo: nil, deliverImmediately: true)
+    }
+
+    /// Asks the running Scribe for the active client's ASCII mode and waits up
+    /// to two seconds for "ascii" or "nascii".
+    @MainActor
+    private static func askASCIIMode() -> String? {
+        nonisolated(unsafe) var answer: String?
+        let center = DistributedNotificationCenter.default()
+        let observer = center.addObserver(forName: RimeService.asciiModeResponseNotification, object: nil, queue: .main) { notification in
+            answer = notification.object as? String
+        }
+        defer { center.removeObserver(observer) }
+        post(RimeService.getASCIIModeNotification)
+        let deadline = Date(timeIntervalSinceNow: 2)
+        while answer == nil, Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
+        return answer
     }
 
     @MainActor

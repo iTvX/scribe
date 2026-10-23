@@ -82,6 +82,25 @@ public final class LibrimeEngine: RimeEngine {
         isRunning = true
     }
 
+    /// Compiles the configuration and schemas in `directory` in place, the
+    /// way a distribution prebuilds its shared data. Use instead of `start`,
+    /// in a process that runs nothing else.
+    public func buildWorkspace(in directory: URL) -> Bool {
+        precondition(!isSetUp, "librime is already set up")
+        let configuration = RimeConfiguration(
+            sharedDataDirectory: directory,
+            userDataDirectory: directory,
+            minimumLogLevel: 2,
+            appName: "rime.scribe-builder"
+        )
+        setupStrings = withTraits(configuration, freeingStrings: false) { traits in
+            api.pointee.setup(traits)
+            api.pointee.deployer_initialize(traits)
+        }
+        isSetUp = true
+        return api.pointee.deploy()
+    }
+
     /// Finalizes librime, closing all sessions. `start` may be called again.
     public func stop() {
         guard isRunning else { return }

@@ -154,6 +154,18 @@ final class InputAdapter {
         apply(session.status(for: notification, notifications: notifications, messageType: messageType), to: client)
     }
 
+    /// Turns ASCII mode on or off, as `Scribe --ascii` and `--nascii` ask.
+    func setASCIIMode(_ on: Bool) {
+        let actions = session.setOption("ascii_mode", on)
+        if let client {
+            apply(actions, to: client)
+        }
+    }
+
+    var isASCIIMode: Bool? {
+        session.option("ascii_mode")
+    }
+
     // Requests from the candidate window.
 
     func selectCandidate(at index: Int) {
