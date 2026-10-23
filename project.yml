@@ -79,6 +79,11 @@ targets:
       - package: ScribeUI
       - sdk: Carbon.framework
       - sdk: InputMethodKit.framework
+      # Fetched by Scripts/fetch-sparkle.sh, for software updates. Release
+      # builds re-sign it with the app's identity.
+      - framework: Frameworks/Sparkle.framework
+        embed: true
+        codeSign: true
     postBuildScripts:
       - name: Sign the command line tools
         basedOnDependencyAnalysis: false
@@ -126,6 +131,7 @@ targets:
       - path: App/Sources/LaunchGuard.swift
       - path: App/Sources/MaintenanceQueue.swift
       - path: App/Sources/Log.swift
+      - path: App/Sources/UpdateConfiguration.swift
       - path: App/Tests
     dependencies:
       - package: ScribeCore

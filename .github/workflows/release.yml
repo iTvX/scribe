@@ -1,15 +1,18 @@
 name: Release
 
-# Runs on the self-hosted runner on Max's Mac, which holds the signing
-# identities and the notarytool profile. Never triggered by pull requests.
+# Builds, signs, notarizes and verifies on the self-hosted runner on Max's
+# Mac, which holds the signing identities and the notarytool profile. Pushing
+# a v* tag also publishes a GitHub release and the Sparkle appcast; a manual
+# run only validates, unless validate_only is off and the ref is a v* tag.
+# Never triggered by pull requests. See docs/releasing.md and
+# docs/decisions/0011-releases-and-updates.md.
 on:
   push:
-    branches:
-      - main
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       validate_only:
-        description: "Build, sign, notarize and verify without publishing"
+        description: "Build, sign, notarize and verify without publishing (publishing also needs a v* tag as the ref)"
         type: boolean
         default: true
 
@@ -20,26 +23,100 @@ concurrency:
   group: scribe-release
   cancel-in-progress: false
 
+env:
+  SPARKLE_FEED_URL: https://github.com/iTvX/scribe/releases/download/appcast/appcast.xml
+  # Public half of Scribe's update signing key. Empty until Max approves creating
+  # the key; publishing refuses to run while it is empty.
+  SPARKLE_PUBLIC_KEY: ""
+  SPARKLE_KEY_ACCOUNT: io.github.itvx.inputmethod.Scribe
+
 jobs:
-  release:
+  build:
     name: Build, sign and notarize
     if: github.repository == 'iTvX/scribe'
     runs-on: [self-hosted, macOS, ARM64, scribe-local]
     timeout-minutes: 60
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Show toolchain
         run: |
           xcodebuild -version
           swift --version
 
+      # Publishing needs a release tag on main that matches MARKETING_VERSION,
+      # a CHANGELOG section and the real update signing key.
+      - name: Resolve release
+        id: release
+        env:
+          EVENT: ${{ github.event_name }}
+          VALIDATE_ONLY: ${{ inputs.validate_only }}
+        run: |
+          marketing_version="$(sed -n 's/^ *MARKETING_VERSION: *//p' project.yml | head -1 | tr -d '"')"
+          if [[ "${EVENT}" != push && ( "${EVENT}" != workflow_dispatch || "${VALIDATE_ONLY}" != false ) ]]; then
+            {
+              echo "publish=false"
+              echo "tag="
+              echo "version=${marketing_version}"
+              echo "prerelease=false"
+            } >> "${GITHUB_OUTPUT}"
+            echo "Validating ${marketing_version}; nothing is published"
+            exit 0
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" != tag ]]; then
+            echo "::error::Publishing needs a v* tag as the ref, not the ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          if [[ -z "${SPARKLE_PUBLIC_KEY}" ]]; then
+            echo "::error::SPARKLE_PUBLIC_KEY in release.yml is empty; publishing waits for the update signing key"
+            exit 1
+          fi
+          if ! tag_info="$(Scripts/release-tool.sh tag "${GITHUB_REF_NAME}")"; then
+            echo "::error::${GITHUB_REF_NAME} is not a release tag (vX.Y.Z, or vX.Y.Z-alpha.N, -beta.N or -rc.N)"
+            exit 1
+          fi
+          version="$(sed -n 's/^version=//p' <<< "${tag_info}")"
+          prerelease="$(sed -n 's/^prerelease=//p' <<< "${tag_info}")"
+          if [[ "${version}" != "${marketing_version}" ]]; then
+            echo "::error::${GITHUB_REF_NAME} is version ${version}, but MARKETING_VERSION in project.yml is ${marketing_version}"
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::${GITHUB_REF_NAME} points to ${GITHUB_SHA}, which is not on main"
+            exit 1
+          fi
+          if ! Scripts/release-tool.sh notes "${version}" CHANGELOG.md > /dev/null; then
+            echo "::error::CHANGELOG.md has no \"## ${version}\" section"
+            exit 1
+          fi
+          {
+            echo "publish=true"
+            echo "tag=${GITHUB_REF_NAME}"
+            echo "version=${version}"
+            echo "prerelease=${prerelease}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Publishing ${GITHUB_REF_NAME}"
+
       - name: Fetch librime
         env:
           SCRIBE_DOWNLOAD_CACHE: ${{ runner.tool_cache }}/scribe/downloads
         run: Scripts/fetch-librime.sh
+
+      - name: Fetch Sparkle
+        env:
+          SCRIBE_DOWNLOAD_CACHE: ${{ runner.tool_cache }}/scribe/downloads
+        run: Scripts/fetch-sparkle.sh
 
       - name: Test packages
         run: |
@@ -48,24 +125,117 @@ jobs:
             swift test --package-path "${package}"
             echo "::endgroup::"
           done
+          echo "::group::swift test Tools/scribe-release"
+          swift test --package-path Tools/scribe-release
+          echo "::endgroup::"
+
+      # Until the real key exists, the app this run builds trusts a throwaway
+      # key, which signs the appcast below and is deleted at the end.
+      - name: Make a throwaway update key
+        id: throwaway
+        if: env.SPARKLE_PUBLIC_KEY == ''
+        run: |
+          umask 077
+          Scripts/release-tool.sh key new > "${RUNNER_TEMP}/scribe-throwaway-key"
+          echo "public_key=$(Scripts/release-tool.sh key public < "${RUNNER_TEMP}/scribe-throwaway-key")" >> "${GITHUB_OUTPUT}"
+          echo "::warning::SPARKLE_PUBLIC_KEY is empty, so this run validates with a throwaway update key"
 
       # Signing and notarization settings (KEYCHAIN_DB, KEYCHAIN_PASSWORD_FILE,
       # NOTARY_PROFILE, NOTARY_KEYCHAIN) come from the runner's environment.
       - name: Build, sign and notarize
         id: build
+        env:
+          SPARKLE_PUBLIC_KEY: ${{ env.SPARKLE_PUBLIC_KEY || steps.throwaway.outputs.public_key }}
         run: Scripts/build-release.sh
 
       - name: Verify package
         env:
           PACKAGE: ${{ steps.build.outputs.package }}
-        run: Scripts/check-release.sh "${PACKAGE}"
+        run: Scripts/check-release.sh --expect-feed "${SPARKLE_FEED_URL}" "${PACKAGE}"
 
-      # Publishing a GitHub Release and the Sparkle appcast arrives in M4 and
-      # will run only when validate_only is false.
-      - name: Upload package
+      # With the real key, make-appcast.sh reads it from the release keychain
+      # (KEYCHAIN_DB, KEYCHAIN_PASSWORD_FILE and SPARKLE_KEY_ACCOUNT).
+      - name: Make the appcast
+        env:
+          PACKAGE: ${{ steps.build.outputs.package }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          SPARKLE_KEY_FILE: ${{ env.SPARKLE_PUBLIC_KEY == '' && format('{0}/scribe-throwaway-key', runner.temp) || '' }}
+        run: Scripts/make-appcast.sh "${PACKAGE}" build/release/publish
+
+      - name: Remove the throwaway key
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/scribe-throwaway-key"
+
+      - name: Upload release files
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ steps.build.outputs.name }}${{ inputs.validate_only && '-validation' || '' }}
-          path: ${{ steps.build.outputs.package }}
+          name: ${{ steps.release.outputs.publish == 'true' && format('scribe-{0}', steps.release.outputs.version) || format('{0}-validation', steps.build.outputs.name) }}
+          path: build/release/publish/
           if-no-files-found: error
-          retention-days: ${{ inputs.validate_only && 7 || 30 }}
+          retention-days: ${{ steps.release.outputs.publish == 'true' && 30 || 7 }}
+
+  # Runs on a GitHub-hosted machine: the self-hosted runner never gets a token
+  # that can write to the repository.
+  publish:
+    name: Publish the release and the appcast
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.build.outputs.tag }}
+      VERSION: ${{ needs.build.outputs.version }}
+      PRERELEASE: ${{ needs.build.outputs.prerelease }}
+
+    steps:
+      - name: Download release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scribe-${{ needs.build.outputs.version }}
+          path: files
+
+      - name: Create the GitHub release
+        run: |
+          package="files/Scribe-${VERSION}.pkg"
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            echo "${TAG} is already released (a re-run); replacing its package"
+            gh release upload "${TAG}" "${package}" --clobber
+            exit 0
+          fi
+          prerelease=()
+          if [[ "${PRERELEASE}" == true ]]; then
+            prerelease=(--prerelease)
+          fi
+          gh release create "${TAG}" "${package}" --verify-tag \
+            --title "中书 Scribe ${VERSION}" --notes-file files/release-notes.md "${prerelease[@]}"
+
+      # Installed copies read SUFeedURL, an asset of the fixed "appcast"
+      # release, as in mac-switch.
+      - name: Publish the appcast
+        run: |
+          if gh release view appcast > /dev/null 2>&1; then
+            gh release upload appcast files/appcast.xml --clobber
+          else
+            gh release create appcast files/appcast.xml --prerelease --latest=false --target main \
+              --title "中书 Scribe 更新源" \
+              --notes "已安装的中书从这个发布读取 appcast.xml 来检查更新，请勿删除这个发布或它的标签。Installed copies of 中书 Scribe read appcast.xml from this release to find updates, so never delete it or its tag."
+          fi
+
+      - name: Check the public feed
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location \
+                -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                --output served.xml "${SPARKLE_FEED_URL}" && cmp -s served.xml files/appcast.xml; then
+              echo "${SPARKLE_FEED_URL} serves the new appcast"
+              exit 0
+            fi
+            echo "Not served yet (${attempt}/30); checking again in 10 seconds"
+            sleep 10
+          done
+          echo "::error::${SPARKLE_FEED_URL} did not serve the new appcast within 5 minutes"
+          exit 1

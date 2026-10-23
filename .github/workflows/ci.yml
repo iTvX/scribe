@@ -13,6 +13,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The feed release builds check; see release.yml.
+  SPARKLE_FEED_URL: https://github.com/iTvX/scribe/releases/download/appcast/appcast.xml
+
 jobs:
   build:
     name: Test and build
@@ -32,14 +36,17 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Cache librime downloads
+      - name: Cache downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/downloads
-          key: librime-${{ hashFiles('Scripts/fetch-librime.sh') }}
+          key: downloads-${{ hashFiles('Scripts/fetch-librime.sh', 'Scripts/fetch-sparkle.sh') }}
 
       - name: Fetch librime
         run: Scripts/fetch-librime.sh
+
+      - name: Fetch Sparkle
+        run: Scripts/fetch-sparkle.sh
 
       - name: Check that only RimeKit imports librime
         run: |
@@ -56,6 +63,9 @@ jobs:
             swift test --package-path "${package}" -Xswiftc -warnings-as-errors
             echo "::endgroup::"
           done
+
+      - name: Test release tooling
+        run: swift test --package-path Tools/scribe-release -Xswiftc -warnings-as-errors
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -95,16 +105,38 @@ jobs:
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             test
 
+      # The package below trusts this key, which signs the dry-run appcast, as
+      # release.yml does until the real update signing key exists.
+      - name: Make a throwaway update key
+        id: throwaway
+        run: |
+          umask 077
+          Scripts/release-tool.sh key new > "${RUNNER_TEMP}/scribe-throwaway-key"
+          echo "public_key=$(Scripts/release-tool.sh key public < "${RUNNER_TEMP}/scribe-throwaway-key")" >> "${GITHUB_OUTPUT}"
+
       # Checks the release packaging without credentials: an ad hoc signed app
       # in an unsigned package. Signing and notarization run in release.yml.
       - name: Build unsigned package
         id: package
+        env:
+          SPARKLE_PUBLIC_KEY: ${{ steps.throwaway.outputs.public_key }}
         run: Scripts/build-release.sh --unsigned
 
       - name: Verify unsigned package
         env:
           PACKAGE: ${{ steps.package.outputs.package }}
-        run: Scripts/check-release.sh --unsigned "${PACKAGE}"
+        run: Scripts/check-release.sh --unsigned --expect-feed "${SPARKLE_FEED_URL}" "${PACKAGE}"
+
+      # Extends Tests/Fixtures/appcast/published.xml, a feed signed with
+      # sign_update and a throwaway key (see the comment in it), with this
+      # package, then signs and checks the result as a release does.
+      - name: Dry-run the appcast
+        env:
+          PACKAGE: ${{ steps.package.outputs.package }}
+          APPCAST_EXISTING: Tests/Fixtures/appcast/published.xml
+        run: |
+          SPARKLE_KEY_FILE="${RUNNER_TEMP}/scribe-throwaway-key" \
+            Scripts/make-appcast.sh "${PACKAGE}" build/release/publish
 
       # Expected, actual and diff images of candidate window snapshots that
       # did not match, and renders of snapshots with no baseline yet.

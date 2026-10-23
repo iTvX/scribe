@@ -54,7 +54,7 @@ final class ScribeInputController: IMKInputController {
         nonisolated(unsafe) let target = self
         nonisolated(unsafe) var menu: NSMenu?
         MainActor.assumeIsolated {
-            menu = InputMenu.make(target: target)
+            menu = InputMenu.make(target: target, offersUpdates: SoftwareUpdater.shared.isAvailable)
         }
         return menu
     }
@@ -86,6 +86,12 @@ final class ScribeInputController: IMKInputController {
     @objc func openHelp(_ sender: Any?) {
         MainActor.assumeIsolated {
             RimeService.shared.open(.help)
+        }
+    }
+
+    @objc func checkForUpdates(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            SoftwareUpdater.shared.checkForUpdates()
         }
     }
 

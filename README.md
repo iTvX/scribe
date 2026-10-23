@@ -30,9 +30,11 @@
 | `App/` | Scribe.app：输入法进程和 InputMethodKit 适配层 |
 | `Packages/` | 四个本地 Swift 包：`RimeKit`、`ScribeConfig`、`ScribeCore`、`ScribeUI` |
 | `SharedSupport/` | 随包附带的共享数据 |
-| `Frameworks/` | 脚本下载的 librime 和插件，不进仓库 |
+| `Frameworks/` | 脚本下载的 librime、插件和 Sparkle，不进仓库 |
 | `Scripts/` | 下载 librime、安装到本机、打发布包和验证的脚本；`Scripts/pkg/` 是安装包的配置和安装脚本 |
 | `Tests/Fixtures/` | 测试样本 |
+| `Tools/` | 开发工具：`squirrel-oracle` 画鼠须管的参考图，`scribe-release` 处理发布标签、更新记录和 Sparkle appcast |
+| `CHANGELOG.md` | 写给用户的更新记录，每个版本一节，发布时成为 Release 说明和更新窗口里的内容 |
 | `docs/` | 设计决定记录和各类清单 |
 
 ### 下载 librime
@@ -43,13 +45,21 @@ Scripts/fetch-librime.sh
 
 下载 librime 1.17.0 官方发布包和默认数据（plum 默认安装的那几套：prelude、essay、朙月拼音、地球拼音、注音、倉頡五代、速成、筆畫，加上八股文语法模型 `grammar.yaml` 和 `zh-hant-t-essay-*.gram`，和鼠须管 mainline 打包的一致，都固定到 2026-10-18 的提交），校验 sha256，生成 `Frameworks/librime.xcframework`；插件放在 `Frameworks/rime-plugins`，OpenCC 数据放在 `Frameworks/opencc`，默认数据放在 `Frameworks/rime-data`。`rime_deployer`、`rime_dict_manager` 和 plum 的 `rime-install` 放在 `Frameworks/bin`。构建时插件嵌入 `Scribe.app/Contents/Frameworks/rime-plugins`，OpenCC 和默认数据嵌入 `Contents/SharedSupport`，三个命令行工具和鼠须管一样放在 `Contents/MacOS`。重复运行不会重新下载，下载的压缩包缓存在 `build/downloads`。
 
+### 下载 Sparkle
+
+```bash
+Scripts/fetch-sparkle.sh
+```
+
+下载自动更新用的 Sparkle 2.10.0 官方发布包，校验 sha256，删掉只有沙盒应用才用的 XPC 服务，放在 `Frameworks/Sparkle.framework`；发布时用的 `sign_update` 和 `generate_keys` 放在 `Frameworks/sparkle-bin`，不进 app。`build-release.sh` 和 `install-local.sh` 会自动运行它。
+
 ### 运行测试
 
 ```bash
 swift test --package-path Packages/RimeKit
 ```
 
-其他包同理，换成 `Packages/ScribeConfig`、`Packages/ScribeCore`、`Packages/ScribeUI`。测试依赖上一步下载的 librime。
+其他包同理，换成 `Packages/ScribeConfig`、`Packages/ScribeCore`、`Packages/ScribeUI`。测试依赖上一步下载的 librime。发布工具的测试是 `swift test --package-path Tools/scribe-release`。
 
 ScribeUI 的测试里有候选窗快照：把面板画成图，和 `Tests/Fixtures/snapshots/scribe` 里的基准图逐像素对比，对不上的图写到 `build/snapshot-failures`。改了绘制、需要更新基准图时这样跑一遍（测试会故意失败），检查新图后再正常跑：
 
@@ -105,7 +115,7 @@ Scripts/install-rime-ice.sh
 
 ### 输入法菜单
 
-切换到中书后，菜单栏输入法菜单里有：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明。界面跟随系统语言（英文、简体中文、繁体中文）。
+切换到中书后，菜单栏输入法菜单里有：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明。用安装包装到 `/Library/Input Methods` 的发布版还有「检查更新」：中书每天自动检查一次，有新版本时只发一条通知，不在打字时弹窗，安装要管理员密码。界面跟随系统语言（英文、简体中文、繁体中文）。
 
 如果中书在两秒内又被启动（多半是配置有错导致启动时崩溃），这次不加载 Rime，并语音提示；改好配置后选「重新部署」即可。
 
@@ -131,7 +141,7 @@ Scripts/build-release.sh --unsigned
 
 不需要证书，生成 `build/release/Scribe-<版本>-<构建号>.pkg`：app 用 ad-hoc 签名，安装包不签名，只用来检查打包流程。用 `Scripts/check-release.sh --unsigned <pkg>` 验证。
 
-正式的发布包（Developer ID 签名、公证、staple）由 `.github/workflows/release.yml` 在自托管 runner 上生成：推送到 main 时自动运行，也可以在 Actions 页面手动运行（`validate_only` 只验证不发布）。生成的 `.pkg` 作为 workflow artifact 下载。签名和公证的设置见 `Scripts/build-release.sh` 开头的说明和 `docs/decisions/0002-release-signing-and-packaging.md`。
+正式的发布包（Developer ID 签名、公证、staple）由 `.github/workflows/release.yml` 在自托管 runner 上生成：推送 `v*` 标签时发布 GitHub Release 和 Sparkle 更新源；手动运行（`gh workflow run release.yml`）只验证不发布，生成的 `.pkg` 和 appcast 作为 workflow artifact 下载。发版步骤见 `docs/releasing.md`，签名和公证的设置见 `Scripts/build-release.sh` 开头的说明和 `docs/decisions/0002-release-signing-and-packaging.md`，自动更新见 `docs/decisions/0011-releases-and-updates.md`。
 
 安装 `.pkg` 会装到 `/Library/Input Methods`。装之前先删掉 `~/Library/Input Methods/Scribe.app`，免得同一个输入法装了两份。
 

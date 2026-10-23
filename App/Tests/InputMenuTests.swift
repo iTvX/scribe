@@ -15,6 +15,16 @@ import Testing
     #expect(menu.items[0].keyEquivalentModifierMask == [.control, .option])
 }
 
+@MainActor
+@Test func onlyBuildsThatUpdateThemselvesOfferToCheckForUpdates() {
+    #expect(InputMenu.make(target: NSObject(), offersUpdates: false).items.count == 5)
+    let menu = InputMenu.make(target: NSObject(), offersUpdates: true)
+    #expect(menu.items.count == 6)
+    #expect(menu.items[5].title == "Check for updates…")
+    #expect(menu.items[5].action == InputMenu.Command.checkForUpdates.action)
+    #expect(menu.items[5].action == Selector(("checkForUpdates:")))
+}
+
 /// Every string the app shows is translated into English, Simplified and
 /// Traditional Chinese.
 @Test func everyLanguageHasEveryString() throws {
@@ -38,6 +48,7 @@ import Testing
     for message in DeployMessage.allCases {
         #expect(keysByLanguage["en"]?.contains(message.key) == true, "\(message.key)")
     }
+    #expect(keysByLanguage["en"]?.contains("update_available") == true)
 }
 
 @Suite struct LaunchGuardTests {

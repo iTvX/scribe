@@ -73,6 +73,7 @@ enum ScribeApp {
         app.setActivationPolicy(.accessory)
         RimeService.useSharedDataAsWorkingDirectory(bundle: bundle)
         RimeService.shared.start()
+        SoftwareUpdater.shared.start()
         Log.app.notice("Input method server listening on \(connectionName, privacy: .public)")
         withExtendedLifetime(server) {
             app.run()

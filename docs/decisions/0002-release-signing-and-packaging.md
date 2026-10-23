@@ -30,6 +30,7 @@
 - `.github/workflows/release.yml` 跑在 Max 的 Mac 上的自托管 runner（label `scribe-local`，和 Max 其他仓库的 runner 一样的做法），只由推送到 main 和手动触发，绝不由 pull request 触发，同一时间只跑一个。
 - M0 阶段的产物是签名、公证、staple 过的 `.pkg`，作为 workflow artifact 上传。发 GitHub Release 和 Sparkle 更新留到 M4，到时只在 `validate_only` 为假时运行。
 - 普通 CI（`ci.yml`）在 GitHub 托管机器上用 `build-release.sh --unsigned` 检查打包流程，不需要任何凭据。
+- 触发方式和发布步骤已由 [0011](0011-releases-and-updates.md) 取代：推送 `v*` 标签才发布，手动运行只验证，推送到 main 不再触发。
 
 ## 安装时预编译共享数据
 

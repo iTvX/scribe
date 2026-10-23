@@ -3,7 +3,9 @@
 "Logs…" = "Logs…";
 "User folder…" = "User folder…";
 "Help…" = "Help…";
+"Check for updates…" = "Check for updates…";
 "launch_problem" = "Scribe crashed while starting, and started without Rime. Undo your recent configuration changes, then deploy again.";
 "deploy_start" = "Deploying Rime…";
 "deploy_success" = "Scribe is ready.";
 "deploy_failure" = "Deploying failed. See the logs.";
+"update_available" = "Version %@ is ready to install. Click to see what's new.";

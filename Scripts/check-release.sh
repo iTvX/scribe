@@ -3,6 +3,9 @@
 #
 #   Scripts/check-release.sh path/to/Scribe.pkg              signed and notarized
 #   Scripts/check-release.sh --unsigned path/to/Scribe.pkg   from build-release.sh --unsigned
+#
+# After --unsigned, --expect-feed URL fails unless the app checks for updates
+# at URL.
 
 set -euo pipefail
 
@@ -14,8 +17,14 @@ if [[ "${1:-}" == "--unsigned" ]]; then
   SIGNED=0
   shift
 fi
+# Software updates: the feed release builds must check.
+EXPECT_FEED=""
+if [[ "${1:-}" == "--expect-feed" && $# -ge 2 ]]; then
+  EXPECT_FEED="$2"
+  shift 2
+fi
 if [[ $# -ne 1 || ! -f "$1" ]]; then
-  echo "usage: $0 [--unsigned] path/to/Scribe.pkg" >&2
+  echo "usage: $0 [--unsigned] [--expect-feed URL] path/to/Scribe.pkg" >&2
   exit 2
 fi
 PACKAGE="$1"
@@ -92,6 +101,33 @@ for tool in rime_deployer rime_dict_manager; do
 done
 pass "ships ${TOOLS[*]} next to Scribe, universal"
 
+# Software updates (docs/decisions/0011-releases-and-updates.md).
+SPARKLE="${APP}/Contents/Frameworks/Sparkle.framework"
+[[ -f "${SPARKLE}/Versions/B/Sparkle" ]] || fail "Sparkle.framework is not embedded"
+[[ ! -e "${SPARKLE}/Versions/B/XPCServices" ]] || fail "Sparkle.framework still has its XPC services"
+sparkle_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${SPARKLE}/Resources/Info.plist")"
+app_info() {
+  /usr/libexec/PlistBuddy -c "Print :$1" "${APP}/Contents/Info.plist" 2>/dev/null || true
+}
+for key in SURequireSignedFeed SUVerifyUpdateBeforeExtraction SUEnableAutomaticChecks; do
+  [[ "$(app_info "${key}")" == true ]] || fail "${key} is not true"
+done
+[[ "$(app_info SUAllowsAutomaticUpdates)" == false ]] || fail "SUAllowsAutomaticUpdates is not false"
+feed="$(app_info SUFeedURL)"
+feed_key="$(app_info SUPublicEDKey)"
+if [[ -n "${feed}" || -n "${feed_key}" ]]; then
+  [[ -n "${feed}" && -n "${feed_key}" ]] || fail "SUFeedURL and SUPublicEDKey must both be set, or neither"
+  [[ "${feed}" == https://* ]] || fail "SUFeedURL ${feed} is not https"
+  [[ "$(base64 -D <<< "${feed_key}" 2>/dev/null | wc -c | tr -d ' ')" == 32 ]] || fail "SUPublicEDKey is not a 32-byte key"
+  feed_status="checks for updates at ${feed}"
+else
+  feed_status="no update feed (updates off)"
+fi
+if [[ -n "${EXPECT_FEED}" && "${feed}" != "${EXPECT_FEED}" ]]; then
+  fail "SUFeedURL is ${feed:-absent}, expected ${EXPECT_FEED}"
+fi
+pass "embeds Sparkle ${sparkle_version} without its XPC services; ${feed_status}"
+
 codesign --verify --strict --deep "${APP}" || fail "Scribe.app signature does not verify"
 CODE=("${APP}" "${APP}/Contents/Frameworks/librime.1.dylib")
 for plugin in "${PLUGINS[@]}"; do
@@ -100,6 +136,8 @@ done
 for tool in "${TOOLS[@]}"; do
   CODE+=("${APP}/Contents/MacOS/${tool}")
 done
+# Sparkle, from the software update checks above.
+CODE+=("${SPARKLE}" "${SPARKLE}/Versions/B/Autoupdate" "${SPARKLE}/Versions/B/Updater.app")
 for code in "${CODE[@]}"; do
   codesign --verify --strict "${code}" || fail "${code##*/} signature does not verify"
   details="$(codesign --display --verbose=2 "${code}" 2>&1)"
