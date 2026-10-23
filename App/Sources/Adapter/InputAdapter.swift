@@ -30,12 +30,14 @@ struct KeyInput: Equatable, Sendable {
 
     var kind: Kind
     var keyCode: UInt16
+    var characters: String?
     var charactersIgnoringModifiers: String?
     var flags: MacModifierFlags
 
-    init(kind: Kind, keyCode: UInt16, charactersIgnoringModifiers: String?, flags: MacModifierFlags) {
+    init(kind: Kind, keyCode: UInt16, characters: String?, charactersIgnoringModifiers: String?, flags: MacModifierFlags) {
         self.kind = kind
         self.keyCode = keyCode
+        self.characters = characters
         self.charactersIgnoringModifiers = charactersIgnoringModifiers
         self.flags = flags
     }
@@ -46,13 +48,14 @@ struct KeyInput: Equatable, Sendable {
             self.init(
                 kind: .keyDown,
                 keyCode: event.keyCode,
+                characters: event.characters,
                 charactersIgnoringModifiers: event.charactersIgnoringModifiers,
                 flags: Self.flags(event.modifierFlags)
             )
         case .flagsChanged:
-            self.init(kind: .flagsChanged, keyCode: event.keyCode, charactersIgnoringModifiers: nil, flags: Self.flags(event.modifierFlags))
+            self.init(kind: .flagsChanged, keyCode: event.keyCode, characters: nil, charactersIgnoringModifiers: nil, flags: Self.flags(event.modifierFlags))
         default:
-            self.init(kind: .other, keyCode: 0, charactersIgnoringModifiers: nil, flags: [])
+            self.init(kind: .other, keyCode: 0, characters: nil, charactersIgnoringModifiers: nil, flags: [])
         }
     }
 
@@ -81,14 +84,26 @@ final class InputAdapter {
         self.candidates = candidates
     }
 
-    /// Returns whether the key was consumed. Modifier changes always reach
-    /// the client too, so its idea of the held modifiers stays right.
+    /// The input method became active for the client. It gets no modifier
+    /// event for keys already locked, so the Caps Lock state comes from the
+    /// hardware.
+    func activate(capsLockOn: Bool) {
+        if capsLockOn {
+            modifiers.insert(.capsLock)
+        } else {
+            modifiers.remove(.capsLock)
+        }
+    }
+
+    /// Returns whether the key was consumed. Command shortcuts and modifier
+    /// changes always reach the client, so its idea of the held modifiers
+    /// stays right; an event that changes no modifier is consumed.
     func handle(_ input: KeyInput, client: TextClient) -> Bool {
         switch input.kind {
         case .keyDown:
-            modifiers = input.flags
             guard let key = MacKeyTranslator.keyDown(
                 keyCode: input.keyCode,
+                characters: input.characters,
                 charactersIgnoringModifiers: input.charactersIgnoringModifiers,
                 flags: input.flags
             ) else { return false }
@@ -96,6 +111,7 @@ final class InputAdapter {
             apply(result.actions, to: client)
             return result.handled
         case .flagsChanged:
+            guard input.flags != modifiers else { return true }
             for key in MacKeyTranslator.flagsChanged(keyCode: input.keyCode, from: modifiers, to: input.flags) {
                 apply(session.handle(key).actions, to: client)
             }

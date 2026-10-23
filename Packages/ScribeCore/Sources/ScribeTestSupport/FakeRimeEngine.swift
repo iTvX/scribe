@@ -25,6 +25,11 @@ public final class FakeRimeEngine: RimeEngine {
     private var sessions: [RimeSessionID: State] = [:]
     private var nextSession: UInt = 1
 
+    /// Every key passed to `processKey`, in order.
+    public private(set) var processedKeys: [KeyEvent] = []
+
+    private var options: [RimeSessionID: [String: Bool]] = [:]
+
     private struct State {
         var input = ""
         var page = 0
@@ -52,13 +57,17 @@ public final class FakeRimeEngine: RimeEngine {
 
     public func destroySession(_ session: RimeSessionID) {
         sessions[session] = nil
+        options[session] = nil
     }
 
     public func processKey(_ keycode: Int32, modifiers: Int32, in session: RimeSessionID) -> Bool {
+        processedKeys.append(KeyEvent(keycode, modifiers: KeyModifiers(rawValue: modifiers)))
         guard var state = sessions[session] else { return false }
         defer { sessions[session] = state }
         let modifiers = KeyModifiers(rawValue: modifiers)
         guard modifiers.isDisjoint(with: [.release, .control, .alt, .super]) else { return false }
+        // In ASCII mode everything goes to the application.
+        guard !option("ascii_mode", in: session) else { return false }
 
         if let scalar = Unicode.Scalar(UInt32(keycode)), ("a"..."z").contains(scalar) {
             state.input.unicodeScalars.append(scalar)
@@ -156,6 +165,14 @@ public final class FakeRimeEngine: RimeEngine {
 
     public func clearComposition(in session: RimeSessionID) {
         sessions[session] = sessions[session].map { _ in State() }
+    }
+
+    public func option(_ option: String, in session: RimeSessionID) -> Bool {
+        options[session]?[option] ?? false
+    }
+
+    public func setOption(_ option: String, _ value: Bool, in session: RimeSessionID) {
+        options[session, default: [:]][option] = value
     }
 
     private func commit(_ text: String, _ state: inout State) {

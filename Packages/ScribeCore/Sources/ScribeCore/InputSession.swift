@@ -138,7 +138,24 @@ public final class InputSession {
     public func handle(_ key: KeyEvent) -> KeyResult {
         guard let session = activeSession() else { return KeyResult(handled: false, actions: []) }
         let handled = engine.processKey(key.keycode, modifiers: key.modifiers.rawValue, in: session)
+        if !handled, Self.leavesVimInsertMode(key), engine.option("vim_mode", in: session),
+           !engine.option("ascii_mode", in: session) {
+            // Back in Vim's normal mode, commands are typed in ASCII.
+            engine.setOption("ascii_mode", true, in: session)
+        }
         return KeyResult(handled: handled, actions: update(session))
+    }
+
+    /// The value of a Rime option, such as "ascii_mode", or nil while there
+    /// is no session.
+    public func option(_ name: String) -> Bool? {
+        activeSession().map { engine.option(name, in: $0) }
+    }
+
+    public func setOption(_ name: String, _ value: Bool) {
+        if let session = activeSession() {
+            engine.setOption(name, value, in: session)
+        }
     }
 
     /// Commits the candidate at `index` on the current page.
@@ -177,6 +194,15 @@ public final class InputSession {
         session = nil
         markedText = .empty
         candidates = nil
+    }
+
+    /// Escape, Control+C and Control+[ return Vim to normal mode.
+    private static func leavesVimInsertMode(_ key: KeyEvent) -> Bool {
+        guard !key.modifiers.contains(.release) else { return false }
+        if key.keycode == Keysym.escape {
+            return true
+        }
+        return key.modifiers.contains(.control) && [0x63, 0x43, 0x5b].contains(key.keycode)
     }
 
     private func activeSession() -> RimeSessionID? {

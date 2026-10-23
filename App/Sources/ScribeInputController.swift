@@ -25,6 +25,13 @@ final class ScribeInputController: IMKInputController {
 
     override func activateServer(_ sender: Any!) {
         Log.input.info("Activated for \(IMKTextClient(sender)?.bundleIdentifier ?? "unknown client", privacy: .public)")
+        // This process only sees its own modifier events; ask the session
+        // for the Caps Lock state.
+        let capsLockOn = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
+        let state = state
+        MainActor.assumeIsolated {
+            state.adapter.activate(capsLockOn: capsLockOn)
+        }
     }
 
     override func deactivateServer(_ sender: Any!) {

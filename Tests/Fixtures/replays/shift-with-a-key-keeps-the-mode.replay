@@ -1,0 +1,6 @@
+# Shift held while typing another key does not switch modes.
+@engines rime
+Shift+Shift_L
+Shift+A             => unhandled
+Release+Shift_L     => option ascii_mode false
+n                   => marked "n"
