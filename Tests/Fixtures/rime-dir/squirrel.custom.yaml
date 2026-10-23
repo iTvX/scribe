@@ -1,0 +1,33 @@
+# 合成的测试样本：微信风格的浅色和深色配色，iTerm2 里默认中文。
+patch:
+  style/color_scheme: wechat_light
+  style/color_scheme_dark: wechat_dark
+  preset_color_schemes/+:
+    wechat_light:
+      name: 微信浅色
+      color_space: srgb
+      back_color: 0xFFFFFF
+      border_color: 0xE5E5E5
+      text_color: 0x3C3C3C
+      candidate_text_color: 0x1F1F1F
+      comment_text_color: 0x8C8C8C
+      label_color: 0x8C8C8C
+      hilited_candidate_back_color: 0x60C107
+      hilited_candidate_text_color: 0xFFFFFF
+      hilited_comment_text_color: 0xE8F7DB
+      hilited_candidate_label_color: 0xE8F7DB
+    wechat_dark:
+      name: 微信深色
+      color_space: srgb
+      back_color: 0x262626
+      border_color: 0x3A3A3A
+      text_color: 0xD9D9D9
+      candidate_text_color: 0xE6E6E6
+      comment_text_color: 0x808080
+      label_color: 0x808080
+      hilited_candidate_back_color: 0x4FA606
+      hilited_candidate_text_color: 0xFFFFFF
+      hilited_comment_text_color: 0xD5EFC0
+      hilited_candidate_label_color: 0xD5EFC0
+  app_options/com.googlecode.iterm2:
+    ascii_mode: false

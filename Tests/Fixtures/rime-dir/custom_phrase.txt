@@ -1,0 +1,7 @@
+# Rime table
+# coding: utf-8
+#@/db_name	custom_phrase.txt
+#@/db_type	tabledb
+#
+# 合成的测试样本：固定在首位的短语。
+中书	zs	1
