@@ -1,5 +1,4 @@
 import Foundation
-import ScribeConfig
 import ScribeCore
 
 /// Everything the candidate window shows at one moment: ScribeCore's
@@ -14,24 +13,5 @@ struct PanelContent: Equatable, Sendable {
     init(_ snapshot: CandidateSnapshot?, statusMessage: String? = nil) {
         self.snapshot = snapshot
         self.statusMessage = statusMessage
-    }
-
-    /// The status message to show for a mode change, picked the way
-    /// Squirrel's `status_message_type` picks it.
-    static func statusMessage(long: String, short: String, type: StatusMessageType) -> String {
-        switch type {
-        case .mix:
-            short.isEmpty ? long : short
-        case .long:
-            long
-        case .short:
-            if !short.isEmpty {
-                short
-            } else if let initial = long.first {
-                String(initial)
-            } else {
-                ""
-            }
-        }
     }
 }
