@@ -25,3 +25,13 @@ f
 a       => candidates "输入法"
 Return  => commit "shurufa"
 space   => unhandled
+
+# OpenCC with the bundled data in SharedSupport/opencc: rime-ice's
+# traditionalization option converts candidates with s2t.json.
+@option traditionalization true
+h
+a
+n
+z
+i       => candidates "漢字"
+Escape  => marked ""
