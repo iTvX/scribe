@@ -46,3 +46,9 @@ translator:
 
 menu:
   page_size: 5
+
+# A schema's own style, which overrides squirrel.yaml's while the schema is
+# in use, as in Squirrel.
+style:
+  inline_preedit: false
+  candidate_list_layout: linear

@@ -203,6 +203,13 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls.isEmpty)
     }
 
+    @Test func theSessionsSchemaIsReported() {
+        var schemas: [String] = []
+        adapter.onSchemaChange = { schemas.append($0) }
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        #expect(schemas == ["scribe_test"])
+    }
+
     @Test func theChordDurationReachesTheSession() {
         adapter.configuration.chordDuration = 0.4
         #expect(session.chordDuration == 0.4)
