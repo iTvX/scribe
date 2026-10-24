@@ -152,6 +152,10 @@ for tool in rime_deployer rime_dict_manager; do
     --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}/Contents/MacOS/${tool}"
 done
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/rime-install"
+# Scribe Settings, inside Scribe.app. It loads Scribe.app's librime, so it
+# carries the same library validation exemption as the app.
+codesign --force --options runtime "${CODESIGN_ARGS[@]}" \
+  --entitlements "${ROOT}/Settings/ScribeSettings.entitlements" "${APP}/Contents/Helpers/ScribeSettings.app"
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" \
   --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}"
 codesign --verify --strict --deep "${APP}"

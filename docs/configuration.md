@@ -39,6 +39,10 @@
 - `style`：主题自己的样式，可以设下面「外观」表里的键，`theme`、`dark_theme`、`memorize_size`、`status_message` 除外，两套配色都用
 - `light`：浅色配色，`dark`：深色配色（可选）；每套配色也可以有自己的 `style`，盖过主题的 `style`
 
+`themes` 下的主题和鼠须管的配色方案同名时，**整个替换**那个配色方案，不是逐项覆盖：只在 `scribe.custom.yaml` 里写 `themes/wechat_light/style/inline_preedit: false`，得到的是一个只有这一项的主题，原来配色方案里的颜色、布局都没了。想改鼠须管配色方案里的某一项，就改 `squirrel.custom.yaml`，或者把整套配色方案转成中书的主题（见下面「用中书设置转换」）再改。
+
+另外，配色方案（主题）自己设了的样式盖过 `appearance` 里的同一项，和鼠须管一样：比如主题里写了 `inline_preedit: true`，`appearance/inline_preedit: false` 就不起作用。
+
 `appearance/theme` 选主题。系统是深色模式时，用 `appearance/dark_theme` 指定的主题；没指定就用同一个主题的 `dark` 配色；主题没有 `dark` 就一直用浅色。`theme` 也可以写鼠须管的配色方案名，比如 `aqua`、`native`。
 
 ## 设置一览

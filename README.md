@@ -15,11 +15,12 @@
 
 ## 从鼠须管迁移
 
-中书设置（ScribeSettings）里的一键导入会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。0.1.0 的安装包里还没有中书设置，目前要从源码构建。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
+在输入法菜单里选「设置…」打开中书设置，「导入」页的一键导入会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。中书设置随中书一起安装（0.1.0 的安装包里还没有，要从源码构建）。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
 
 ## 使用
 
-- **输入法菜单**：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明、检查更新。
+- **输入法菜单**：重新部署（Control-Option-`）、同步用户数据、设置、日志目录、用户目录、使用说明、检查更新。
+- **中书设置**：在输入法菜单里选「设置…」，可以导入鼠须管的配置，选方案、改快捷键和外观，把鼠须管格式的设置转成中书的格式。
 - **配置**：鼠须管格式的 `squirrel.custom.yaml` 和中书自己的 `scribe.custom.yaml` 都放在 `~/Library/Scribe`，改完选「重新部署」。中书的格式（`#RRGGBB` 颜色、一个主题同时带浅色和深色配色）见 [配置](docs/configuration.md)。
 - **菜单栏图标**：切到中书时显示当前的中西文状态，`scribe.custom.yaml` 里设 `status_icon: false` 可以关掉。
 - **日志**：librime 的日志在 `~/Library/Logs/Scribe`；中书自己的日志在「控制台」里按子系统 `io.github.itvx.inputmethod.Scribe` 过滤。

@@ -22,4 +22,16 @@ public struct SettingsLocation: Equatable, Sendable {
             sharedDirectory = isLive ? installedSharedData() : nil
         }
     }
+
+    /// The shared data of the Scribe.app that a Settings app bundle is
+    /// embedded in, as `Scribe.app/Contents/Helpers/ScribeSettings.app`, or
+    /// nil when it is not inside one.
+    public static func enclosingScribeSharedData(of settingsBundle: URL) -> URL? {
+        let helpers = settingsBundle.standardizedFileURL.deletingLastPathComponent()
+        let contents = helpers.deletingLastPathComponent()
+        let app = contents.deletingLastPathComponent()
+        guard helpers.lastPathComponent == "Helpers", contents.lastPathComponent == "Contents", app.pathExtension == "app"
+        else { return nil }
+        return contents.appending(path: "SharedSupport", directoryHint: .isDirectory)
+    }
 }
