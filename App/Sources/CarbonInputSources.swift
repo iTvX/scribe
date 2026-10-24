@@ -21,7 +21,11 @@ struct CarbonInputSources: InputSourceSystem {
             // even while Scribe itself is off, so ask for enabled sources instead.
             isEnabled: self.source(id, includeAllInstalled: false) != nil,
             isSelectable: bool(source, kTISPropertyInputSourceIsSelectCapable),
-            isSelected: bool(source, kTISPropertyInputSourceIsSelected)
+            isSelected: bool(source, kTISPropertyInputSourceIsSelected),
+            // TIS names no bundle, but an input mode's icon lives in it.
+            bundlePath: TISGetInputSourceProperty(source, kTISPropertyIconImageURL)
+                .map { Unmanaged<CFURL>.fromOpaque($0).takeUnretainedValue() as URL }
+                .flatMap(InputSourceState.bundlePath(containing:))
         )
     }
 

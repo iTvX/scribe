@@ -10,10 +10,17 @@ final class FakeInputSources: InputSourceSystem {
     var status: OSStatus = 0
     var currentInputSourceID: String?
 
-    init(registered: Bool = true, enabled: Set<String> = [], selected: String? = nil) {
+    /// `bundlePath` is where the registered sources come from.
+    init(registered: Bool = true, enabled: Set<String> = [], selected: String? = nil,
+         bundlePath: String? = "/Library/Input Methods/Scribe.app") {
         if registered {
             for id in [InputSourceInstaller.bundleIdentifier, hansID, hantID] {
-                sources[id] = InputSourceState(isEnabled: enabled.contains(id), isSelectable: id != InputSourceInstaller.bundleIdentifier, isSelected: id == selected)
+                sources[id] = InputSourceState(
+                    isEnabled: enabled.contains(id),
+                    isSelectable: id != InputSourceInstaller.bundleIdentifier,
+                    isSelected: id == selected,
+                    bundlePath: bundlePath
+                )
             }
         }
     }
@@ -68,10 +75,31 @@ private let app = URL(filePath: "/Library/Input Methods/Scribe.app")
         #expect(system.log == ["register Scribe.app"])
     }
 
-    @Test func registrationIsSkippedWhenAModeIsEnabled() {
+    @Test func registrationIsSkippedWhenScribeIsRegisteredFromThisApp() {
         let system = FakeInputSources(enabled: [hansID])
         #expect(InputSourceInstaller(system: system).register(bundleURL: app))
         #expect(system.log.isEmpty)
+    }
+
+    /// A development copy in ~/Library replaced by the release in /Library:
+    /// the enabled mode still names the old copy, so the new one registers,
+    /// and nothing is enabled or selected.
+    @Test func aReplacedCopyRegistersTheNewOne() {
+        let system = FakeInputSources(enabled: [hansID], bundlePath: "/Users/max/.Trash/Scribe.app")
+        #expect(InputSourceInstaller(system: system).register(bundleURL: app))
+        #expect(system.log == ["register Scribe.app"])
+    }
+
+    @Test func registersWhenTheSystemDoesNotSayWhereFrom() {
+        let system = FakeInputSources(enabled: [hansID], bundlePath: nil)
+        #expect(InputSourceInstaller(system: system).register(bundleURL: app))
+        #expect(system.log == ["register Scribe.app"])
+    }
+
+    @Test func theBundleOfAnIconIsTheAppAroundIt() {
+        let icon = URL(filePath: "/Library/Input Methods/Scribe.app/Contents/Resources/scribe.pdf")
+        #expect(InputSourceState.bundlePath(containing: icon) == "/Library/Input Methods/Scribe.app")
+        #expect(InputSourceState.bundlePath(containing: URL(filePath: "/tmp/scribe.pdf")) == nil)
     }
 
     @Test func registrationFailureIsReported() {
