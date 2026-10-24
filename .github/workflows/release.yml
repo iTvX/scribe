@@ -176,6 +176,12 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ steps.release.outputs.publish == 'true' && 30 || 7 }}
 
+      # The runner is Max's Mac mini: the apps built here leave LaunchServices,
+      # so it knows only the Scribe he installed.
+      - name: Forget the built apps
+        if: always()
+        run: Scripts/ci-forget-built-apps.sh
+
   # Runs on a GitHub-hosted machine: the self-hosted runner never gets a token
   # that can write to the repository.
   publish:
