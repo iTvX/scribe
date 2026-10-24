@@ -7,6 +7,15 @@ struct InputSourceState: Equatable {
     var isEnabled: Bool
     var isSelectable: Bool
     var isSelected: Bool
+    /// The app the input source comes from, when the system says.
+    var bundlePath: String?
+
+    /// The app bundle around a file in it, such as an input mode's icon.
+    static func bundlePath(containing url: URL) -> String? {
+        let path = url.standardizedFileURL.path(percentEncoded: false)
+        guard let app = path.range(of: ".app/") else { return nil }
+        return String(path[..<app.lowerBound]) + ".app"
+    }
 }
 
 /// The Text Input Sources manager, behind a protocol so tests never touch the
@@ -36,18 +45,21 @@ struct InputSourceInstaller {
         InputMode.allCases.filter { system.state(of: id($0))?.isEnabled == true }
     }
 
-    /// Registers the input sources of the app at `bundleURL`, unless the user
-    /// has already enabled one of Scribe's modes.
     /// Whether one of Scribe's modes is the selected input source.
     var isScribeCurrent: Bool {
         guard let id = system.currentInputSourceID else { return false }
         return id == Self.bundleIdentifier || id.hasPrefix(Self.bundleIdentifier + ".")
     }
 
+    /// Registers the input sources of the app at `bundleURL`, unless Scribe's
+    /// modes are already registered from it. Squirrel skips registering once
+    /// a mode is enabled, but that mode may come from another copy, such as a
+    /// development build replaced by the release. Never enables or selects.
     func register(bundleURL: URL) -> Bool {
-        let enabled = enabledModes
-        if !enabled.isEmpty {
-            report("Scribe input sources already enabled: \(ids(enabled))")
+        let path = bundleURL.standardizedFileURL.path(percentEncoded: false).trimmingSuffix("/")
+        let here = InputMode.allCases.filter { system.state(of: id($0))?.bundlePath?.trimmingSuffix("/") == path }
+        if !here.isEmpty {
+            report("Scribe input sources already registered from \(path): \(ids(here))")
             return true
         }
         let status = system.register(bundleURL)
@@ -110,5 +122,11 @@ struct InputSourceInstaller {
     private func report(_ message: String) {
         print(message)
         Log.installer.notice("\(message, privacy: .public)")
+    }
+}
+
+private extension String {
+    func trimmingSuffix(_ suffix: String) -> String {
+        hasSuffix(suffix) ? String(dropLast(suffix.count)) : self
     }
 }
