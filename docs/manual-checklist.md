@@ -143,7 +143,7 @@
 
 ## 导入和设置
 
-R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 `/Library/Input Methods/Scribe.app/Contents/Helpers/ScribeSettings.app`（0.1.0 还没有带中书设置，要从源码构建，换成构建出来的路径）。L1–L3 在真正导入过鼠须管配置之后做。
+R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 `/Library/Input Methods/Scribe.app/Contents/Helpers/ScribeSettings.app`（0.1.1 起才有）。L1–L3 在真正导入过鼠须管配置之后做。
 
 | # | 操作 | 预期 |
 |---|------|------|
@@ -211,3 +211,4 @@ R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 
 | U2 | 选「检查更新…」 | Sparkle 的窗口出现在最前面：有新版本时显示版本号和更新内容，没有时提示已是最新版本 |
 | U3 | 有新版本时，在窗口里点安装 | 要求输入管理员密码；装完后中书自动重新启动，菜单栏照常显示中西文状态，输入 `nihao` 照常出现候选窗 |
 | U4 | 有新版本时，打着字等每天的定时检查（或者把系统时间往后调一天） | 不弹出任何窗口，只在通知中心出现一条「X 版可以更新了」；点通知才打开 Sparkle 的窗口 |
+| U5 | 开着中书设置（I6）时按 U3 装好更新；中书设置如果还开着，按 ⌘Q 退出，再从输入法菜单选「设置…」 | 打开的中书设置是新版：它的菜单「ScribeSettings → 关于 ScribeSettings」里是新的版本号 |

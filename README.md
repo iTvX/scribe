@@ -15,7 +15,7 @@
 
 ## 从鼠须管迁移
 
-在输入法菜单里选「设置…」打开中书设置，「导入」页的一键导入会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。中书设置随中书一起安装（0.1.0 的安装包里还没有，要从源码构建）。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
+在输入法菜单里选「设置…」打开中书设置，「导入」页的一键导入会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。中书设置随中书一起安装（0.1.1 起才有；还在用 0.1.0 的话，先在输入法菜单里选「检查更新…」）。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
 
 ## 使用
 
@@ -61,7 +61,7 @@ Scripts/install-local.sh
 
 Scribe (中书) is a [Rime](https://rime.im) input method for macOS: [librime](https://github.com/rime/librime) as is, with a new Swift frontend that replaces Squirrel and behaves like it. Squirrel's `squirrel.yaml` and `squirrel.custom.yaml` keep working, and Scribe also has its own `scribe.yaml` format with `#RRGGBB` colours and themes that carry light and dark palettes. Scribe keeps its user data in `~/Library/Scribe` and can be installed next to Squirrel.
 
-- **Status**: 0.1.0, the first public release. macOS 14 or later.
+- **Status**: 0.1.1. macOS 14 or later.
 - **Install**: download `Scribe-<version>.pkg` from [GitHub Releases](https://github.com/iTvX/scribe/releases/latest) and open it, then add 中书 under Simplified Chinese in System Settings → Keyboard → Input Sources.
 - **Updates**: Sparkle checks once a day and posts a notification; the input menu also has Check for updates….
 - **Uninstall**: remove 中书 from Input Sources, run `"/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --quit`, and move `/Library/Input Methods/Scribe.app` to the Trash. `~/Library/Scribe` holds your settings and learned words.
