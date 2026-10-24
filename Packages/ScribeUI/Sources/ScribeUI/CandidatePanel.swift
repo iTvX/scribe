@@ -37,7 +37,7 @@ public final class CandidatePanel {
     private(set) var placement: PanelPlacement.Placement?
 
     private lazy var window = makeWindow()
-    private let panelView = PanelView()
+    private let panelView: PanelView
     private let backdrop = PanelBackground.makeView()
     private let backdropMask = CAShapeLayer()
 
@@ -52,14 +52,27 @@ public final class CandidatePanel {
     private var scrollPager = ScrollPager()
     private var statusTask: Task<Void, Never>?
 
-    public init() {}
+    public convenience init() {
+        self.init(panelView: PanelView())
+    }
+
+    init(panelView: PanelView) {
+        self.panelView = panelView
+    }
+
+    /// Allocate the hidden window when the input method starts, so its first
+    /// key does not have to create an AppKit window and backing layers.
+    public func prepare() {
+        _ = window
+    }
 
     /// Shows `snapshot` next to the caret. `caretRect` is in screen
     /// coordinates, as InputMethodKit reports it. With nothing to show the
     /// window hides, unless a status message is still up.
     public func show(_ snapshot: CandidateSnapshot, near caretRect: NSRect) {
         let content = PanelContent(snapshot)
-        guard PanelText(content, theme: currentTheme().theme) != nil else {
+        let drawingTheme = currentTheme()
+        guard let text = PanelText(content, theme: drawingTheme.theme) else {
             if statusTask == nil {
                 hide()
             }
@@ -69,7 +82,7 @@ public final class CandidatePanel {
         self.content = content
         self.caretRect = caretRect
         highlightedIndex = snapshot.highlightedIndex
-        display(highlighting: highlightedIndex)
+        display(text, highlighting: highlightedIndex, drawingTheme: drawingTheme)
     }
 
     /// Shows `message` alone, such as a new input mode, for a moment.
@@ -104,9 +117,11 @@ public final class CandidatePanel {
 
     // MARK: Showing
 
+    private typealias DrawingTheme = (theme: PanelTheme, appearance: NSAppearance)
+
     /// The theme for the current system appearance, and the appearance the
     /// window draws in.
-    private func currentTheme() -> (theme: PanelTheme, appearance: NSAppearance) {
+    private func currentTheme() -> DrawingTheme {
         let system = systemAppearance()
         let isDark = system.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let windowAppearance = appearance.forcesLightAppearance ? NSAppearance(named: .aqua)! : system
@@ -115,13 +130,18 @@ public final class CandidatePanel {
 
     /// Lays out, places and shows the window, with row `index` highlighted.
     private func display(highlighting index: Int) {
-        let (theme, windowAppearance) = currentTheme()
+        let drawingTheme = currentTheme()
         var content = content
         content.snapshot?.highlightedIndex = index
-        guard let text = PanelText(content, theme: theme) else {
+        guard let text = PanelText(content, theme: drawingTheme.theme) else {
             hide()
             return
         }
+        display(text, highlighting: index, drawingTheme: drawingTheme)
+    }
+
+    private func display(_ text: PanelText, highlighting index: Int, drawingTheme: DrawingTheme) {
+        let (theme, windowAppearance) = drawingTheme
         displayedIndex = index
 
         let screen = screenFrame(caretRect.origin)
@@ -173,8 +193,18 @@ public final class CandidatePanel {
 
         window.alphaValue = theme.alpha
         window.displayIfNeeded()
+        // displayIfNeeded does not draw a hidden, layer-backed view. Paint
+        // the first frame before ordering the window in, rather than leaving
+        // it to a later run-loop turn after the synchronous IMK key callback.
+        let firstFrame = !isVisible
+        if firstFrame {
+            panelView.display()
+        }
         window.invalidateShadow()
         window.orderFront(nil)
+        if firstFrame {
+            CATransaction.flush()
+        }
         isVisible = true
     }
 
@@ -192,6 +222,9 @@ public final class CandidatePanel {
         window.backgroundColor = .clear
         window.hasShadow = true
         window.hidesOnDeactivate = false
+        // Candidates must appear fully visible with the first key, without
+        // AppKit choosing a utility-window transition for this panel.
+        window.animationBehavior = .none
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.eventHandler = { [weak self] event in self?.handle(event) }
 

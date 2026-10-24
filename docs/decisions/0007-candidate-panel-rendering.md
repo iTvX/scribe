@@ -23,6 +23,8 @@
 
 ## 快照测试
 
+首帧显示不能只靠 `NSWindow.displayIfNeeded()`：隐藏的图层视图会把实际绘制留到后续事件循环。0.1.3 起，在每段输入第一次显示候选窗时先调用 `PanelView.display()` 画好内容，再显示窗口并提交 Core Animation 事务；窗口关闭出入动画，启动时预先创建隐藏窗口。后续可见状态的更新仍交给 AppKit 合并。`CandidatePresentationTests` 直接观察 `draw(_:)`，不用会主动触发绘制的截图接口，确认横写、竖写和隐藏后再次显示都在 `show` 返回前画好首帧。
+
 - `PanelRenderer.render(_:theme:appearance:screen:scale:)` 不开窗口，把面板画进位图：8 位 sRGB、预乘 alpha、2 倍、参考屏幕 1440×900。选 sRGB 是为了让皮肤颜色的十六进制值原样出现在像素里，方便检查；Display P3 里超出 sRGB 的颜色在快照里会被截断。毛玻璃背景和窗口阴影截不到，快照里这些地方是透明的。
 - native 配色的系统颜色从 `SystemPalette` 取，测试里用固定值，快照不受本机强调色和高亮色影响。测试里的字体一律写明，只用系统自带的字体（Avenir、PingFang SC、Helvetica、Menlo），不用 `NSFont.userFont`。
 - 基准图在 `Tests/Fixtures/snapshots/scribe/<组>/<名字>.png`。对比时任一通道（含 alpha）相差超过 4/255 的像素算不同，不同的像素超过 0.05% 就失败，尺寸不同也失败。`SnapshotHarnessTests` 证明了整体移动 1 点、标签字号小 1 点、高亮圆角加 1 点、颜色偏 9/255 都会失败。

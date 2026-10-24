@@ -29,7 +29,7 @@ struct PanelHit: Equatable {
 /// `draw(_:)`, rather than with Squirrel's shape layers and masks, so an
 /// offscreen render is exactly what the window shows.
 @MainActor
-final class PanelView: NSView {
+class PanelView: NSView {
     private(set) var theme: PanelTheme?
     private(set) var text: PanelText?
     private let textLayout = PanelTextLayout()
