@@ -88,6 +88,7 @@ final class RimeService {
         }
         engine.start(Self.configuration(identity: identity))
         startMaintenance(fullCheck: false)
+        candidatePanel.prepare()
     }
 
     /// Starts maintenance, deploying the frontend's config files on the way,
