@@ -33,6 +33,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="${ROOT}/build/release"
 DERIVED_DATA="${ROOT}/build/DerivedData-release"
+# The package root. ".noindex" keeps Spotlight from finding the app in it and
+# registering it with LaunchServices next to the installed Scribe.
+STAGING="${OUTPUT}/root.noindex"
 BUNDLE_ID="io.github.itvx.inputmethod.Scribe"
 INSTALL_LOCATION="/Library/Input Methods"
 BUILD_NUMBER="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M%S)}"
@@ -122,8 +125,8 @@ xcodebuild -quiet \
   build
 
 rm -rf "${OUTPUT}"
-mkdir -p "${OUTPUT}/root"
-APP="${OUTPUT}/root/Scribe.app"
+mkdir -p "${STAGING}"
+APP="${STAGING}/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
 
 # Software updates: only release builds carry the feed and its key.
@@ -164,7 +167,7 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${APP
 PACKAGE="${OUTPUT}/Scribe-${VERSION}-${BUILD_NUMBER}.pkg"
 
 pkgbuild --quiet \
-  --root "${OUTPUT}/root" \
+  --root "${STAGING}" \
   --component-plist "${ROOT}/Scripts/pkg/Scribe-component.plist" \
   --identifier "${BUNDLE_ID}" \
   --version "${VERSION}" \
@@ -201,7 +204,7 @@ else
   mv "${OUTPUT}/Scribe-unsigned.pkg" "${PACKAGE}"
 fi
 
-rm -rf "${OUTPUT}/root" "${OUTPUT}/Scribe-component.pkg" "${OUTPUT}/Distribution.xml"
+rm -rf "${STAGING}" "${OUTPUT}/Scribe-component.pkg" "${OUTPUT}/Distribution.xml"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   {
     echo "package=${PACKAGE}"

@@ -3,7 +3,7 @@
 # Xcode and the packaging scripts make them, so the Mac mini running CI keeps
 # knowing only Max's installed Scribe. Every registered path under the job's
 # workspace goes, nested bundles such as ScribeSettings.app and Sparkle's
-# Updater.app included, and paths already deleted, such as build/release/root.
+# Updater.app included, and paths already deleted, such as the package root.
 # Touches nothing outside the job's workspace otherwise.
 
 set -euo pipefail
