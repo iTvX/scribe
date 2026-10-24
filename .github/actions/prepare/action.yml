@@ -1,0 +1,56 @@
+name: Prepare a Mac
+description: >
+  Selects Xcode and XcodeGen and fetches librime and Sparkle. On GitHub's Macs
+  it selects the pinned Xcode and installs XcodeGen; on Max's Mac mini
+  (self-hosted) it changes nothing outside the job: no sudo xcode-select, no
+  Homebrew, only DEVELOPER_DIR for this job, and it fails if the pinned Xcode
+  or XcodeGen is missing.
+
+runs:
+  using: composite
+  steps:
+    # Scripts that would otherwise use ~/Library/Scribe use a temporary
+    # directory instead, so no job can touch Max's own, even by mistake.
+    - name: Keep out of the user's Scribe directory
+      shell: bash
+      run: echo "SCRIBE_USER_DIR=${RUNNER_TEMP}/scribe-user" >> "${GITHUB_ENV}"
+
+    - name: Select Xcode
+      shell: bash
+      run: |
+        if [[ "${RUNNER_ENVIRONMENT}" == "self-hosted" ]]; then
+          developer_dir="/Applications/Xcode.app/Contents/Developer"
+          echo "DEVELOPER_DIR=${developer_dir}" >> "${GITHUB_ENV}"
+          export DEVELOPER_DIR="${developer_dir}"
+        else
+          ls -d /Applications/Xcode_* || true
+          sudo xcode-select --switch "/Applications/Xcode_${XCODE_VERSION}.app"
+        fi
+        version="$(xcodebuild -version | sed -n 's/^Xcode //p')"
+        if [[ "${version}" != "${XCODE_VERSION}" ]]; then
+          echo "::error::Xcode ${version} is selected, but CI needs Xcode ${XCODE_VERSION}"
+          exit 1
+        fi
+        xcodebuild -version
+        swift --version
+
+    - name: XcodeGen
+      shell: bash
+      run: |
+        if [[ "${RUNNER_ENVIRONMENT}" == "self-hosted" ]]; then
+          command -v xcodegen || { echo "::error::Install XcodeGen on the self-hosted Mac"; exit 1; }
+        else
+          brew install xcodegen
+        fi
+
+    - name: Cache downloads
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: build/downloads
+        key: downloads-${{ hashFiles('Scripts/fetch-librime.sh', 'Scripts/fetch-sparkle.sh', 'Scripts/install-rime-ice.sh') }}
+
+    - name: Fetch librime and Sparkle
+      shell: bash
+      run: |
+        Scripts/fetch-librime.sh
+        Scripts/fetch-sparkle.sh

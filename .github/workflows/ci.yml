@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,37 +17,95 @@ concurrency:
 env:
   # The feed release builds check; see release.yml.
   SPARKLE_FEED_URL: https://github.com/iTvX/scribe/releases/download/appcast/appcast.xml
+  # The Xcode CI builds with, the one release builds use on the Mac mini.
+  XCODE_VERSION: "27.1"
 
 jobs:
-  build:
-    name: Test and build
-    runs-on: xcode-27
-    timeout-minutes: 30
+  # Picks the runner and whether anything but documentation changed. Max's
+  # own pushes and pull requests from branches of this repository run on his
+  # Mac mini when the CI_RUNNER variable is "self-hosted"; everything else,
+  # fork pull requests included, runs on GitHub's Macs. The runner checks the
+  # same again before every job (docs/development.md, "自托管 runner").
+  route:
+    name: Route
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runner: ${{ steps.runner.outputs.runner }}
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - name: Pick the runner
+        id: runner
+        env:
+          CI_RUNNER: ${{ vars.CI_RUNNER }}
+          ACTOR: ${{ github.actor }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          EVENT: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          own=false
+          if [[ "${ACTOR}" == "iTvX" && "${TRIGGERING_ACTOR}" == "iTvX" ]]; then
+            if [[ "${EVENT}" == "push" || ( "${EVENT}" == "pull_request" && "${HEAD_REPO}" == "${REPO}" ) ]]; then
+              own=true
+            fi
+          fi
+          if [[ "${CI_RUNNER}" == "self-hosted" && "${own}" == "true" ]]; then
+            echo 'runner=["self-hosted","macOS","ARM64","scribe-mac"]' >> "${GITHUB_OUTPUT}"
+            echo "Max's Mac mini"
+          else
+            echo 'runner="xcode-27"' >> "${GITHUB_OUTPUT}"
+            echo "GitHub's Macs"
+          fi
 
+      - name: Look for changes beyond documentation
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ "${EVENT}" == "pull_request" ]]; then
+            files="$(gh api "repos/${REPO}/pulls/${PR}/files" --paginate --jq '.[].filename')"
+          elif [[ -n "${BEFORE}" && "${BEFORE}" != 0000000000000000000000000000000000000000 ]]; then
+            files="$(gh api "repos/${REPO}/compare/${BEFORE}...${SHA}" --jq '.files[].filename')" || files=""
+          else
+            files=""
+          fi
+          echo "${files}"
+          code=true
+          if [[ -n "${files}" ]] && ! grep -qvE '^docs/|\.md$' <<< "${files}"; then
+            code=false
+          fi
+          echo "code=${code}" >> "${GITHUB_OUTPUT}"
+          echo "code changed: ${code}"
+
+  # The packages in two groups of about the same length, at the same time.
+  # With the three jobs below that makes five, as many Macs as GitHub runs
+  # at once for this account.
+  packages:
+    name: Test packages (${{ matrix.name }})
+    needs: route
+    if: needs.route.outputs.code == 'true'
+    runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: RimeKit, ScribeConfig, ScribeCore, release tooling
+            packages: Packages/RimeKit Packages/ScribeConfig Packages/ScribeCore Tools/scribe-release
+          - name: ScribeUI
+            packages: Packages/ScribeUI
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Select Xcode
-        run: |
-          sudo xcode-select --switch /Applications/Xcode_27.0.app
-          xcodebuild -version
-          swift --version
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Cache downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: build/downloads
-          key: downloads-${{ hashFiles('Scripts/fetch-librime.sh', 'Scripts/fetch-sparkle.sh', 'Scripts/install-rime-ice.sh') }}
-
-      - name: Fetch librime
-        run: Scripts/fetch-librime.sh
-
-      - name: Fetch Sparkle
-        run: Scripts/fetch-sparkle.sh
+      - name: Prepare
+        uses: ./.github/actions/prepare
 
       - name: Check that only RimeKit imports librime
         run: |
@@ -57,15 +116,38 @@ jobs:
           fi
 
       - name: Test packages
+        env:
+          PACKAGES: ${{ matrix.packages }}
         run: |
-          for package in Packages/*/; do
+          for package in ${PACKAGES}; do
             echo "::group::swift test ${package}"
             swift test --package-path "${package}" -Xswiftc -warnings-as-errors
             echo "::endgroup::"
           done
 
-      - name: Test release tooling
-        run: swift test --package-path Tools/scribe-release -Xswiftc -warnings-as-errors
+      # Expected, actual and diff images of candidate window snapshots that
+      # did not match, and renders of snapshots with no baseline yet.
+      - name: Upload snapshot failures
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: snapshot-failures
+          path: build/snapshot-failures
+          if-no-files-found: ignore
+          retention-days: 14
+
+  app:
+    name: Build the app
+    needs: route
+    if: needs.route.outputs.code == 'true'
+    runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -98,6 +180,27 @@ jobs:
       - name: Play the gate replays
         run: Scripts/check-gate.sh
 
+      - name: Forget the built apps
+        if: always() && runner.environment == 'self-hosted'
+        run: Scripts/ci-forget-built-apps.sh
+
+  # A Debug build of its own, so it runs next to the Release build above.
+  app-tests:
+    name: Test the app
+    needs: route
+    if: needs.route.outputs.code == 'true'
+    runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
       - name: Test app
         run: |
           xcodebuild \
@@ -108,6 +211,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             test
+
+      - name: Forget the built apps
+        if: always() && runner.environment == 'self-hosted'
+        run: Scripts/ci-forget-built-apps.sh
+
+  package:
+    name: Package
+    needs: route
+    if: needs.route.outputs.code == 'true'
+    runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      - name: Generate Xcode project
+        run: xcodegen generate
 
       # The package below trusts this key, which signs the dry-run appcast. CI
       # never has the real update signing key, which stays in the release
@@ -143,13 +266,10 @@ jobs:
           SPARKLE_KEY_FILE="${RUNNER_TEMP}/scribe-throwaway-key" \
             Scripts/make-appcast.sh "${PACKAGE}" build/release/publish
 
-      # Expected, actual and diff images of candidate window snapshots that
-      # did not match, and renders of snapshots with no baseline yet.
-      - name: Upload snapshot failures
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: snapshot-failures
-          path: build/snapshot-failures
-          if-no-files-found: ignore
-          retention-days: 14
+      - name: Remove the throwaway key
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/scribe-throwaway-key"
+
+      - name: Forget the built apps
+        if: always() && runner.environment == 'self-hosted'
+        run: Scripts/ci-forget-built-apps.sh
