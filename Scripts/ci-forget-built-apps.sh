@@ -2,6 +2,7 @@
 # Removes the apps a CI job built from LaunchServices, which Xcode registers
 # as it builds them, so the Mac mini running CI keeps knowing only Max's
 # installed Scribe. Touches nothing outside the job's workspace otherwise.
+# (Timing probe; this pull request is closed without merging.)
 
 set -euo pipefail
 
