@@ -112,6 +112,54 @@
 | F2 | 全屏时把光标移到屏幕最底下一行，输入 `nihao` | 候选窗完整显示在屏幕内 |
 | F3 | 有副屏时，在副屏上全屏的应用里输入 `nihao` | 候选窗出现在副屏上 |
 
+## 鼠标和触控板
+
+在文本编辑里测。K4 要在终端里测，因为终端的 `app_options` 关了行内显示，输入码显示在候选窗里。K5 要先在 `~/Library/Scribe/scribe.custom.yaml` 里写 `patch: {appearance/show_paging: true}` 并重新部署（测完删掉，再重新部署）。
+
+| # | 操作 | 预期 |
+|---|------|------|
+| K1 | 输入 `nihao`，用鼠标点候选窗里的第二个候选 | 第二个候选上屏 |
+| K2 | 输入 `nihao`，把鼠标移到第三个候选上，不点 | 高亮框跟着鼠标移到第三个候选 |
+| K3 | 紧接 K2，鼠标不动，按空格 | 上屏的是第一个候选（悬停只改显示，不改选中） |
+| K4 | 在终端里切到中文，输入 `nihao`，点候选窗里输入码的 `ni` | 输入码里的「‸」向左移一个字母 |
+| K5 | 输入 `ni`，点候选窗右边的下一页箭头 | 候选窗换成第二页 |
+| K6 | 输入 `ni`，鼠标停在候选窗上，滚轮往下滚两三格 | 候选窗换成第二页 |
+| K7 | 紧接 K6，滚轮往上滚两三格 | 回到第一页 |
+| K8 | 输入 `ni`，两指在触控板上向右横扫一下 | 候选窗翻一页（竖写时同一个手势往反方向翻） |
+
+## 输入法菜单
+
+切到中书后打开菜单栏的输入法菜单。重新部署见 B12，检查更新见 U1、U2。
+
+| # | 操作 | 预期 |
+|---|------|------|
+| I1 | 选「同步用户数据」 | 同步文件夹（默认 `~/Library/Scribe/sync`，`installation.yaml` 里设了 `sync_dir` 就是那里）下中书自己的子文件夹里，`.userdb.txt` 的修改时间变成刚才 |
+| I2 | 选「日志目录…」 | 访达打开 `~/Library/Logs/Scribe` |
+| I3 | 选「用户目录…」 | 访达打开 `~/Library/Scribe` |
+| I4 | 选「使用说明…」 | 浏览器打开 GitHub 上中书的 README |
+| I5 | 在文本编辑里按 Control-Option-` | 通知中心先后出现「正在部署…」「部署完成。」 |
+| I6 | 把系统语言换成英文（系统设置 → 通用 → 语言与地区），注销再登录，打开输入法菜单 | 菜单项是 Deploy、Sync user data、Logs…、User folder…、Help…、Check for updates… |
+
+## 导入和设置
+
+R1 用临时目录，不碰 `~/Library/Scribe`。中书设置（ScribeSettings.app）要从源码构建，下面的 `<中书设置>` 换成它的路径，比如 `build/DerivedData/Build/Products/Release/ScribeSettings.app`。L1–L3 在真正导入过鼠须管配置之后做。
+
+| # | 操作 | 预期 |
+|---|------|------|
+| R1 | 在终端运行 `mkdir -p /tmp/scribe-lua/rime/lua /tmp/scribe-lua/scribe && echo 'if rime_api.get_distribution_code_name() == "Squirrel" then end' > /tmp/scribe-lua/rime/lua/check.lua`，再运行 `"<中书设置>/Contents/MacOS/ScribeSettings" -ScribeImportSource /tmp/scribe-lua/rime -ScribeUserDirectory /tmp/scribe-lua/scribe -ScribeImportOnLaunch YES` | 导入报告的「需要留意」里有「lua/check.lua 第 1 行按前端名称判断，这段脚本在中书里可能走另一条分支。」（测完退出中书设置，删掉 `/tmp/scribe-lua`） |
+| N1 | 打开中书设置 → 外观，点开「浅色主题」 | 列表里的主题显示的是名字（比如「微信键盘」），不是 ID |
+| N2 | 紧接 N1，选一个写了作者的主题，鼠标停在「浅色主题」上 | 浮出的提示是这个主题的作者 |
+| L1 | 导入之后，输入法菜单 → 重新部署 | 通知中心出现「部署完成。」，没有「部署出错，请查看日志。」 |
+| L2 | 在鼠须管里打一个你常打、鼠须管已经学会的词（比如一个人名），记下它在第几位；切到中书打同样的编码 | 这个词在中书里也在同一位 |
+| L3 | 挑三个你常用的编码，在鼠须管和中书里各打一遍，比较第一页 | 两边第一页的候选和顺序一样 |
+
+## 命令行工具
+
+| # | 操作 | 预期 |
+|---|------|------|
+| X1 | 在终端运行 `rime_dir=/tmp/scribe-plum bash "/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install" prelude` | `/tmp/scribe-plum/default.yaml` 出现（测完删掉 `/tmp/scribe-plum`） |
+| X2 | 在终端运行 `cd ~/Library/Scribe && "/Library/Input Methods/Scribe.app/Contents/MacOS/rime_dict_manager" --list` | 列出你的用户词库名，比如 `rime_ice` |
+
 ## 半透明候选窗
 
 玻璃背景截不到离屏图里，只能在屏幕上看。先在 `~/Library/Scribe/squirrel.custom.yaml` 里打开 `style/translucency: true`，换一个背景色带透明度的配色，重新部署，再把候选窗移到一个色彩鲜艳的窗口（比如一张彩色图片）上面输入 `nihao`。测完删掉补丁，再重新部署。
