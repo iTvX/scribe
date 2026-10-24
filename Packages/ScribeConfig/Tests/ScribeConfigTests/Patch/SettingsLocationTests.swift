@@ -44,4 +44,15 @@ struct SettingsLocationTests {
         #expect(both.sharedDirectory == Self.shared)
         #expect(!both.isLive)
     }
+
+    @Test func settingsInsideScribeUseThatScribesSharedData() {
+        let helper = URL(filePath: "/Library/Input Methods/Scribe.app/Contents/Helpers/ScribeSettings.app", directoryHint: .isDirectory)
+        #expect(SettingsLocation.enclosingScribeSharedData(of: helper)?.path(percentEncoded: false)
+            == "/Library/Input Methods/Scribe.app/Contents/SharedSupport/")
+    }
+
+    @Test func settingsOnTheirOwnHaveNoEnclosingScribe() {
+        let standalone = URL(filePath: "/Users/test/build/Release/ScribeSettings.app", directoryHint: .isDirectory)
+        #expect(SettingsLocation.enclosingScribeSharedData(of: standalone) == nil)
+    }
 }

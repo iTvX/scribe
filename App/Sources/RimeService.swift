@@ -251,6 +251,17 @@ final class RimeService {
         }
     }
 
+    /// Scribe Settings, embedded in Scribe.app.
+    static let settingsApp = Bundle.main.bundleURL.appending(path: "Contents/Helpers/ScribeSettings.app", directoryHint: .isDirectory)
+
+    func openSettings() {
+        NSWorkspace.shared.openApplication(at: Self.settingsApp, configuration: NSWorkspace.OpenConfiguration()) { _, error in
+            if let error {
+                Log.app.error("Could not open Scribe Settings: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     private static func speak(_ message: String) {
         let process = Process()
         process.executableURL = URL(filePath: "/usr/bin/say")

@@ -1,4 +1,5 @@
 import AppKit
+import RimeKit
 import SwiftUI
 
 @main
@@ -9,6 +10,9 @@ struct ScribeSettingsApp: App {
     @State private var looks: LooksModel
 
     init() {
+        if CommandLine.arguments.contains("--self-test") {
+            Self.selfTest()
+        }
         let directories = SettingsDirectories()
         _importModel = State(initialValue: ImportModel(directories: directories))
         _defaults = State(initialValue: DefaultsModel(directories: directories))
@@ -21,6 +25,19 @@ struct ScribeSettingsApp: App {
                 .task { launch() }
         }
         .windowResizability(.contentMinSize)
+    }
+
+    /// `ScribeSettings --self-test`: prints where librime and the shared data
+    /// come from, without opening a window. Inside Scribe.app, librime is
+    /// the outer bundle's.
+    private static func selfTest() -> Never {
+        guard let version = Librime.version else {
+            print("librime: not loaded")
+            exit(1)
+        }
+        print("librime \(version)")
+        print("shared data: \(SettingsDirectories().shared?.path(percentEncoded: false) ?? "none")")
+        exit(0)
     }
 
     private func launch() {

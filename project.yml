@@ -84,7 +84,30 @@ targets:
       - framework: Frameworks/Sparkle.framework
         embed: true
         codeSign: true
+      # Scribe Settings ships inside Scribe.app, in Contents/Helpers, so there
+      # is one thing to install; the script below takes its copy of librime
+      # out, as it loads Scribe.app's, and signs it.
+      - target: ScribeSettings
+        embed: true
+        codeSign: false
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
     postBuildScripts:
+      - name: Embed Scribe Settings
+        basedOnDependencyAnalysis: false
+        script: |
+          helper="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Helpers/ScribeSettings.app"
+          # librime comes from Scribe.app/Contents/Frameworks instead; see the
+          # ScribeSettings target's runpath search paths.
+          rm -f "${helper}/Contents/Frameworks/librime.1.dylib"
+          rmdir "${helper}/Contents/Frameworks" 2>/dev/null || true
+          if [ "${CODE_SIGNING_ALLOWED}" != "YES" ]; then
+            exit 0
+          fi
+          identity="${EXPANDED_CODE_SIGN_IDENTITY:--}"
+          codesign --force --sign "${identity}" --options runtime \
+            --entitlements "${SRCROOT}/Settings/ScribeSettings.entitlements" "${helper}"
       - name: Sign the command line tools
         basedOnDependencyAnalysis: false
         script: |
@@ -155,6 +178,7 @@ targets:
     dependencies:
       - package: ScribeConfig
       - package: ScribeCore
+      - package: RimeKit
     settings:
       base:
         PRODUCT_NAME: ScribeSettings
@@ -165,7 +189,9 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         # ScribeConfig links librime through RimeKit; see the Scribe target.
         CODE_SIGN_ENTITLEMENTS: Settings/ScribeSettings.entitlements
-        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        # Its own Frameworks when built on its own; Scribe.app's when it ships
+        # inside it, in Contents/Helpers.
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks @executable_path/../../../../Frameworks"
 
 schemes:
   Scribe:

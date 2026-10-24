@@ -5,11 +5,12 @@ import Testing
 @MainActor
 @Test func menuOffersTheMaintenanceCommandsInOrder() {
     let menu = InputMenu.make(target: NSObject())
-    #expect(menu.items.map(\.title) == ["Deploy", "Sync user data", "Logs…", "User folder…", "Help…"])
+    #expect(menu.items.map(\.title) == ["Deploy", "Sync user data", "Settings…", "Logs…", "User folder…", "Help…"])
     #expect(menu.items.map(\.action) == [
-        InputMenu.Command.deploy.action, InputMenu.Command.sync.action, InputMenu.Command.openLogs.action,
-        InputMenu.Command.openUserFolder.action, InputMenu.Command.openHelp.action,
+        InputMenu.Command.deploy.action, InputMenu.Command.sync.action, InputMenu.Command.openSettings.action,
+        InputMenu.Command.openLogs.action, InputMenu.Command.openUserFolder.action, InputMenu.Command.openHelp.action,
     ])
+    #expect(InputMenu.Command.openSettings.action == Selector(("openSettings:")))
     // As in Squirrel: Control-Option-` deploys.
     #expect(menu.items[0].keyEquivalent == "`")
     #expect(menu.items[0].keyEquivalentModifierMask == [.control, .option])
@@ -17,12 +18,12 @@ import Testing
 
 @MainActor
 @Test func onlyBuildsThatUpdateThemselvesOfferToCheckForUpdates() {
-    #expect(InputMenu.make(target: NSObject(), offersUpdates: false).items.count == 5)
+    #expect(InputMenu.make(target: NSObject(), offersUpdates: false).items.count == 6)
     let menu = InputMenu.make(target: NSObject(), offersUpdates: true)
-    #expect(menu.items.count == 6)
-    #expect(menu.items[5].title == "Check for updates…")
-    #expect(menu.items[5].action == InputMenu.Command.checkForUpdates.action)
-    #expect(menu.items[5].action == Selector(("checkForUpdates:")))
+    #expect(menu.items.count == 7)
+    #expect(menu.items[6].title == "Check for updates…")
+    #expect(menu.items[6].action == InputMenu.Command.checkForUpdates.action)
+    #expect(menu.items[6].action == Selector(("checkForUpdates:")))
 }
 
 /// Every string the app shows is translated into English, Simplified and

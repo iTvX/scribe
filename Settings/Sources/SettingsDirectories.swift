@@ -60,9 +60,13 @@ struct SettingsDirectories {
         isLive && !NSRunningApplication.runningApplications(withBundleIdentifier: Self.scribeBundleIdentifier).isEmpty
     }
 
-    /// Scribe.app/Contents/SharedSupport, as the input method finds it.
+    /// Scribe.app/Contents/SharedSupport: of the Scribe that Settings ships
+    /// inside, or else of the one LaunchServices finds.
     @MainActor
     private static func installedSharedData() -> URL? {
+        if let enclosing = SettingsLocation.enclosingScribeSharedData(of: Bundle.main.bundleURL) {
+            return enclosing
+        }
         guard let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: scribeBundleIdentifier) else { return nil }
         return Bundle(url: app)?.sharedSupportURL ?? app.appending(path: "Contents/SharedSupport", directoryHint: .isDirectory)
     }

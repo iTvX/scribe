@@ -104,7 +104,7 @@ Scripts/check-gate.sh
 
 ## 输入法菜单
 
-切换到中书后，菜单栏输入法菜单里有：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明。用安装包装到 `/Library/Input Methods` 的发布版还有「检查更新」：中书每天自动检查一次，有新版本时只发一条通知，不在打字时弹窗，安装要管理员密码。界面跟随系统语言（英文、简体中文、繁体中文）。
+切换到中书后，菜单栏输入法菜单里有：重新部署（Control-Option-`）、同步用户数据、设置、日志目录、用户目录、使用说明。「设置…」打开 `Scribe.app/Contents/Helpers/ScribeSettings.app`：中书设置随中书一起构建和安装，用 `Scribe.app/Contents/Frameworks` 里的 librime（自己不再带一份），用 `Scribe.app/Contents/SharedSupport` 的共享数据。单独构建的 ScribeSettings.app（`ScribeSettings` scheme）还是自带 librime，方便开发。用安装包装到 `/Library/Input Methods` 的发布版还有「检查更新」：中书每天自动检查一次，有新版本时只发一条通知，不在打字时弹窗，安装要管理员密码。界面跟随系统语言（英文、简体中文、繁体中文）。
 
 如果中书在两秒内又被启动（多半是配置有错导致启动时崩溃），这次不加载 Rime，并语音提示；改好配置后选「重新部署」即可。
 

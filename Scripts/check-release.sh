@@ -101,6 +101,14 @@ for tool in rime_deployer rime_dict_manager; do
 done
 pass "ships ${TOOLS[*]} next to Scribe, universal"
 
+SETTINGS="${APP}/Contents/Helpers/ScribeSettings.app"
+[[ -x "${SETTINGS}/Contents/MacOS/ScribeSettings" ]] || fail "Scribe Settings is not in Contents/Helpers"
+for arch in arm64 x86_64; do
+  lipo "${SETTINGS}/Contents/MacOS/ScribeSettings" -verify_arch "${arch}" || fail "Scribe Settings lacks ${arch}"
+done
+[[ ! -e "${SETTINGS}/Contents/Frameworks/librime.1.dylib" ]] || fail "Scribe Settings carries a second librime"
+pass "ships Scribe Settings in Contents/Helpers, universal, using Scribe.app's librime"
+
 # Software updates (docs/decisions/0011-releases-and-updates.md).
 SPARKLE="${APP}/Contents/Frameworks/Sparkle.framework"
 [[ -f "${SPARKLE}/Versions/B/Sparkle" ]] || fail "Sparkle.framework is not embedded"
@@ -138,6 +146,8 @@ for tool in "${TOOLS[@]}"; do
 done
 # Sparkle, from the software update checks above.
 CODE+=("${SPARKLE}" "${SPARKLE}/Versions/B/Autoupdate" "${SPARKLE}/Versions/B/Updater.app")
+CODE+=("${SETTINGS}")
+codesign --verify --deep --strict "${SETTINGS}" || fail "Scribe Settings signature does not verify"
 for code in "${CODE[@]}"; do
   codesign --verify --strict "${code}" || fail "${code##*/} signature does not verify"
   details="$(codesign --display --verbose=2 "${code}" 2>&1)"
@@ -148,7 +158,7 @@ for code in "${CODE[@]}"; do
     grep -q "Timestamp=" <<< "${details}" || fail "${code##*/} has no secure timestamp"
   fi
 done
-for code in "${APP}" "${APP}/Contents/MacOS/rime_deployer" "${APP}/Contents/MacOS/rime_dict_manager"; do
+for code in "${APP}" "${APP}/Contents/MacOS/rime_deployer" "${APP}/Contents/MacOS/rime_dict_manager" "${SETTINGS}"; do
   entitlements="$(codesign --display --entitlements - --xml "${code}" 2>/dev/null)"
   grep -q "com.apple.security.cs.disable-library-validation" <<< "${entitlements}" ||
     fail "${code##*/} lacks the disable-library-validation entitlement"
@@ -156,9 +166,9 @@ for code in "${APP}" "${APP}/Contents/MacOS/rime_deployer" "${APP}/Contents/MacO
     fail "${code##*/} carries get-task-allow"
 done
 if [[ "${SIGNED}" == 1 ]]; then
-  pass "Scribe.app, librime, its plugins and the tools signed by ${TEAM_ID} with hardened runtime and timestamp"
+  pass "Scribe.app, librime, its plugins, the tools and Scribe Settings signed by ${TEAM_ID} with hardened runtime and timestamp"
 else
-  pass "Scribe.app, librime, its plugins and the tools signed ad hoc with hardened runtime"
+  pass "Scribe.app, librime, its plugins, the tools and Scribe Settings signed ad hoc with hardened runtime"
 fi
 
 self_test="$("${APP}/Contents/MacOS/Scribe" --self-test 2>/dev/null)" || fail "self-test failed: ${self_test}"
@@ -175,6 +185,13 @@ usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 [[ "${usage}" == "invalid arguments." ]] || fail "rime_deployer does not run: ${usage}"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
+
+settings_test="$("${SETTINGS}/Contents/MacOS/ScribeSettings" --self-test 2>/dev/null)" ||
+  fail "Scribe Settings does not launch: ${settings_test}"
+grep -q '^librime ' <<< "${settings_test}" || fail "Scribe Settings does not load librime: ${settings_test}"
+grep -qF "shared data: ${APP}/Contents/SharedSupport" <<< "${settings_test}" ||
+  fail "Scribe Settings does not use Scribe.app's shared data: ${settings_test}"
+pass "Scribe Settings launches with Scribe.app's librime and shared data"
 
 # The postinstall script prebuilds the shared data in place, as root through
 # the installer. macOS does not let other processes change a signed app's

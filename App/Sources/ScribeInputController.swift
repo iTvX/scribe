@@ -71,6 +71,12 @@ final class ScribeInputController: IMKInputController {
         }
     }
 
+    @objc func openSettings(_ sender: Any?) {
+        MainActor.assumeIsolated {
+            RimeService.shared.openSettings()
+        }
+    }
+
     @objc func openLogs(_ sender: Any?) {
         MainActor.assumeIsolated {
             RimeService.shared.open(.logs)

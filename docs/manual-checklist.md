@@ -138,11 +138,12 @@
 | I3 | 选「用户目录…」 | 访达打开 `~/Library/Scribe` |
 | I4 | 选「使用说明…」 | 浏览器打开 GitHub 上中书的 README |
 | I5 | 在文本编辑里按 Control-Option-` | 通知中心先后出现「正在部署…」「部署完成。」 |
-| I6 | 把系统语言换成英文（系统设置 → 通用 → 语言与地区），注销再登录，打开输入法菜单 | 菜单项是 Deploy、Sync user data、Logs…、User folder…、Help…、Check for updates… |
+| I6 | 选「设置…」 | 中书设置的窗口出现在最前面，左边是导入、方案、外观、快捷键 |
+| I7 | 把系统语言换成英文（系统设置 → 通用 → 语言与地区），注销再登录，打开输入法菜单 | 菜单项是 Deploy、Sync user data、Settings…、Logs…、User folder…、Help…、Check for updates… |
 
 ## 导入和设置
 
-R1 用临时目录，不碰 `~/Library/Scribe`。中书设置（ScribeSettings.app）要从源码构建，下面的 `<中书设置>` 换成它的路径，比如 `build/DerivedData/Build/Products/Release/ScribeSettings.app`。L1–L3 在真正导入过鼠须管配置之后做。
+R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 `/Library/Input Methods/Scribe.app/Contents/Helpers/ScribeSettings.app`（0.1.0 还没有带中书设置，要从源码构建，换成构建出来的路径）。L1–L3 在真正导入过鼠须管配置之后做。
 
 | # | 操作 | 预期 |
 |---|------|------|

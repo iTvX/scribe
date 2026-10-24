@@ -6,6 +6,7 @@
 #   2. the input method process starts
 #   3. it logs the librime version and listens for clients
 #   4. a full redeploy succeeds, and librime logs no errors while doing it
+#   5. Scribe Settings, inside the app, loads librime and finds the app's shared data
 #
 # Set DEPLOY_TIMEOUT (seconds, default 600) for large configurations.
 
@@ -86,5 +87,12 @@ if [[ -n "${errors}" ]]; then
   fail "librime logged errors while deploying"
 fi
 pass "full redeploy succeeded with no librime errors (${warnings:-0} warnings in ${LOG_DIR})"
+
+# 5. Scribe Settings, which ships inside the app.
+settings_test="$("${APP}/Contents/Helpers/ScribeSettings.app/Contents/MacOS/ScribeSettings" --self-test 2>/dev/null)" ||
+  fail "Scribe Settings does not launch: ${settings_test}"
+grep -qF "shared data: ${APP}/Contents/SharedSupport" <<< "${settings_test}" ||
+  fail "Scribe Settings does not use the installed app's shared data: ${settings_test}"
+pass "Scribe Settings launches with the installed app's $(head -1 <<< "${settings_test}")"
 
 echo "Scribe is installed and working; switch to it in any app to type."

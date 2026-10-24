@@ -5,6 +5,8 @@ enum InputMenu {
     enum Command: CaseIterable {
         case deploy
         case sync
+        /// Scribe Settings, which ships inside Scribe.app.
+        case openSettings
         case openLogs
         case openUserFolder
         case openHelp
@@ -16,6 +18,7 @@ enum InputMenu {
             switch self {
             case .deploy: "Deploy"
             case .sync: "Sync user data"
+            case .openSettings: "Settings…"
             case .openLogs: "Logs…"
             case .openUserFolder: "User folder…"
             case .openHelp: "Help…"
@@ -29,6 +32,7 @@ enum InputMenu {
             switch self {
             case .deploy: Selector(("deploy:"))
             case .sync: Selector(("syncUserData:"))
+            case .openSettings: Selector(("openSettings:"))
             case .openLogs: Selector(("openLogs:"))
             case .openUserFolder: Selector(("openUserFolder:"))
             case .openHelp: Selector(("openHelp:"))
