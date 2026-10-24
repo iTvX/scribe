@@ -93,7 +93,7 @@ librime 的「同步用户数据」把每个安装的用户词写到同步文件
 | plum：`bash rime-install <配方>`（装进 `~/Library/Rime`） | `rime_dir="$HOME/Library/Scribe" bash "/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install" <配方>` |
 | 日志在 `$TMPDIR` 里的 `rime.squirrel.*` | `~/Library/Logs/Scribe` 里的 `rime.scribe.*` |
 
-用 plum 装完配方，在中书的输入法菜单里选「重新部署」。中书自带的 `rime-install` 和鼠须管的是同一版 plum。
+中书设置的「方案」页可以直接生成这条命令：在「用东风破（plum）安装方案」里填配方，点「拷贝命令」，粘贴到终端运行。装完配方，在中书的输入法菜单里选「重新部署」。中书自带的 `rime-install` 和鼠须管的是同一版 plum。
 
 输入法菜单里的项目和鼠须管同名：重新部署（Control-Option-`）、同步用户数据、日志目录、用户目录、使用说明，另外有「检查更新」。
 

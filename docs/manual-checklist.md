@@ -158,8 +158,9 @@ R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 
 
 | # | 操作 | 预期 |
 |---|------|------|
-| X1 | 在终端运行 `rime_dir=/tmp/scribe-plum bash "/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install" prelude` | `/tmp/scribe-plum/default.yaml` 出现（测完删掉 `/tmp/scribe-plum`） |
-| X2 | 在终端运行 `cd ~/Library/Scribe && "/Library/Input Methods/Scribe.app/Contents/MacOS/rime_dict_manager" --list` | 列出你的用户词库名，比如 `rime_ice` |
+| X1 | 中书设置 → 方案，在「用东风破（plum）安装方案」的「配方」里输入 `prelude` | 下面的命令是 `rime_dir='/Users/<你>/Library/Scribe' bash '/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install' prelude` |
+| X2 | 紧接 X1，点「拷贝命令」，在终端里粘贴，把 `rime_dir=` 后面引号里的目录改成 `/tmp/scribe-plum` 再回车 | `/tmp/scribe-plum/default.yaml` 出现（测完删掉 `/tmp/scribe-plum`） |
+| X3 | 在终端运行 `cd ~/Library/Scribe && "/Library/Input Methods/Scribe.app/Contents/MacOS/rime_dict_manager" --list` | 列出你的用户词库名，比如 `rime_ice` |
 
 ## 半透明候选窗
 

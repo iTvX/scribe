@@ -46,6 +46,12 @@ final class DefaultsModel {
     static let defaultPageSize = 5
     static let switchKeyNames = ["Shift_L", "Shift_R", "Control_L", "Control_R", "Caps_Lock", "Eisu_toggle"]
 
+    /// plum's rime-install from the Scribe.app whose shared data Settings
+    /// uses, installing into the user directory.
+    var plum: PlumCommand? {
+        directories.shared.flatMap { PlumCommand(sharedDirectory: $0, userDirectory: directories.user) }
+    }
+
     init(directories: SettingsDirectories) {
         self.directories = directories
     }
