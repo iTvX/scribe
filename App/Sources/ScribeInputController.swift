@@ -15,7 +15,7 @@ final class ScribeInputController: IMKInputController {
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
-        guard let event, let client = IMKTextClient(sender) else { return false }
+        guard let event, let client = IMKTextClient(sender, controller: self) else { return false }
         let input = KeyInput(event)
         let state = state
         return MainActor.assumeIsolated {
@@ -24,7 +24,7 @@ final class ScribeInputController: IMKInputController {
     }
 
     override func activateServer(_ sender: Any!) {
-        Log.input.info("Activated for \(IMKTextClient(sender)?.bundleIdentifier ?? "unknown client", privacy: .public)")
+        Log.input.info("Activated for \(IMKTextClient(sender, controller: self)?.bundleIdentifier ?? "unknown client", privacy: .public)")
         // This process only sees its own modifier events; ask the session
         // for the Caps Lock state.
         let capsLockOn = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
@@ -35,12 +35,12 @@ final class ScribeInputController: IMKInputController {
             return layout
         }
         if let layout {
-            IMKTextClient(sender)?.overrideKeyboard(named: layout)
+            IMKTextClient(sender, controller: self)?.overrideKeyboard(named: layout)
         }
     }
 
     override func deactivateServer(_ sender: Any!) {
-        guard let client = IMKTextClient(sender) else { return }
+        guard let client = IMKTextClient(sender, controller: self) else { return }
         Log.input.info("Deactivated for \(client.bundleIdentifier, privacy: .public)")
         let state = state
         MainActor.assumeIsolated {
@@ -102,7 +102,7 @@ final class ScribeInputController: IMKInputController {
     }
 
     override func commitComposition(_ sender: Any!) {
-        guard let client = IMKTextClient(sender) else { return }
+        guard let client = IMKTextClient(sender, controller: self) else { return }
         let state = state
         MainActor.assumeIsolated {
             state.existingAdapter?.commitComposition(client: client)

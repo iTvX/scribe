@@ -116,7 +116,8 @@ import Testing
         _ = session.handle(KeyEvent(name: "a")!)
         _ = session.handle(KeyEvent(name: "s")!)
         chordTimer.fire()
-        #expect(actions == [.setMarkedText(MarkedText(text: "as", caret: 2)), .commit("as")])
+        // Unmarked, as in Squirrel.
+        #expect(actions == [.setMarkedText(MarkedText(text: "as", caret: 2, selectionStart: nil)), .commit("as")])
     }
 
     @Test func committingAfterMarkedTextNeedsNoForcing() {

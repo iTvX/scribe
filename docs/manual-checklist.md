@@ -64,7 +64,7 @@
 | S2 | Safari | 接着按空格 | 地址栏里是「你好」，下面的搜索建议跟着更新 |
 | S3 | Safari | Cmd+L，输入 `nihao` 后按回车 | 地址栏里是 `nihao`，页面没有跳转 |
 | S4 | Safari | Cmd+L，输入 `nihao` 后点网页正文 | 地址栏里留下 `nihao`，没有下划线 |
-| C1 | Chrome | Cmd+L，输入 `nihao` | 拼音内嵌在地址栏里（`app_options` 打开了 `inline`） |
+| C1 | Chrome | Cmd+L，输入 `nihao` | 拼音内嵌在地址栏里（`app_options` 打开了 `inline`），只有下划线、没有底色，和鼠须管一样 |
 | C2 | Chrome | 接着按空格 | 地址栏里是「你好」，下面的搜索建议跟着更新 |
 | C3 | Chrome | Cmd+L，输入 `nihao` 后按回车 | 地址栏里是 `nihao`，页面没有跳转 |
 | C4 | Chrome | Cmd+L，输入 `nihao` 后点网页正文 | 地址栏里留下 `nihao`，没有下划线 |
