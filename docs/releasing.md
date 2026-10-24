@@ -2,25 +2,24 @@
 
 发布由 `.github/workflows/release.yml` 完成：推送 `v*` 标签就发布，手动运行只验证。为什么这样设计见 [`decisions/0011-releases-and-updates.md`](decisions/0011-releases-and-updates.md)。
 
-> 现状：0.1.0 于 2026-10-23 发布，0.1.1 于 2026-10-24 发布。按 Max 2026-10-24 的决定，准备好的改动直接发布，不先问他，发布后通知他（见下一节）。更新签名密钥于 2026-10-23 生成（见最后一节），`release.yml` 的 `SPARKLE_PUBLIC_KEY` 是它的公钥。
+> 现状：0.1.0 于 2026-10-23 发布，0.1.1 和 0.1.2 于 2026-10-24 发布。按 Max 2026-10-24 的决定，准备好的改动直接发布，不先问他，发布后通知他（见下一节）。更新签名密钥于 2026-10-23 生成（见最后一节），`release.yml` 的 `SPARKLE_PUBLIC_KEY` 是它的公钥。
 
 ## 什么时候发布
 
-满足下面四条就自动发布，不用再等 Max 点头（Max 于 2026-10-24 同意）：
+满足下面三条就自动发布，不用再等 Max 点头（Max 于 2026-10-24 同意）：
 
-1. main 上已经改好版本号（`project.yml` 的 `MARKETING_VERSION`）；
+1. 合并进 main 的 PR 改好了版本号（`project.yml` 的 `MARKETING_VERSION`）；
 2. `CHANGELOG.md` 有对应的 `## <版本号>` 一节；
-3. main 的 CI 通过；
-4. 在 main 上跑一次发布验证（见「只验证，不发布」），结果通过。
+3. 这个 PR 的 CI 通过，而且合并时它的分支和 main 是同步的（合并前先 rebase 到最新的 main），也就是合并出来的提交和 CI 测过的内容完全一样。
 
-然后按下一节第 5 步打标签推送，只推这一个标签，跟到发布完成并检查结果，再告诉 Max 发了什么。
+合并后马上在合并出来的提交上打标签推送（下一节第 5 步），只推这一个标签。不用再等 main 的 CI，也不用另外跑一次「只验证」：标签触发的发布本身就会完整地构建、签名、公证、检查，任何一步失败都不会发布。跟到发布完成并检查结果，再告诉 Max 发了什么。
 
 ## 发一个正式版
 
 1. **改版本号**：开一个 PR，把 `project.yml` 里的 `MARKETING_VERSION` 改成新版本号，比如 `0.2.0`。
 2. **写更新记录**：同一个 PR 里，在 `CHANGELOG.md` 最上面加一节 `## 0.2.0`，写给用户看（中文、Markdown）。这一节原样成为 GitHub Release 的说明，也是 Sparkle 更新窗口里显示的内容。
-3. **合并**，等 main 的 CI 通过。
-4. **手动检查**：先跑一次验证（见下一节），下载产物里的 `.pkg` 装到 `/Library/Input Methods`，按 [`manual-checklist.md`](manual-checklist.md) 过一遍。
+3. **合并**：分支先 rebase 到最新的 main，CI 通过再合并。
+4. **手动检查**（需要时）：跑一次验证（见「只验证，不发布」），下载产物里的 `.pkg` 装到 `/Library/Input Methods`，按 [`manual-checklist.md`](manual-checklist.md) 过一遍。
 5. **打标签并推送**（标签必须指向 main 上的提交）：
 
    ```bash

@@ -122,6 +122,53 @@ librime 的日志在 `~/Library/Logs/Scribe`。中书自己用系统的统一日
 log show --last 10m --info --predicate 'subsystem == "io.github.itvx.inputmethod.Scribe"'
 ```
 
+## CI 和自托管 runner
+
+CI（`.github/workflows/ci.yml`）分成四个任务：
+
+- `Route`：在 GitHub 的 Linux 机器上跑，几秒钟。它决定后面的任务在哪里跑，并看这次是不是只改了文档（`docs/` 和 `*.md`）。只改文档时，后面三个任务跳过。
+- `Test packages`：四个包和发布工具的测试。
+- `Build and test the app`：生成工程，构建 app 和中书设置，雾凇拼音回放，app 测试。
+- `Package`：无签名安装包、检查、appcast 演练。
+
+后面三个任务同时跑。CI 用的 Xcode 版本写在 `ci.yml` 的 `XCODE_VERSION` 里，和 Mac mini 上发布用的一致。
+
+### 在 Max 的 Mac mini 上跑
+
+仓库变量 `CI_RUNNER` 为 `self-hosted` 时，Max 自己的提交跑在他的 Mac mini 上，标签是 `self-hosted, macOS, ARM64, scribe-mac`。「自己的提交」指 push 到 main，或者本仓库分支上的 PR，而且发起人和触发人都是 iTvX。其他一切，包括 fork 来的 PR，都跑在 GitHub 的 Mac 上。
+
+Mac mini 关机或睡眠时切回云端：
+
+```bash
+gh variable set CI_RUNNER --body github -R iTvX/scribe
+```
+
+切回 Mac mini：
+
+```bash
+gh variable set CI_RUNNER --body self-hosted -R iTvX/scribe
+```
+
+runner 装在 `~/actions-runner-scribe-ci`，只登记在 iTvX/scribe 这一个仓库，以 Max 的用户身份作为 LaunchAgent 运行。
+
+工作流里的分流挡不住别人：pull_request 用的是 PR 自己的工作流文件，fork 来的 PR 可以把 `runs-on` 改成 Mac mini 的标签。所以 runner 本身在每个任务开始前运行关卡脚本 `~/.config/actions-runner-gate/job-started.sh`（runner 的 `.env` 里的 `ACTIONS_RUNNER_HOOK_JOB_STARTED`），这一步在工作流之外。下面几条都满足才放行，否则任务在第一步之前就失败：
+
+- 仓库在 `RUNNER_GATE_REPOS` 里（这台 runner 是 `iTvX/scribe`）；
+- `GITHUB_ACTOR` 和 `GITHUB_TRIGGERING_ACTOR` 都是 `iTvX`；
+- 事件是 push（分支或标签）、workflow_dispatch 或 release，或者是 head 仓库就是本仓库的 pull_request。pull_request_target 和其他事件一律拒绝。
+
+每次判断都记在 `~/.config/actions-runner-gate/scribe-ci.log`。脚本不在任何仓库里。任务以 Max 的用户身份运行，所以它挡的是别人的任务，不是 Max 自己的代码。此外，仓库设置里 fork PR 的工作流都要 Max 批准（`all_external_contributors`，最严的一档）。
+
+在 Mac mini 上，任务不改动工作目录以外的东西：
+
+- 不用 `sudo xcode-select`，只在任务里设 `DEVELOPER_DIR`；Xcode 版本不对就失败；
+- 不用 Homebrew，没有 XcodeGen 就失败；
+- `SCRIBE_USER_DIR` 指向任务的临时目录，脚本碰不到 `~/Library/Scribe`；
+- 不安装、不登记、不启用输入法，不碰钥匙串；appcast 演练用的是临时目录里的一次性密钥；
+- 任务结束时，把构建出来的 app 从 LaunchServices 里注销（`Scripts/ci-forget-built-apps.sh`）。
+
+发布（`release.yml`）跑在同一台 Mac mini 上的另一个 runner（标签 `scribe-local`）上，签名用的钥匙串在那里。
+
 ## 打发布包
 
 ```bash
