@@ -83,12 +83,23 @@ jobs:
           echo "code=${code}" >> "${GITHUB_OUTPUT}"
           echo "code changed: ${code}"
 
+  # The packages in three groups of about the same length, at the same time.
   packages:
-    name: Test packages
+    name: Test packages (${{ matrix.name }})
     needs: route
     if: needs.route.outputs.code == 'true'
     runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: RimeKit, ScribeCore, release tooling
+            packages: Packages/RimeKit Packages/ScribeCore Tools/scribe-release
+          - name: ScribeConfig
+            packages: Packages/ScribeConfig
+          - name: ScribeUI
+            packages: Packages/ScribeUI
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -105,15 +116,14 @@ jobs:
           fi
 
       - name: Test packages
+        env:
+          PACKAGES: ${{ matrix.packages }}
         run: |
-          for package in Packages/*/; do
+          for package in ${PACKAGES}; do
             echo "::group::swift test ${package}"
             swift test --package-path "${package}" -Xswiftc -warnings-as-errors
             echo "::endgroup::"
           done
-
-      - name: Test release tooling
-        run: swift test --package-path Tools/scribe-release -Xswiftc -warnings-as-errors
 
       # Expected, actual and diff images of candidate window snapshots that
       # did not match, and renders of snapshots with no baseline yet.
