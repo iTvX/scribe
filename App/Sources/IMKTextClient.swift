@@ -1,5 +1,6 @@
 import AppKit
 import InputMethodKit
+import ScribeCore
 
 /// A client application's text field, as InputMethodKit presents it.
 ///
@@ -8,10 +9,13 @@ import InputMethodKit
 /// actor.
 struct IMKTextClient: @unchecked Sendable {
     private let client: any IMKTextInput
+    /// Gives the attributes that mark the marked text.
+    private let controller: IMKInputController
 
-    init?(_ sender: Any?) {
+    init?(_ sender: Any?, controller: IMKInputController) {
         guard let client = sender as? any IMKTextInput else { return nil }
         self.client = client
+        self.controller = controller
     }
 
     var bundleIdentifier: String {
@@ -32,8 +36,12 @@ extension IMKTextClient: TextClient {
         client.insertText(text, replacementRange: Self.noReplacement)
     }
 
-    func setMarkedText(_ text: String, caret: Int) {
-        client.setMarkedText(text, selectionRange: NSRange(location: caret, length: 0), replacementRange: Self.noReplacement)
+    func setMarkedText(_ text: MarkedText) {
+        client.setMarkedText(
+            text.attributedString(marking: controller.markAttributes),
+            selectionRange: text.selectionRange,
+            replacementRange: Self.noReplacement
+        )
     }
 
     func caretRect() -> NSRect {

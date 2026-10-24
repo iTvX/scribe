@@ -11,9 +11,8 @@ protocol TextClient {
     var bundleIdentifier: String { get }
     /// Inserts committed text, replacing any marked text.
     func insertText(_ text: String)
-    /// Replaces the marked text; empty text removes it. `caret` counts
-    /// UTF-16 code units.
-    func setMarkedText(_ text: String, caret: Int)
+    /// Replaces the marked text; empty text removes it.
+    func setMarkedText(_ text: MarkedText)
     /// The caret line, in screen coordinates.
     func caretRect() -> NSRect
 }
@@ -227,7 +226,7 @@ final class InputAdapter {
             case .commit(let text):
                 client.insertText(text)
             case .setMarkedText(let marked):
-                client.setMarkedText(marked.text, caret: marked.caret)
+                client.setMarkedText(marked)
             case .showCandidates(let snapshot) where snapshot.entries.isEmpty && snapshot.preedit?.text.isEmpty ?? true:
                 // No candidates, and the input is shown inline: nothing to show.
                 candidates.hide()

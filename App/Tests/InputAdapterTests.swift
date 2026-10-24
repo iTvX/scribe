@@ -18,8 +18,8 @@ final class CallLog: TextClient, CandidatePresenting {
         calls.append("insert \(text)")
     }
 
-    func setMarkedText(_ text: String, caret: Int) {
-        calls.append("mark \(text)|\(caret)")
+    func setMarkedText(_ text: MarkedText) {
+        calls.append("mark \(text.text)|\(text.caret)")
     }
 
     func caretRect() -> NSRect {

@@ -7,10 +7,15 @@ public struct MarkedText: Equatable, Sendable {
     public var text: String
     /// Caret position in UTF-16 code units.
     public var caret: Int
+    /// Where the input being converted starts, in UTF-16 code units; the text
+    /// before it is already converted. The client underlines the two parts
+    /// differently, as with Squirrel. Nil for text shown without marks.
+    public var selectionStart: Int?
 
-    public init(text: String, caret: Int) {
+    public init(text: String, caret: Int, selectionStart: Int? = 0) {
         self.text = text
         self.caret = caret
+        self.selectionStart = selectionStart
     }
 
     public static let empty = MarkedText(text: "", caret: 0)
@@ -466,7 +471,7 @@ public final class InputSession {
         return (preedit, candidate)
     }
 
-    private static func markedText(
+    nonisolated static func markedText(
         for composition: Composition,
         preview: String?,
         inline: (preedit: Bool, candidate: Bool)
@@ -474,11 +479,15 @@ public final class InputSession {
         let preedit = composition.preedit
         guard inline.candidate else {
             if inline.preedit {
-                return MarkedText(text: preedit, caret: composition.cursor)
+                return MarkedText(
+                    text: preedit,
+                    caret: composition.cursor,
+                    selectionStart: min(composition.selectionStart, preedit.utf16.count)
+                )
             }
             // A full-width space keeps terminals such as iTerm2 from echoing
             // the input, and keeps the baseline steady.
-            return MarkedText(text: preedit.isEmpty ? "" : "　", caret: 0)
+            return MarkedText(text: preedit.isEmpty ? "" : "　", caret: 0, selectionStart: 0)
         }
         var text = preview ?? ""
         let previewLength = text.utf16.count
@@ -489,7 +498,11 @@ public final class InputSession {
         }
         // The preedit may start with a prompt before the selection.
         let start = min(composition.selectionStart, text.utf16.count)
-        return MarkedText(text: text, caret: composition.cursor <= start ? composition.cursor : previewLength)
+        return MarkedText(
+            text: text,
+            caret: composition.cursor <= start ? composition.cursor : previewLength,
+            selectionStart: start
+        )
     }
 
     private func update(_ session: RimeSessionID, keepingCommentMarks: Bool = false) -> [SessionAction] {
@@ -502,7 +515,7 @@ public final class InputSession {
             if markedText.text.isEmpty, !commit.isEmpty, engine.option("force_marked_text_for_direct_commit", in: session) {
                 // Some text views take text only after marked text, as
                 // Alacritty does.
-                actions.append(.setMarkedText(MarkedText(text: commit, caret: commit.utf16.count)))
+                actions.append(.setMarkedText(MarkedText(text: commit, caret: commit.utf16.count, selectionStart: nil)))
             }
             actions.append(.commit(commit))
             // Inserting text replaces the client's marked text.
