@@ -119,12 +119,14 @@ final class InputAdapter {
 
     /// The input method became active for the client. It gets no modifier
     /// event for keys already locked, so the Caps Lock state comes from the
-    /// hardware.
+    /// hardware. The Rime session starts now, if it has not yet, so the
+    /// first key does not wait for it.
     ///
     /// Returns the keyboard layout the client should type with while Scribe
     /// is active, from `keyboard_layout`, or nil to keep the last one.
     @discardableResult
     func activate(capsLockOn: Bool) -> String? {
+        session.start()
         if capsLockOn {
             modifiers.insert(.capsLock)
         } else {
