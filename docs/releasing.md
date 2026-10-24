@@ -2,7 +2,18 @@
 
 发布由 `.github/workflows/release.yml` 完成：推送 `v*` 标签就发布，手动运行只验证。为什么这样设计见 [`decisions/0011-releases-and-updates.md`](decisions/0011-releases-and-updates.md)。
 
-> 现状：更新签名密钥已于 2026-10-23 生成（见最后一节），`release.yml` 的 `SPARKLE_PUBLIC_KEY` 是它的公钥，验证运行已经用它签名。只差打标签发布，要等 Max 同意。
+> 现状：0.1.0 于 2026-10-23 发布，0.1.1 于 2026-10-24 发布。按 Max 2026-10-24 的决定，准备好的改动直接发布，不先问他，发布后通知他（见下一节）。更新签名密钥于 2026-10-23 生成（见最后一节），`release.yml` 的 `SPARKLE_PUBLIC_KEY` 是它的公钥。
+
+## 什么时候发布
+
+满足下面四条就自动发布，不用再等 Max 点头（Max 于 2026-10-24 同意）：
+
+1. main 上已经改好版本号（`project.yml` 的 `MARKETING_VERSION`）；
+2. `CHANGELOG.md` 有对应的 `## <版本号>` 一节；
+3. main 的 CI 通过；
+4. 在 main 上跑一次发布验证（见「只验证，不发布」），结果通过。
+
+然后按下一节第 5 步打标签推送，只推这一个标签，跟到发布完成并检查结果，再告诉 Max 发了什么。
 
 ## 发一个正式版
 
