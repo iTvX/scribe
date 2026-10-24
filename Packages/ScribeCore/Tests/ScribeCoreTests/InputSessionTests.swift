@@ -15,6 +15,26 @@ import Testing
         text.flatMap { session.handle(KeyEvent(Keysym.character($0.unicodeScalars.first!))).actions }
     }
 
+    /// As Squirrel creates the Rime session with the client's controller, so
+    /// the first key does not wait for librime to load the schema.
+    @Test func startingCreatesTheSessionBeforeAnyKey() {
+        session.start()
+        #expect(engine.createdSessionCount == 1)
+        #expect(engine.liveSessionCount == 1)
+        _ = type("ni")
+        session.start()
+        #expect(engine.createdSessionCount == 1)
+    }
+
+    @Test func startingWaitsForMaintenance() {
+        engine.isInMaintenance = true
+        session.start()
+        #expect(engine.createdSessionCount == 0)
+        engine.isInMaintenance = false
+        _ = type("n")
+        #expect(engine.createdSessionCount == 1)
+    }
+
     @Test func typingUpdatesMarkedTextThenCandidates() {
         let first = session.handle(KeyEvent(name: "n")!)
         #expect(first.handled)

@@ -108,6 +108,14 @@ final class ScribeInputController: IMKInputController {
             state.existingAdapter?.commitComposition(client: client)
         }
     }
+
+    /// The Rime session lives as long as the controller, as in Squirrel.
+    deinit {
+        let state = state
+        Task { @MainActor in
+            state.close()
+        }
+    }
 }
 
 /// A controller's adapter, created on first use.
@@ -126,10 +134,14 @@ private final class ControllerState: Sendable {
         return adapter
     }
 
-    /// The Rime session ends with the activation; the next key starts a new
-    /// one.
+    /// The Rime session outlives the activation, as in Squirrel, so the user
+    /// dictionaries stay open and the next activation types at once.
     func deactivate(client: TextClient) {
         existingAdapter?.deactivate(client: client)
+    }
+
+    /// Ends the Rime session, when the controller goes away.
+    func close() {
         existingAdapter?.close()
         existingAdapter = nil
     }

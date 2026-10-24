@@ -73,6 +73,32 @@ final class CallLog: TextClient, CandidatePresenting {
         )!
     }
 
+    /// Squirrel creates the Rime session with the client's controller and
+    /// keeps it until the controller goes away, so a key never waits for
+    /// librime to load the schema and open the user dictionaries.
+    @Test func activatingStartsTheSessionBeforeTheFirstKey() {
+        adapter.activate(capsLockOn: false)
+        #expect(engine.createdSessionCount == 1)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        #expect(engine.createdSessionCount == 1)
+    }
+
+    @Test func theSessionOutlivesADeactivation() {
+        adapter.activate(capsLockOn: false)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        adapter.deactivate(client: log)
+        adapter.activate(capsLockOn: false)
+        _ = adapter.handle(input(key("i", code: 34)), client: log)
+        #expect(engine.createdSessionCount == 1)
+        #expect(engine.liveSessionCount == 1)
+    }
+
+    @Test func closingEndsTheSession() {
+        adapter.activate(capsLockOn: false)
+        adapter.close()
+        #expect(engine.liveSessionCount == 0)
+    }
+
     @Test func typingAndSelectingCallsTheClientInOrder() {
         #expect(adapter.handle(input(key("n", code: 45)), client: log))
         #expect(adapter.handle(input(key("i", code: 34)), client: log))

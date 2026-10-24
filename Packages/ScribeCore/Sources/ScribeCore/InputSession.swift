@@ -379,6 +379,13 @@ public final class InputSession {
         return update(session)
     }
 
+    /// Starts the Rime session now, as Squirrel does when a client's
+    /// controller is created, so the first key does not wait for librime to
+    /// load the schema. During maintenance the next key starts it instead.
+    public func start() {
+        _ = activeSession()
+    }
+
     /// Ends the Rime session. A later key starts a new one.
     public func close() {
         clearChord()

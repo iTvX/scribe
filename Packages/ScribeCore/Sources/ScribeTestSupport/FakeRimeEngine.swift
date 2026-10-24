@@ -28,6 +28,10 @@ public final class FakeRimeEngine: RimeEngine {
     /// Every key passed to `processKey`, in order.
     public private(set) var processedKeys: [KeyEvent] = []
 
+    /// How many sessions have been created, and how many are alive.
+    public var createdSessionCount: Int { Int(nextSession) - 1 }
+    public var liveSessionCount: Int { sessions.count }
+
     private var options: [RimeSessionID: [String: Bool]] = [:]
     private var properties: [RimeSessionID: [String: String]] = [:]
 
