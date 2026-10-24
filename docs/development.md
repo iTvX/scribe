@@ -127,8 +127,9 @@ log show --last 10m --info --predicate 'subsystem == "io.github.itvx.inputmethod
 CI（`.github/workflows/ci.yml`）由这几个任务组成：
 
 - `Route`：在 GitHub 的 Linux 机器上跑，几秒钟。它决定后面的任务在哪里跑，并看这次是不是只改了文档（`docs/` 和 `*.md`）。只改文档时，后面的任务全部跳过。
-- `Test packages`：四个包和发布工具的测试，分三组。
-- `Build and test the app`：生成工程，构建 app 和中书设置，雾凇拼音回放，app 测试。
+- `Test packages`：四个包和发布工具的测试，分两组。
+- `Build the app`：生成工程，构建 app 和中书设置，雾凇拼音回放。
+- `Test the app`：app 的测试（自己的 Debug 构建）。
 - `Package`：无签名安装包、检查、appcast 演练。
 
 后面这些任务同时跑。CI 用的 Xcode 版本写在 `ci.yml` 的 `XCODE_VERSION` 里，和 Mac mini 上发布用的一致。

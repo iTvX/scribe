@@ -83,7 +83,9 @@ jobs:
           echo "code=${code}" >> "${GITHUB_OUTPUT}"
           echo "code changed: ${code}"
 
-  # The packages in three groups of about the same length, at the same time.
+  # The packages in two groups of about the same length, at the same time.
+  # With the three jobs below that makes five, as many Macs as GitHub runs
+  # at once for this account.
   packages:
     name: Test packages (${{ matrix.name }})
     needs: route
@@ -94,10 +96,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: RimeKit, ScribeCore, release tooling
-            packages: Packages/RimeKit Packages/ScribeCore Tools/scribe-release
-          - name: ScribeConfig
-            packages: Packages/ScribeConfig
+          - name: RimeKit, ScribeConfig, ScribeCore, release tooling
+            packages: Packages/RimeKit Packages/ScribeConfig Packages/ScribeCore Tools/scribe-release
           - name: ScribeUI
             packages: Packages/ScribeUI
     steps:
@@ -137,7 +137,7 @@ jobs:
           retention-days: 14
 
   app:
-    name: Build and test the app
+    name: Build the app
     needs: route
     if: needs.route.outputs.code == 'true'
     runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
@@ -179,6 +179,27 @@ jobs:
       # 雾凇拼音 at its pinned release, in a temporary directory.
       - name: Play the gate replays
         run: Scripts/check-gate.sh
+
+      - name: Forget the built apps
+        if: always() && runner.environment == 'self-hosted'
+        run: Scripts/ci-forget-built-apps.sh
+
+  # A Debug build of its own, so it runs next to the Release build above.
+  app-tests:
+    name: Test the app
+    needs: route
+    if: needs.route.outputs.code == 'true'
+    runs-on: ${{ fromJSON(needs.route.outputs.runner) }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prepare
+        uses: ./.github/actions/prepare
+
+      - name: Generate Xcode project
+        run: xcodegen generate
 
       - name: Test app
         run: |
