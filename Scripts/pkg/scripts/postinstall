@@ -12,6 +12,31 @@ if [[ -z "${console_user}" || "${console_user}" == "root" || "${console_user}" =
   exit 0
 fi
 
-/bin/launchctl asuser "$(/usr/bin/id -u "${console_user}")" \
-  /usr/bin/sudo -u "${console_user}" "${executable}" --install || true
+console_uid="$(/usr/bin/id -u "${console_user}")"
+if /bin/launchctl asuser "${console_uid}" \
+  /usr/bin/sudo -u "${console_user}" "${executable}" --install; then
+  # On macOS 27 the menu bar host keeps a separate keyboard-source cache.
+  # TIS can already report an updated source as enabled while that menu still
+  # omits it. Rebuild only this cache, in the console user's own context, and
+  # let launchd restart the menu bar host. Do not alter enabled sources or
+  # restart the protected TextInputSwitcher service.
+  /bin/launchctl asuser "${console_uid}" \
+    /usr/bin/sudo -u "${console_user}" /bin/bash <<'REFRESH_INPUT_MENU' || true
+set -eu
+uid="$(/usr/bin/id -u)"
+[[ "${uid}" != 0 ]] || exit 0
+# Older systems have no MenuBarAgent; leave their input menu alone.
+/usr/bin/pgrep -u "${uid}" -x MenuBarAgent >/dev/null || exit 0
+cache_dir="$(/usr/bin/getconf DARWIN_USER_CACHE_DIR)"
+[[ -n "${cache_dir}" && "${cache_dir}" == /* ]] || exit 0
+cache="${cache_dir%/}/com.apple.MenuBarAgent/com.apple.IntlDataCache.le.kbdx"
+if [[ -f "${cache}" && ! -L "${cache}" ]]; then
+  /bin/rm -f -- "${cache}"
+fi
+/usr/bin/killall -TERM -u "$(/usr/bin/id -un)" MenuBarAgent || true
+echo "Requested input-menu cache refresh for the logged-in user"
+REFRESH_INPUT_MENU
+else
+  echo "Scribe input-source registration failed; leaving the input menu unchanged" >&2
+fi
 exit 0

@@ -9,6 +9,7 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TEAM_ID="AW54C93V4H"
 BUNDLE_ID="io.github.itvx.inputmethod.Scribe"
 
@@ -211,6 +212,12 @@ grep -q '^librime ' <<< "${settings_test}" || fail "Scribe Settings does not loa
 grep -qF "shared data: ${APP}/Contents/SharedSupport" <<< "${settings_test}" ||
   fail "Scribe Settings does not use Scribe.app's shared data: ${settings_test}"
 pass "Scribe Settings launches with Scribe.app's librime and shared data"
+
+mkdir "${WORK}/replay-user"
+replay_log="$("${APP}/Contents/MacOS/Scribe" --replay \
+  "${ROOT}/Tests/Fixtures/prebuilt/luna-pinyin.replay" "${WORK}/replay-user" 2>&1)" ||
+  fail "packaged prebuilt schema cannot compose and commit: $(tail -10 <<< "${replay_log}")"
+pass "packaged luna_pinyin composes and commits with a fresh user directory"
 
 # Keep testing the public --build command on a separate copy. The installed
 # app must remain sealed; postinstall no longer runs this command in it.
