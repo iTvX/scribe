@@ -27,6 +27,8 @@ for _ in {1..30}; do
       backup="$(/usr/bin/mktemp -d "${cache_dir%/}/ScribeInputMenuRecovery.XXXXXX")"
       /bin/mv "${cache}" "${backup}/"
     fi
+    # The menu's provider also retains bundle objects across an update.
+    /usr/bin/killall -TERM -u "$(/usr/bin/id -un)" TextInputMenuAgent 2>/dev/null || true
     /usr/bin/killall -TERM -u "$(/usr/bin/id -un)" MenuBarAgent || true
     /usr/bin/logger -t ScribeInstaller 'Refreshed input-menu cache after PackageKit completed installation'
     exit 0
