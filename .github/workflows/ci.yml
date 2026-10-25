@@ -160,6 +160,8 @@ jobs:
             -configuration Release \
             -derivedDataPath build/DerivedData \
             -destination "generic/platform=macOS" \
+            SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
+            SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             build
@@ -172,6 +174,8 @@ jobs:
             -configuration Release \
             -derivedDataPath build/DerivedData \
             -destination "generic/platform=macOS" \
+            SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
+            SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             build
@@ -208,6 +212,8 @@ jobs:
             -scheme Scribe \
             -derivedDataPath build/DerivedData \
             -destination "platform=macOS" \
+            SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
+            SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             test

@@ -19,6 +19,7 @@
 ### 签名、打包和公证
 
 - `Scripts/build-release.sh`：Xcode 构建时不签名，由脚本由内到外签名：先签 `Contents/Frameworks` 里的 dylib，再带 entitlements 签 app，全部用 Developer ID Application、hardened runtime 和安全时间戳。这样 Xcode 本地签名带的 `get-task-allow` 不会进入发布版。
+- CI 和发布构建用 `io.github.itvx.scribe.Build` 及对应模式 ID；Xcode 会主动注册构建产物，不能只依靠 `.noindex` 和结束后的清理隔离日常安装。发布脚本只在 `.noindex` 暂存副本中恢复正式 ID，然后签名；验证安装包时也展开到 `.noindex`。普通本地安装仍使用正式 ID。
 - 用 `pkgbuild` 打组件包（不可重定位，`preinstall` 先退出旧实例），`productbuild` 加 `Distribution.xml` 打成产品包，`productsign` 用 Developer ID Installer 签名。
 - `notarytool` 用现有的钥匙串 profile 提交公证，通过后 `stapler staple`。
 - `Scripts/check-release.sh` 不安装就能验证：安装包签名、公证票据、Gatekeeper 评估，以及包里 app 的签名、Team ID、hardened runtime、entitlements、架构，并实际启动一次确认 librime 能加载。
@@ -32,12 +33,12 @@
 - 普通 CI（`ci.yml`）在 GitHub 托管机器上用 `build-release.sh --unsigned` 检查打包流程，不需要任何凭据。
 - 触发方式和发布步骤已由 [0011](0011-releases-and-updates.md) 取代：推送 `v*` 标签才发布，手动运行只验证，推送到 main 不再触发。
 
-## 安装时预编译共享数据
+## 签名前预编译共享数据
 
-和鼠须管的 postinstall 一样，安装包装好后在 `Scribe.app/Contents/SharedSupport` 里运行 `Scribe --build`，把自带的方案预编译到 `SharedSupport/build`，以后部署这些方案时直接用，不用再编译（本机约 6 秒）。
+自带方案在发布构建时预编译，生成的 `SharedSupport/build` 和 app 一起签名。安装器只注册输入源，不再改写 app。以后部署这些方案时仍可使用预编译结果。
 
-- 以 root 运行：装好的 app 属于 root，普通用户写不进去，鼠须管也是这样。
-- 失败不影响安装；设了 `RIME_NO_PREBUILD` 就跳过，和鼠须管相同。
-- 预编译会在 app 里新增文件（`build/`、`installation.yaml`、`user.yaml`），所以装好之后 `codesign --verify` 会报资源封印不符。已安装的鼠须管 1.1.2 也是这样；用安装包装的 app 不带隔离属性，不经 Gatekeeper 检查，librime 和插件各自的签名不受影响。发布包本身在安装前由 `check-release.sh` 检查，签名完整。
-- macOS 的 App Management 不让一般进程改已签名 app 的内容（发布 runner 上在临时目录里展开的副本也改不了），安装器以 root 运行的 postinstall 不受这个限制，鼠须管也是这样装的。万一哪天被拦下，预编译失败不影响安装，第一次部署时照常编译。
-- 所以 `check-release.sh` 把展开的 `SharedSupport` 复制出来，在副本里运行同样的 `--build`，确认能预编译出 `build/`。
+- `build-release.sh` 把共享数据复制到 bundle 外运行 `Scribe --build`，失败就停止构建；只把 `build/` 放回 app，再签名、公证和打包。
+- `installation.yaml` 和 `user.yaml` 属于构建过程的临时状态，不随安装包分发。用户自己的安装标识和配置继续在用户数据目录生成。
+- `check-release.sh` 检查安装包已经包含预编译文件、没有构建机器的安装状态，并在独立副本中验证 `--build`。验证结束再次检查 app 签名。
+- 0.1.3 及以前模仿鼠须管，在 postinstall 以 root 运行预编译。这会向已签名 app 新增文件，实机 `codesign --verify --deep --strict` 因资源封印不符失败，因此撤销这一做法。签名失败与升级后菜单缺项的因果关系仍需实机验证，不能仅凭注册成功断言菜单已恢复。
+- `RIME_NO_PREBUILD` 不再影响安装；发布包始终携带预编译结果。

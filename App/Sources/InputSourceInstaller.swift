@@ -51,17 +51,10 @@ struct InputSourceInstaller {
         return id == Self.bundleIdentifier || id.hasPrefix(Self.bundleIdentifier + ".")
     }
 
-    /// Registers the input sources of the app at `bundleURL`, unless Scribe's
-    /// modes are already registered from it. Squirrel skips registering once
-    /// a mode is enabled, but that mode may come from another copy, such as a
-    /// development build replaced by the release. Never enables or selects.
+    /// Always registers this bundle: an update replaces the app at the same
+    /// path, so a matching path does not mean its registration is current.
+    /// Never enables or selects a source.
     func register(bundleURL: URL) -> Bool {
-        let path = bundleURL.standardizedFileURL.path(percentEncoded: false).trimmingSuffix("/")
-        let here = InputMode.allCases.filter { system.state(of: id($0))?.bundlePath?.trimmingSuffix("/") == path }
-        if !here.isEmpty {
-            report("Scribe input sources already registered from \(path): \(ids(here))")
-            return true
-        }
         let status = system.register(bundleURL)
         guard status == noErr else {
             report("Failed to register input sources from \(bundleURL.path) (error \(status))")
@@ -122,11 +115,5 @@ struct InputSourceInstaller {
     private func report(_ message: String) {
         print(message)
         Log.installer.notice("\(message, privacy: .public)")
-    }
-}
-
-private extension String {
-    func trimmingSuffix(_ suffix: String) -> String {
-        hasSuffix(suffix) ? String(dropLast(suffix.count)) : self
     }
 }

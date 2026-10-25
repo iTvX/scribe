@@ -1,17 +1,11 @@
 #!/bin/bash
-# Prebuilds the shared data and registers Scribe's input sources for the
-# logged-in user. Enabling and selecting them is left to the user.
+# Registers Scribe's input sources for the logged-in user. Shared data was
+# prebuilt before signing; installation must not change the sealed app.
+# Enabling and selecting input sources is left to the user.
 # $2 is the install location, /Library/Input Methods.
 
 executable="$2/Scribe.app/Contents/MacOS/Scribe"
 
-# As Squirrel's postinstall does with --build: compiles the bundled schemas
-# into SharedSupport/build, so deploying them later needs no compiling. It
-# runs as root, which owns the installed app, and never fails the install.
-# Set RIME_NO_PREBUILD to skip it, as with Squirrel.
-if [[ -z "${RIME_NO_PREBUILD:-}" ]]; then
-  (cd "$2/Scribe.app/Contents/SharedSupport" && "${executable}" --build) >/dev/null 2>&1 || true
-fi
 console_user="$(/usr/bin/stat -f %Su /dev/console)"
 if [[ -z "${console_user}" || "${console_user}" == "root" || "${console_user}" == "loginwindow" ]]; then
   # Nobody is logged in; the system picks the input method up at next login.

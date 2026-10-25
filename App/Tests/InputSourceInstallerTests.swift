@@ -75,10 +75,10 @@ private let app = URL(filePath: "/Library/Input Methods/Scribe.app")
         #expect(system.log == ["register Scribe.app"])
     }
 
-    @Test func registrationIsSkippedWhenScribeIsRegisteredFromThisApp() {
+    @Test func registrationRefreshesAnAppAtTheSamePath() {
         let system = FakeInputSources(enabled: [hansID])
         #expect(InputSourceInstaller(system: system).register(bundleURL: app))
-        #expect(system.log.isEmpty)
+        #expect(system.log == ["register Scribe.app"])
     }
 
     /// A development copy in ~/Library replaced by the release in /Library:
