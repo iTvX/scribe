@@ -14,6 +14,38 @@ struct CarbonInputSources: InputSourceSystem {
         return Unmanaged<CFString>.fromOpaque(value).takeUnretainedValue() as String
     }
 
+    var disabledKeyboardLayoutForRefresh: String? {
+        let filter = [
+            kTISPropertyInputSourceType as String: kTISTypeKeyboardLayout as String,
+            kTISPropertyBundleID as String: "com.apple.keyboardlayout.all",
+        ] as CFDictionary
+        guard let sources = TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource] else {
+            return nil
+        }
+        let candidates = sources.compactMap { source -> String? in
+            guard bool(source, kTISPropertyInputSourceIsEnableCapable),
+                  bool(source, kTISPropertyInputSourceIsSelectCapable),
+                  bool(source, kTISPropertyInputSourceIsASCIICapable),
+                  !bool(source, kTISPropertyInputSourceIsEnabled),
+                  !bool(source, kTISPropertyInputSourceIsSelected),
+                  let languageValue = TISGetInputSourceProperty(source, kTISPropertyInputSourceLanguages),
+                  let languages = Unmanaged<CFArray>.fromOpaque(languageValue).takeUnretainedValue() as? [String],
+                  languages.contains("en"),
+                  let idValue = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
+            else { return nil }
+            let id = Unmanaged<CFString>.fromOpaque(idValue).takeUnretainedValue() as String
+            return id.hasPrefix("com.apple.keylayout.") ? id : nil
+        }
+        func priority(_ id: String) -> Int {
+            switch id {
+            case "com.apple.keylayout.ABC": 0
+            case "com.apple.keylayout.US": 1
+            default: 2
+            }
+        }
+        return candidates.sorted { (priority($0), $0) < (priority($1), $1) }.first
+    }
+
     func state(of id: String) -> InputSourceState? {
         guard let source = source(id, includeAllInstalled: true) else { return nil }
         return InputSourceState(

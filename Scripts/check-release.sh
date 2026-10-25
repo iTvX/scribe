@@ -108,7 +108,7 @@ for file in installation.yaml user.yaml; do
 done
 pass "ships precompiled shared data without build-machine installation state"
 
-TOOLS=(rime_deployer rime_dict_manager rime-install)
+TOOLS=(rime_deployer rime_dict_manager rime-install scribe-refresh-input-menu)
 for tool in "${TOOLS[@]}"; do
   [[ -x "${APP}/Contents/MacOS/${tool}" ]] || fail "${tool} is not next to Scribe"
 done
@@ -204,6 +204,7 @@ grep -q -- "--list" <<< "${usage}" || fail "rime_dict_manager does not run: ${us
 usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 [[ "${usage}" == "invalid arguments." ]] || fail "rime_deployer does not run: ${usage}"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
+bash -n "${APP}/Contents/MacOS/scribe-refresh-input-menu" || fail "input-menu refresh helper is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
 settings_test="$("${SETTINGS}/Contents/MacOS/ScribeSettings" --self-test 2>/dev/null)" ||
@@ -212,6 +213,13 @@ grep -q '^librime ' <<< "${settings_test}" || fail "Scribe Settings does not loa
 grep -qF "shared data: ${APP}/Contents/SharedSupport" <<< "${settings_test}" ||
   fail "Scribe Settings does not use Scribe.app's shared data: ${settings_test}"
 pass "Scribe Settings launches with Scribe.app's librime and shared data"
+
+if refresh_log="$("${APP}/Contents/MacOS/Scribe" --refresh-input-menu 2>&1)"; then
+  fail "a package staging copy must not refresh the user's live input menu"
+fi
+grep -q 'must run as the user from an installed Scribe.app' <<< "${refresh_log}" ||
+  fail "unexpected staging refresh refusal: ${refresh_log}"
+pass "staging copies cannot modify the live input-source list"
 
 mkdir "${WORK}/replay-user"
 replay_log="$("${APP}/Contents/MacOS/Scribe" --replay \

@@ -12,6 +12,17 @@ if [[ -z "${console_user}" || "${console_user}" == "root" || "${console_user}" =
   exit 0
 fi
 
-/bin/launchctl asuser "$(/usr/bin/id -u "${console_user}")" \
-  /usr/bin/sudo -u "${console_user}" "${executable}" --install || true
+console_uid="$(/usr/bin/id -u "${console_user}")"
+receipt="/var/db/receipts/io.github.itvx.inputmethod.Scribe.plist"
+previous_stamp="$(/usr/bin/stat -f '%i:%m:%c' "${receipt}" 2>/dev/null || true)"
+if /bin/launchctl asuser "${console_uid}" \
+  /usr/bin/sudo -u "${console_user}" "${executable}" --install; then
+  # PackageKit registers/touches the bundle again after postinstall returns.
+  # A one-shot user job waits for completion and unregisters itself afterward.
+  job_label="io.github.itvx.inputmethod.Scribe.refresh.$(/bin/date +%s).$$"
+  /bin/launchctl asuser "${console_uid}" \
+    /usr/bin/sudo -u "${console_user}" /bin/launchctl submit -l "${job_label}" \
+    -- "$2/Scribe.app/Contents/MacOS/scribe-refresh-input-menu" \
+    "${job_label}" "${previous_stamp}" || true
+fi
 exit 0

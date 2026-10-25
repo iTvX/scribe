@@ -1,0 +1,28 @@
+#!/bin/bash
+# Runs once in the console user's launchd session, after PackageKit finishes
+# registering the replacement app. No preference edits or service restarts.
+set -eu
+
+[[ $# == 2 ]] || exit 2
+job_label="$1"
+previous_stamp="$2"
+[[ "${job_label}" == io.github.itvx.inputmethod.Scribe.refresh.* ]] || exit 2
+[[ "$(/usr/bin/id -u)" != 0 ]] || exit 0
+trap '/bin/launchctl remove "${job_label}" >/dev/null 2>&1 || true' EXIT
+
+receipt="/var/db/receipts/io.github.itvx.inputmethod.Scribe.plist"
+executable="$(/usr/bin/dirname "$0")/Scribe"
+for _ in {1..30}; do
+  stamp="$(/usr/bin/stat -f '%i:%m:%c' "${receipt}" 2>/dev/null || true)"
+  if [[ -n "${stamp}" && "${stamp}" != "${previous_stamp}" ]]; then
+    /bin/sleep 3
+    if "${executable}" --refresh-input-menu; then
+      /usr/bin/logger -t ScribeInstaller 'Completed the input-source list refresh after installation'
+    else
+      /usr/bin/logger -t ScribeInstaller 'Input-source list refresh did not complete; see Scribe installer logs'
+    fi
+    exit 0
+  fi
+  /bin/sleep 1
+done
+/usr/bin/logger -t ScribeInstaller 'Skipped input-source refresh: no completed installation receipt within 30 seconds'

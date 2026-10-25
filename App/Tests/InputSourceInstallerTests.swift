@@ -9,6 +9,9 @@ final class FakeInputSources: InputSourceSystem {
     var log: [String] = []
     var status: OSStatus = 0
     var currentInputSourceID: String?
+    var disabledKeyboardLayoutForRefresh: String?
+    var enableHasEffect = true
+    var disableHasEffect = true
 
     /// `bundlePath` is where the registered sources come from.
     init(registered: Bool = true, enabled: Set<String> = [], selected: String? = nil,
@@ -36,13 +39,13 @@ final class FakeInputSources: InputSourceSystem {
 
     func enable(_ id: String) -> OSStatus {
         log.append("enable \(id)")
-        sources[id]?.isEnabled = true
+        if enableHasEffect { sources[id]?.isEnabled = true }
         return status
     }
 
     func disable(_ id: String) -> OSStatus {
         log.append("disable \(id)")
-        sources[id]?.isEnabled = false
+        if disableHasEffect { sources[id]?.isEnabled = false }
         return status
     }
 

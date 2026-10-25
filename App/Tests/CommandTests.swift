@@ -8,6 +8,7 @@ private let hant = "io.github.itvx.inputmethod.Scribe.Hant"
     ([String](), Command.runServer),
     (["--install"], .install),
     (["--register-input-source"], .install),
+    (["--refresh-input-menu"], .refreshInputMenu),
     (["--quit"], .quit),
     (["--reload"], .reload),
     (["--sync"], .sync),
@@ -36,7 +37,7 @@ func parsesOptions(arguments: [String], command: Command) {
 @Test(arguments: [
     ["--bogus"], ["reload"], ["--reload", "extra"], ["-x"], ["--replay"], ["--replay", "a", "b", "c"],
     ["--enable-input-source", "com.apple.keylayout.ABC"], ["--select-input-source", hans, hant],
-    ["--select-input-source", "Hans"],
+    ["--select-input-source", "Hans"], ["--refresh-input-menu", "extra"],
 ])
 func rejectsUnknownArguments(arguments: [String]) {
     #expect(Command(arguments: ["Scribe"] + arguments) == .invalid(arguments.joined(separator: " ")))
@@ -53,7 +54,7 @@ func ignoresLaunchArguments(arguments: [String]) {
     for option in [
         "--install", "--register-input-source", "--enable-input-source", "--disable-input-source",
         "--select-input-source", "--quit", "--reload", "--sync", "--build", "--ascii", "--nascii",
-        "--getascii", "--self-test", "--replay", "--help",
+        "--getascii", "--self-test", "--replay", "--help", "--refresh-input-menu",
     ] {
         #expect(Command.usage.contains(option), "\(option)")
     }

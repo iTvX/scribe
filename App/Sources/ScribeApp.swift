@@ -19,6 +19,17 @@ enum ScribeApp {
         switch Command(arguments: CommandLine.arguments) {
         case .install:
             exit(installer.register(bundleURL: bundle.bundleURL) ? 0 : 1)
+        case .refreshInputMenu:
+            // Only a user's installed copy may change that user's list.
+            // Package checks and build products must never affect the live IME.
+            let parent = bundle.bundleURL.deletingLastPathComponent().standardizedFileURL.path
+            let userMethods = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Input Methods")
+            guard getuid() != 0, bundleIdentifier == InputSourceInstaller.bundleIdentifier,
+                  parent == "/Library/Input Methods" || parent == userMethods.standardizedFileURL.path else {
+                print("Input menu refresh must run as the user from an installed Scribe.app")
+                exit(1)
+            }
+            exit(installer.refreshMenu() ? 0 : 1)
         case .enableInputSource(let modes):
             installer.enable(modes)
             exit(0)

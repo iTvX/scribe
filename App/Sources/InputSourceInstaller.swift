@@ -3,7 +3,8 @@ import ScribeCore
 
 /// What the Text Input Sources manager knows about one input source.
 struct InputSourceState: Equatable {
-    /// Turned on by the user, so it appears in the input menu.
+    /// Reported as enabled. The input menu can still hold a stale list after
+    /// an app update, so this is not proof that the menu displays the source.
     var isEnabled: Bool
     var isSelectable: Bool
     var isSelected: Bool
@@ -30,6 +31,9 @@ protocol InputSourceSystem {
     func select(_ id: String) -> OSStatus
     /// The selected keyboard input source.
     var currentInputSourceID: String? { get }
+    /// An installed, disabled Apple ASCII keyboard layout suitable for a
+    /// reversible enabled-list change. Never an input method or user layout.
+    var disabledKeyboardLayoutForRefresh: String? { get }
 }
 
 /// Registers, enables, disables and selects Scribe's input sources, with
@@ -61,6 +65,61 @@ struct InputSourceInstaller {
             return false
         }
         report("Registered input sources from \(bundleURL.path)")
+        return true
+    }
+
+    /// Causes the system to rebuild its enabled-source menu after replacing
+    /// the app. On macOS 27, re-registration alone can leave Scribe absent
+    /// from that menu. A real keyboard-layout change refreshes it. Unlike
+    /// input modes, keyboard layouts can still be enabled through TIS.
+    /// Runs only in the install helper, never in the input-event process.
+    func refreshMenu(settle: (() -> Void)? = nil) -> Bool {
+        guard !enabledModes.isEmpty else {
+            report("No enabled Scribe modes; input menu refresh is unnecessary")
+            return true
+        }
+        guard system.currentInputSourceID != nil,
+              let layout = system.disabledKeyboardLayoutForRefresh,
+              let before = system.state(of: layout), before.isSelectable, !before.isEnabled, !before.isSelected
+        else {
+            report("No inactive system keyboard layout is available for input menu refresh")
+            return false
+        }
+
+        let enabled = system.enable(layout)
+        guard system.state(of: layout)?.isEnabled == true else {
+            report("Could not temporarily enable \(layout) (error \(enabled))")
+            return false
+        }
+        if enabled == noErr {
+            if let settle {
+                settle()
+            } else {
+                // Let the system consume the intermediate list before
+                // restoring it, even if this command has no run-loop sources.
+                let deadline = Date(timeIntervalSinceNow: 1)
+                while Date() < deadline {
+                    if !RunLoop.current.run(mode: .default, before: deadline) {
+                        Thread.sleep(forTimeInterval: 0.01)
+                    }
+                }
+            }
+        }
+        // If the user deliberately chose the temporary layout while it was
+        // available, keep their selection instead of switching their input.
+        guard system.currentInputSourceID != layout,
+              system.state(of: layout)?.isSelected != true else {
+            report("Keeping \(layout) because the user selected it during refresh")
+            return false
+        }
+        // Also undo a partial enable that changed state despite an error.
+        let disabled = system.disable(layout)
+        let restored = system.state(of: layout)?.isEnabled == false
+        guard enabled == noErr, disabled == noErr, restored else {
+            report("Input menu refresh failed (enable \(enabled), disable \(disabled), restored \(restored))")
+            return false
+        }
+        report("Refreshed the input-source list and removed the temporary keyboard layout")
         return true
     }
 
