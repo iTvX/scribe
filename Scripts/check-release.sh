@@ -108,7 +108,7 @@ for file in installation.yaml user.yaml; do
 done
 pass "ships precompiled shared data without build-machine installation state"
 
-TOOLS=(rime_deployer rime_dict_manager rime-install scribe-refresh-input-menu)
+TOOLS=(rime_deployer rime_dict_manager rime-install)
 for tool in "${TOOLS[@]}"; do
   [[ -x "${APP}/Contents/MacOS/${tool}" ]] || fail "${tool} is not next to Scribe"
 done
@@ -204,7 +204,6 @@ grep -q -- "--list" <<< "${usage}" || fail "rime_dict_manager does not run: ${us
 usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 [[ "${usage}" == "invalid arguments." ]] || fail "rime_deployer does not run: ${usage}"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
-bash -n "${APP}/Contents/MacOS/scribe-refresh-input-menu" || fail "input-menu refresh helper is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
 settings_test="$("${SETTINGS}/Contents/MacOS/ScribeSettings" --self-test 2>/dev/null)" ||
