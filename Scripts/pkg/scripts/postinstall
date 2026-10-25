@@ -23,10 +23,10 @@ if /bin/launchctl asuser "${console_uid}" \
   /bin/launchctl asuser "${console_uid}" \
     /usr/bin/sudo -u "${console_user}" /bin/bash <<'REFRESH_INPUT_MENU' || true
 set -eu
-uid="$(/usr/bin/id -u)"
-[[ "${uid}" != 0 ]] || exit 0
+menu_uid="$(/usr/bin/id -u)"
+[[ "${menu_uid}" != 0 ]] || exit 0
 # Older systems have no MenuBarAgent; leave their input menu alone.
-/usr/bin/pgrep -u "${uid}" -x MenuBarAgent >/dev/null || exit 0
+/usr/bin/pgrep -u "${menu_uid}" -x MenuBarAgent >/dev/null || exit 0
 cache_dir="$(/usr/bin/getconf DARWIN_USER_CACHE_DIR)"
 [[ -n "${cache_dir}" && "${cache_dir}" == /* ]] || exit 0
 cache="${cache_dir%/}/com.apple.MenuBarAgent/com.apple.IntlDataCache.le.kbdx"
