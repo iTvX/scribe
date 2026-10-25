@@ -15,6 +15,15 @@ runs:
       shell: bash
       run: echo "SCRIBE_USER_DIR=${RUNNER_TEMP}/scribe-user" >> "${GITHUB_ENV}"
 
+    - name: Keep build registrations separate from the installed input method
+      shell: bash
+      run: |
+        mkdir -p build
+        sed 's/io\.github\.itvx\.inputmethod\.Scribe/io.github.itvx.scribe.Build/g' \
+          App/Info.plist > build/BuildOnlyInfo.plist
+        echo "SCRIBE_BUNDLE_IDENTIFIER=io.github.itvx.scribe.Build" >> "${GITHUB_ENV}"
+        echo "SCRIBE_INFOPLIST_FILE=${GITHUB_WORKSPACE}/build/BuildOnlyInfo.plist" >> "${GITHUB_ENV}"
+
     - name: Select Xcode
       shell: bash
       run: |

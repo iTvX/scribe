@@ -37,6 +37,7 @@ DERIVED_DATA="${ROOT}/build/DerivedData-release"
 # registering it with LaunchServices next to the installed Scribe.
 STAGING="${OUTPUT}/root.noindex"
 BUNDLE_ID="io.github.itvx.inputmethod.Scribe"
+BUILD_BUNDLE_ID="io.github.itvx.scribe.Build"
 INSTALL_LOCATION="/Library/Input Methods"
 BUILD_NUMBER="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M%S)}"
 
@@ -111,6 +112,11 @@ fi
 
 "${ROOT}/Scripts/fetch-librime.sh"
 "${ROOT}/Scripts/fetch-sparkle.sh"
+mkdir -p "${ROOT}/build"
+# Plist build-setting expansion does not expand dictionary keys (the mode
+# IDs), so give Xcode a complete build-only input-source declaration.
+sed "s/${BUNDLE_ID//./\\.}/${BUILD_BUNDLE_ID}/g" \
+  "${ROOT}/App/Info.plist" > "${ROOT}/build/BuildOnlyInfo.plist"
 xcodegen generate --quiet --spec "${ROOT}/project.yml"
 # Build unsigned and sign below, so nothing from Xcode's local signing (such as
 # the get-task-allow entitlement) ends up in the release.
@@ -121,13 +127,41 @@ xcodebuild -quiet \
   -derivedDataPath "${DERIVED_DATA}" \
   -destination "generic/platform=macOS" \
   CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
+  SCRIBE_BUNDLE_IDENTIFIER="${BUILD_BUNDLE_ID}" \
+  SCRIBE_INFOPLIST_FILE="${ROOT}/build/BuildOnlyInfo.plist" \
   CODE_SIGNING_ALLOWED=NO \
   build
+
+BUILT_INFO="${DERIVED_DATA}/Build/Products/Release/Scribe.app/Contents/Info.plist"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${BUILT_INFO}")" == "${BUILD_BUNDLE_ID}" ]] || {
+  echo "error: Xcode product does not have an isolated build identity" >&2
+  exit 1
+}
+for mode in Hans Hant; do
+  [[ "$(/usr/libexec/PlistBuddy -c "Print :ComponentInputModeDict:tsInputModeListKey:${BUILD_BUNDLE_ID}.${mode}:TISInputSourceID" "${BUILT_INFO}")" == "${BUILD_BUNDLE_ID}.${mode}" ]] || {
+    echo "error: Xcode product does not have an isolated ${mode} mode" >&2
+    exit 1
+  }
+done
 
 rm -rf "${OUTPUT}"
 mkdir -p "${STAGING}"
 APP="${STAGING}/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
+cp "${ROOT}/Scripts/pkg/refresh-input-menu" "${APP}/Contents/MacOS/scribe-refresh-input-menu"
+chmod 755 "${APP}/Contents/MacOS/scribe-refresh-input-menu"
+
+# Xcode explicitly registers its products with LaunchServices. Build under a
+# separate identity so registration/cleanup cannot replace the installed
+# input method. Only the non-indexed package staging copy gets the real IDs.
+for plist in "${APP}/Contents/Info.plist" "${APP}/Contents/Helpers/ScribeSettings.app/Contents/Info.plist"; do
+  plutil -convert xml1 "${plist}"
+  sed -i '' "s/${BUILD_BUNDLE_ID//./\\.}/${BUNDLE_ID}/g" "${plist}"
+done
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist")" == "${BUNDLE_ID}" ]] || {
+  echo "error: staged app does not have the release bundle identifier" >&2
+  exit 1
+}
 
 # Software updates: only release builds carry the feed and its key.
 if [[ -n "${SPARKLE_FEED_URL}" ]]; then
@@ -137,6 +171,22 @@ if [[ -n "${SPARKLE_FEED_URL}" ]]; then
       /usr/libexec/PlistBuddy -c "Add :${key} string ${value}" "${APP}/Contents/Info.plist"
   done
 fi
+
+# Compile the shared schemas before sealing the app. Do the work outside the
+# bundle: librime also writes installation.yaml/user.yaml, which describe the
+# build machine and must not become a user's installation state. Only the
+# portable build/ artifacts belong in the signed app.
+PREBUILD="${OUTPUT}/prebuild.noindex"
+ditto "${APP}/Contents/SharedSupport" "${PREBUILD}"
+(cd "${PREBUILD}" && "${APP}/Contents/MacOS/Scribe" --build)
+for file in default.yaml luna_pinyin.prism.bin luna_pinyin.table.bin quick5.table.bin; do
+  [[ -s "${PREBUILD}/build/${file}" ]] || {
+    echo "error: shared data prebuild did not produce ${file}" >&2
+    exit 1
+  }
+done
+ditto "${PREBUILD}/build" "${APP}/Contents/SharedSupport/build"
+rm -rf "${PREBUILD}"
 
 # Sign inside out: embedded libraries first, then the command line tools next
 # to Scribe, then the app. The tools load librime, so they get the app's
@@ -155,6 +205,7 @@ for tool in rime_deployer rime_dict_manager; do
     --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}/Contents/MacOS/${tool}"
 done
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/rime-install"
+codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/scribe-refresh-input-menu"
 # Scribe Settings, inside Scribe.app. It loads Scribe.app's librime, so it
 # carries the same library validation exemption as the app.
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" \

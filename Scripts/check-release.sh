@@ -9,6 +9,7 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TEAM_ID="AW54C93V4H"
 BUNDLE_ID="io.github.itvx.inputmethod.Scribe"
 
@@ -58,9 +59,10 @@ fi
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
-pkgutil --expand-full "${PACKAGE}" "${WORK}/expanded"
+mkdir "${WORK}/artifacts.noindex"
+pkgutil --expand-full "${PACKAGE}" "${WORK}/artifacts.noindex/expanded"
 
-component="${WORK}/expanded/Scribe-component.pkg"
+component="${WORK}/artifacts.noindex/expanded/Scribe-component.pkg"
 grep -qF "install-location=\"/Library/Input Methods\"" "${component}/PackageInfo" ||
   fail "package does not install into /Library/Input Methods"
 for script in preinstall postinstall; do
@@ -72,6 +74,14 @@ APP="${component}/Payload/Scribe.app"
 [[ -d "${APP}" ]] || fail "package has no Scribe.app"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist")" == "${BUNDLE_ID}" ]] ||
   fail "unexpected bundle identifier"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :TISInputSourceID' "${APP}/Contents/Info.plist")" == "${BUNDLE_ID}" ]] ||
+  fail "unexpected input source identifier"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :InputMethodConnectionName' "${APP}/Contents/Info.plist")" == "${BUNDLE_ID}_Connection" ]] ||
+  fail "unexpected input method connection"
+for mode in Hans Hant; do
+  [[ "$(/usr/libexec/PlistBuddy -c "Print :ComponentInputModeDict:tsInputModeListKey:${BUNDLE_ID}.${mode}:TISInputSourceID" "${APP}/Contents/Info.plist")" == "${BUNDLE_ID}.${mode}" ]] ||
+    fail "unexpected ${mode} input mode identifier"
+done
 for arch in arm64 x86_64; do
   lipo "${APP}/Contents/MacOS/Scribe" -verify_arch "${arch}" || fail "executable lacks ${arch}"
 done
@@ -90,7 +100,15 @@ for file in default.yaml squirrel.yaml scribe.yaml essay.txt luna_pinyin.schema.
 done
 pass "embeds the ${PLUGINS[*]} plugins, default Rime data, octagram grammar, squirrel.yaml, scribe.yaml and OpenCC data"
 
-TOOLS=(rime_deployer rime_dict_manager rime-install)
+for file in default.yaml luna_pinyin.prism.bin luna_pinyin.table.bin quick5.table.bin; do
+  [[ -s "${APP}/Contents/SharedSupport/build/${file}" ]] || fail "signed shared data lacks prebuilt ${file}"
+done
+for file in installation.yaml user.yaml; do
+  [[ ! -e "${APP}/Contents/SharedSupport/${file}" ]] || fail "shared data contains build-machine state ${file}"
+done
+pass "ships precompiled shared data without build-machine installation state"
+
+TOOLS=(rime_deployer rime_dict_manager rime-install scribe-refresh-input-menu)
 for tool in "${TOOLS[@]}"; do
   [[ -x "${APP}/Contents/MacOS/${tool}" ]] || fail "${tool} is not next to Scribe"
 done
@@ -103,6 +121,8 @@ pass "ships ${TOOLS[*]} next to Scribe, universal"
 
 SETTINGS="${APP}/Contents/Helpers/ScribeSettings.app"
 [[ -x "${SETTINGS}/Contents/MacOS/ScribeSettings" ]] || fail "Scribe Settings is not in Contents/Helpers"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${SETTINGS}/Contents/Info.plist")" == "${BUNDLE_ID}.Settings" ]] ||
+  fail "unexpected settings bundle identifier"
 for arch in arm64 x86_64; do
   lipo "${SETTINGS}/Contents/MacOS/ScribeSettings" -verify_arch "${arch}" || fail "Scribe Settings lacks ${arch}"
 done
@@ -184,6 +204,7 @@ grep -q -- "--list" <<< "${usage}" || fail "rime_dict_manager does not run: ${us
 usage="$("${APP}/Contents/MacOS/rime_deployer" --check-release 2>&1 || true)"
 [[ "${usage}" == "invalid arguments." ]] || fail "rime_deployer does not run: ${usage}"
 bash -n "${APP}/Contents/MacOS/rime-install" || fail "rime-install is not a valid shell script"
+bash -n "${APP}/Contents/MacOS/scribe-refresh-input-menu" || fail "input-menu refresh helper is not a valid shell script"
 pass "rime_deployer and rime_dict_manager load librime; rime-install parses"
 
 settings_test="$("${SETTINGS}/Contents/MacOS/ScribeSettings" --self-test 2>/dev/null)" ||
@@ -193,15 +214,29 @@ grep -qF "shared data: ${APP}/Contents/SharedSupport" <<< "${settings_test}" ||
   fail "Scribe Settings does not use Scribe.app's shared data: ${settings_test}"
 pass "Scribe Settings launches with Scribe.app's librime and shared data"
 
-# The postinstall script prebuilds the shared data in place, as root through
-# the installer. macOS does not let other processes change a signed app's
-# contents, so build a copy the same way.
+if refresh_log="$("${APP}/Contents/MacOS/Scribe" --refresh-input-menu 2>&1)"; then
+  fail "a package staging copy must not refresh the user's live input menu"
+fi
+grep -q 'must run as the user from an installed Scribe.app' <<< "${refresh_log}" ||
+  fail "unexpected staging refresh refusal: ${refresh_log}"
+pass "staging copies cannot modify the live input-source list"
+
+mkdir "${WORK}/replay-user"
+replay_log="$("${APP}/Contents/MacOS/Scribe" --replay \
+  "${ROOT}/Tests/Fixtures/prebuilt/luna-pinyin.replay" "${WORK}/replay-user" 2>&1)" ||
+  fail "packaged prebuilt schema cannot compose and commit: $(tail -10 <<< "${replay_log}")"
+pass "packaged luna_pinyin composes and commits with a fresh user directory"
+
+# Keep testing the public --build command on a separate copy. The installed
+# app must remain sealed; postinstall no longer runs this command in it.
 ditto "${APP}/Contents/SharedSupport" "${WORK}/prebuild"
+rm -rf "${WORK}/prebuild/build"
 build_log="$(cd "${WORK}/prebuild" && "${APP}/Contents/MacOS/Scribe" --build 2>&1)" ||
   fail "--build cannot prebuild the shared data: $(tail -5 <<< "${build_log}")"
 for file in default.yaml luna_pinyin.prism.bin luna_pinyin.table.bin quick5.table.bin; do
   [[ -f "${WORK}/prebuild/build/${file}" ]] || fail "--build did not prebuild ${file}"
 done
-pass "--build prebuilds the shared data, as postinstall does"
+codesign --verify --strict --deep "${APP}" || fail "validation changed Scribe.app's sealed resources"
+pass "--build prebuilds shared data outside the sealed app"
 
 echo "All checks passed for ${PACKAGE##*/}"

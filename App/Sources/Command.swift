@@ -10,6 +10,7 @@ import ScribeCore
 enum Command: Equatable {
     case runServer
     case install
+    case refreshInputMenu
     /// No modes means the defaults described in the usage.
     case enableInputSource([InputMode])
     case disableInputSource([InputMode])
@@ -70,6 +71,7 @@ enum Command: Equatable {
         }
         switch option {
         case "--install", "--register-input-source": self = .install
+        case "--refresh-input-menu": self = .refreshInputMenu
         case "--quit": self = .quit
         case "--reload": self = .reload
         case "--sync": self = .sync
@@ -91,6 +93,8 @@ enum Command: Equatable {
         Install:
           --install, --register-input-source
                       register Scribe's input sources (does not enable them)
+          --refresh-input-menu
+                      refresh the system input menu after installation
           --enable-input-source [ID...]
                       enable these input sources; with none, enable the
                       primary one unless one is enabled already

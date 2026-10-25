@@ -1,0 +1,8 @@
+# Exercise the schema and dictionaries shipped inside the signed package.
+@schema luna_pinyin
+n
+i
+h
+a
+o       => candidates "你好"
+space   => commit "你好"; marked ""; candidates none

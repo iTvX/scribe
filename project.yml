@@ -10,8 +10,12 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: 0.1.3
+    MARKETING_VERSION: 0.1.4
     CURRENT_PROJECT_VERSION: 1
+    # CI and packaging override this: Xcode registers macOS build products
+    # with LaunchServices even when Spotlight indexing is disabled.
+    SCRIBE_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.Scribe
+    SCRIBE_INFOPLIST_FILE: App/Info.plist
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     ENABLE_HARDENED_RUNTIME: YES
@@ -127,8 +131,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Scribe
-        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.Scribe
-        INFOPLIST_FILE: App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: $(SCRIBE_BUNDLE_IDENTIFIER)
+        INFOPLIST_FILE: $(SCRIBE_INFOPLIST_FILE)
         # Ad hoc signatures carry no Team ID, so with the hardened runtime on,
         # library validation would refuse to load librime.1.dylib.
         CODE_SIGN_ENTITLEMENTS: App/Scribe.entitlements
@@ -184,7 +188,7 @@ targets:
         PRODUCT_NAME: ScribeSettings
         # Keeps the module name apart from ScribeConfig's ScribeSettings type.
         PRODUCT_MODULE_NAME: SettingsApp
-        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.Scribe.Settings
+        PRODUCT_BUNDLE_IDENTIFIER: $(SCRIBE_BUNDLE_IDENTIFIER).Settings
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         # ScribeConfig links librime through RimeKit; see the Scribe target.
