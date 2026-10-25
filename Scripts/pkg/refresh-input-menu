@@ -1,0 +1,36 @@
+#!/bin/bash
+# One-shot user launchd job. PackageKit registers/touches the installed app
+# after postinstall returns, so wait for its new receipt before refreshing.
+set -eu
+
+[[ $# == 3 ]] || exit 2
+job_label="$1"
+receipt="$2"
+previous_stamp="$3"
+[[ "${job_label}" == io.github.itvx.inputmethod.Scribe.refresh.* ]] || exit 2
+[[ "${receipt}" == /var/db/receipts/io.github.itvx.inputmethod.Scribe.plist ]] || exit 2
+[[ "$(/usr/bin/id -u)" != 0 ]] || exit 0
+trap '/bin/launchctl remove "${job_label}" >/dev/null 2>&1 || true' EXIT
+
+for _ in {1..30}; do
+  current_stamp="$(/usr/bin/stat -f '%i:%m:%c' "${receipt}" 2>/dev/null || true)"
+  if [[ -n "${current_stamp}" && "${current_stamp}" != "${previous_stamp}" ]]; then
+    # The receipt is written immediately before final LaunchServices updates.
+    /bin/sleep 3
+    menu_uid="$(/usr/bin/id -u)"
+    /usr/bin/pgrep -u "${menu_uid}" -x MenuBarAgent >/dev/null || exit 0
+    cache_dir="$(/usr/bin/getconf DARWIN_USER_CACHE_DIR)"
+    [[ -n "${cache_dir}" && "${cache_dir}" == /* ]] || exit 0
+    cache="${cache_dir%/}/com.apple.MenuBarAgent/com.apple.IntlDataCache.le.kbdx"
+    if [[ -f "${cache}" && ! -L "${cache}" ]]; then
+      # Keep a recoverable copy; this is only the menu host's generated cache.
+      backup="$(/usr/bin/mktemp -d "${cache_dir%/}/ScribeInputMenuRecovery.XXXXXX")"
+      /bin/mv "${cache}" "${backup}/"
+    fi
+    /usr/bin/killall -TERM -u "$(/usr/bin/id -un)" MenuBarAgent || true
+    /usr/bin/logger -t ScribeInstaller 'Refreshed input-menu cache after PackageKit completed installation'
+    exit 0
+  fi
+  /bin/sleep 1
+done
+/usr/bin/logger -t ScribeInstaller 'Skipped input-menu refresh: no completed installation receipt within 30 seconds'

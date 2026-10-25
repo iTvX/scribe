@@ -148,6 +148,8 @@ rm -rf "${OUTPUT}"
 mkdir -p "${STAGING}"
 APP="${STAGING}/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
+cp "${ROOT}/Scripts/pkg/refresh-input-menu" "${APP}/Contents/MacOS/scribe-refresh-input-menu"
+chmod 755 "${APP}/Contents/MacOS/scribe-refresh-input-menu"
 
 # Xcode explicitly registers its products with LaunchServices. Build under a
 # separate identity so registration/cleanup cannot replace the installed
@@ -203,6 +205,7 @@ for tool in rime_deployer rime_dict_manager; do
     --entitlements "${ROOT}/App/Scribe.entitlements" "${APP}/Contents/MacOS/${tool}"
 done
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/rime-install"
+codesign --force --options runtime "${CODESIGN_ARGS[@]}" "${APP}/Contents/MacOS/scribe-refresh-input-menu"
 # Scribe Settings, inside Scribe.app. It loads Scribe.app's librime, so it
 # carries the same library validation exemption as the app.
 codesign --force --options runtime "${CODESIGN_ARGS[@]}" \

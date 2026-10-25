@@ -16,7 +16,9 @@
 
 安装包装到 `/Library/Input Methods`，`postinstall` 以当前登录用户的身份运行 `Scribe --install`，每次都重新注册，包括升级后路径相同的情况，不启用、不选中输入源。
 
-注册成功后，如果当前用户的 `MenuBarAgent` 正在运行，移除它自己的 `com.apple.IntlDataCache.le.kbdx` 缓存，并以 SIGTERM 请求该服务重新启动。2026-10-24 的 macOS 27.0.1 实机排查中，TIS 已列出并启用中书而菜单缺项；刷新这一缓存和服务后，用户确认菜单重新出现中书，全程没有注销。这个处理只作用于当前登录用户，不改输入源选择，不终止 `TextInputSwitcher`，旧系统没有 `MenuBarAgent` 时跳过。新的安装流程仍须按手动清单 U6 验证升级后的实际菜单和输入。
+注册成功后，提交一个当前登录用户的一次性 launchd 任务。任务等待 PackageKit 写入新安装收据，再让最后的 LaunchServices 更新完成；如果该用户的 `MenuBarAgent` 正在运行，将它自己的 `com.apple.IntlDataCache.le.kbdx` 移到用户缓存目录中的备份文件夹，并以 SIGTERM 请求服务重新启动。任务结束时移除自身，等待安装收据最多 30 秒。
+
+2026-10-24 的 macOS 27.0.1 实机排查中，TIS 已列出并启用中书而菜单缺项；刷新这一缓存和服务后，用户确认菜单重新出现中书，全程没有注销。首次验证包在 postinstall 内同步刷新，随后 PackageKit 再登记 app，菜单仍缺项，因此改为安装完成后刷新。这个处理只作用于当前登录用户，不改启用的输入源，不终止 `TextInputSwitcher`，旧系统没有 `MenuBarAgent` 时跳过。新的安装流程仍须按手动清单 U6 验证升级后的实际菜单和输入。
 
 ### 签名、打包和公证
 
