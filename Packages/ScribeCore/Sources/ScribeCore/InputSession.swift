@@ -183,9 +183,9 @@ public final class InputSession {
     /// Receives actions that happen without a key, such as a chord being
     /// released after `chordDuration`.
     public var onAsyncActions: (([SessionAction]) -> Void)?
-    /// Called with the schema ID when the session starts using a schema: at
-    /// its first update and after a switch. As in Squirrel, this is when the
-    /// schema's style applies.
+    /// Called with the schema ID at startup and after a switch, before the
+    /// next key or composition uses its style. Change presentation here;
+    /// do not recursively request actions from the session.
     public var onSchemaChange: ((String) -> Void)?
 
     private let engine: any RimeEngine
@@ -210,11 +210,10 @@ public final class InputSession {
     /// client unhandled.
     public func handle(_ key: KeyEvent) -> KeyResult {
         guard let session = activeSession() else { return KeyResult(handled: false, actions: []) }
-        // Schemas may follow how the window lays out candidates.
-        for (option, value) in [("_linear", presentation.linear), ("_vertical", presentation.vertical)]
-        where engine.option(option, in: session) != value {
-            engine.setOption(option, value, in: session)
-        }
+        // Restore this session's style before the schema processes the key,
+        // including the first key after maintenance or an external switch.
+        synchronizeSchema(in: session)
+        configurePresentation(in: session)
         let handled = engine.processKey(key.keycode, modifiers: key.modifiers.rawValue, in: session)
         if !handled {
             if Self.leavesVimInsertMode(key), engine.option("vim_mode", in: session),
@@ -335,9 +334,24 @@ public final class InputSession {
         activeSession()
     }
 
+    /// Inspects an existing session without opening a dictionary or creating
+    /// a session in an inactive input field.
+    public var currentSchemaID: String? {
+        guard !engine.isInMaintenance, let session, engine.sessionExists(session) else { return nil }
+        return engine.status(in: session)?.schemaID
+    }
+
+    /// Redraws an existing composition after its theme changes, without a
+    /// synthetic key or a new session. Called outside a key's update so a
+    /// pending commit is always applied before the next marked text.
+    public func refreshPresentation() -> [SessionAction] {
+        guard !engine.isInMaintenance, let session, engine.sessionExists(session) else { return [] }
+        return update(session, keepingCommentMarks: true, forceCandidates: true)
+    }
+
     /// Whether a notification concerns this session.
     public func owns(_ sessionID: RimeSessionID) -> Bool {
-        session == sessionID
+        !engine.isInMaintenance && session == sessionID && engine.sessionExists(sessionID)
     }
 
     /// The announcement for an option or schema change, as Squirrel shows
@@ -383,7 +397,9 @@ public final class InputSession {
     /// controller is created, so the first key does not wait for librime to
     /// load the schema. During maintenance the next key starts it instead.
     public func start() {
-        _ = activeSession()
+        if let session = activeSession() {
+            synchronizeSchema(in: session)
+        }
     }
 
     /// Ends the Rime session. A later key starts a new one.
@@ -512,7 +528,21 @@ public final class InputSession {
         )
     }
 
-    private func update(_ session: RimeSessionID, keepingCommentMarks: Bool = false) -> [SessionAction] {
+    private func synchronizeSchema(in session: RimeSessionID) {
+        if let status = engine.status(in: session), status.schemaID != schemaID {
+            schemaID = status.schemaID
+            onSchemaChange?(status.schemaID)
+        }
+    }
+
+    private func configurePresentation(in session: RimeSessionID) {
+        for (option, value) in [("_linear", presentation.linear), ("_vertical", presentation.vertical)]
+        where engine.option(option, in: session) != value {
+            engine.setOption(option, value, in: session)
+        }
+    }
+
+    private func update(_ session: RimeSessionID, keepingCommentMarks: Bool = false, forceCandidates: Bool = false) -> [SessionAction] {
         var actions: [SessionAction] = []
         if !keepingCommentMarks {
             accentCommentIndices = []
@@ -528,11 +558,8 @@ public final class InputSession {
             // Inserting text replaces the client's marked text.
             markedText = .empty
         }
-        if let status = engine.status(in: session), status.schemaID != schemaID {
-            schemaID = status.schemaID
-            // May change the presentation used below.
-            onSchemaChange?(status.schemaID)
-        }
+        synchronizeSchema(in: session)
+        configurePresentation(in: session)
         let inline = inlineMode(in: session)
         let context = engine.context(in: session)
         let newMarkedText = context.composition.map {
@@ -550,7 +577,7 @@ public final class InputSession {
             : CandidateSnapshot(menu: context.menu, composition: inline.preedit ? nil : context.composition)
         newCandidates?.accentCommentIndices = accentCommentIndices
         newCandidates?.warningCommentIndices = warningCommentIndices
-        if newCandidates != candidates {
+        if newCandidates != candidates || forceCandidates {
             actions.append(newCandidates.map(SessionAction.showCandidates) ?? .hideCandidates)
             candidates = newCandidates
         }

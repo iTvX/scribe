@@ -24,18 +24,17 @@ final class ScribeInputController: IMKInputController {
     }
 
     override func activateServer(_ sender: Any!) {
-        Log.input.info("Activated for \(IMKTextClient(sender, controller: self)?.bundleIdentifier ?? "unknown client", privacy: .public)")
+        let client = IMKTextClient(sender, controller: self)
+        Log.input.info("Activated for \(client?.bundleIdentifier ?? "unknown client", privacy: .public)")
         // This process only sees its own modifier events; ask the session
         // for the Caps Lock state.
         let capsLockOn = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
         let state = state
         let layout = MainActor.assumeIsolated {
-            let layout = state.adapter.activate(capsLockOn: capsLockOn)
-            RimeService.shared.activated(state.adapter)
-            return layout
+            state.adapter.activate(capsLockOn: capsLockOn, client: client)
         }
         if let layout {
-            IMKTextClient(sender, controller: self)?.overrideKeyboard(named: layout)
+            client?.overrideKeyboard(named: layout)
         }
     }
 

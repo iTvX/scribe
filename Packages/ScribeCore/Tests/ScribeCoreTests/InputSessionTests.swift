@@ -35,6 +35,53 @@ import Testing
         #expect(engine.createdSessionCount == 1)
     }
 
+    @Test func theFirstKeyUsesTheSchemasPresentation() throws {
+        session.onSchemaChange = { _ in
+            self.session.presentation = .init(inlinePreedit: false, linear: true)
+        }
+        let actions = type("n")
+        let id = try #require(session.currentSessionID)
+        #expect(engine.option("_linear", in: id))
+        #expect(actions.first == .setMarkedText(MarkedText(text: "　", caret: 0)))
+    }
+
+    @Test func inspectingOrRefreshingAnInactiveSessionDoesNotStartOne() {
+        #expect(session.currentSchemaID == nil)
+        #expect(session.refreshPresentation().isEmpty)
+        #expect(engine.createdSessionCount == 0)
+    }
+
+    @Test func aThemeRefreshPreservesInputAndPluginCommentMarks() throws {
+        _ = type("ni")
+        _ = session.handleProperty("_comment_highlight=1")
+        _ = session.handleProperty("_comment_warning=2")
+        let keys = engine.processedKeys
+        session.presentation.inlinePreedit = false
+        let actions = session.refreshPresentation()
+        #expect(actions.first == .setMarkedText(MarkedText(text: "　", caret: 0)))
+        guard case .showCandidates(let snapshot) = actions.last else {
+            Issue.record("The theme change must redraw the candidates")
+            return
+        }
+        #expect(snapshot.accentCommentIndices == [1])
+        #expect(snapshot.warningCommentIndices == [2])
+        #expect(snapshot.preedit?.text == "ni‸")
+        #expect(engine.processedKeys == keys)
+        let id = try #require(session.currentSessionID)
+        #expect(engine.input(in: id) == "ni")
+        #expect(!actions.contains { if case .commit = $0 { true } else { false } })
+    }
+
+    @Test func anExpiredSessionDoesNotOwnNotificationsOrRestartForARedraw() throws {
+        _ = type("n")
+        let id = try #require(session.currentSessionID)
+        engine.destroySession(id)
+        #expect(!session.owns(id))
+        #expect(session.currentSchemaID == nil)
+        #expect(session.refreshPresentation().isEmpty)
+        #expect(engine.createdSessionCount == 1)
+    }
+
     @Test func typingUpdatesMarkedTextThenCandidates() {
         let first = session.handle(KeyEvent(name: "n")!)
         #expect(first.handled)
