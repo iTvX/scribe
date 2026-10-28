@@ -1,4 +1,5 @@
 import AppKit
+import CoreText
 
 /// Lays out the panel text with TextKit 2 in an `NSTextView` set up like
 /// Squirrel's, so lines break and measure the same. The view is never shown:
@@ -31,8 +32,37 @@ final class PanelTextLayout {
     /// Vertical text is laid out in lines along x, like horizontal text;
     /// the panel turns it a quarter turn when drawing.
     func setText(_ text: NSAttributedString, vertical: Bool) {
-        textView.textContentStorage!.attributedString = text
+        let content: NSAttributedString
+        if #available(macOS 27.2, *), vertical {
+            content = Self.resolvingFallbackFonts(in: text)
+        } else {
+            content = text
+        }
+        textView.textContentStorage!.attributedString = content
         textView.setLayoutOrientation(vertical ? .vertical : .horizontal)
+    }
+
+    /// Avoid the incorrect glyphs observed with implicit font cascades in
+    /// vertical TextKit layout on macOS 27.2. Concrete font descriptors give
+    /// layout and drawing the same font, including its metrics. Keep whole
+    /// grapheme clusters together (including emoji and combining accents).
+    static func resolvingFallbackFonts(in text: NSAttributedString) -> NSAttributedString {
+        let resolved = NSMutableAttributedString(attributedString: text)
+        let string = text.string as NSString
+        text.enumerateAttribute(.font, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+            guard let font = value as? NSFont else { return }
+            var offset = range.location
+            while offset < NSMaxRange(range) {
+                let cluster = NSIntersectionRange(string.rangeOfComposedCharacterSequence(at: offset), range)
+                let fallback = CTFontCreateForString(font as CTFont, string as CFString,
+                                                     CFRange(location: cluster.location, length: cluster.length))
+                let face = CTFontCopyPostScriptName(fallback) as String
+                let concrete = NSFont(name: face, size: font.pointSize) ?? (fallback as NSFont)
+                if face != font.fontName { resolved.addAttribute(.font, value: concrete, range: cluster) }
+                offset = NSMaxRange(cluster)
+            }
+        }
+        return resolved
     }
 
     /// Lays the text out in lines at most `width` long.

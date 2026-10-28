@@ -161,7 +161,9 @@ private struct NoticeRow: View {
             case .otherFrontendConfig(let file):
                 Text(verbatim: "\(file) 是其他输入法前端（小狼毫、仓输入法等）的配置，已复制，中书不读取。")
             case .symbolicLink(let path, let target):
-                Text(verbatim: "\(path) 是符号链接，指向 \(target)。导入时原样复制了链接，它仍然指向原来的位置。")
+                Text(verbatim: "\(path) 指向 \(target)，链接失效或形成循环，已跳过。请检查来源后重新导入。")
+            case .copiedSymbolicLink(let path, let target):
+                Text(verbatim: "\(path) 原来指向 \(target)，已复制为独立内容；中书里的修改不会写回原位置。")
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -196,6 +198,7 @@ extension SkipReason {
         case .syncDirectory: "同步文件夹"
         case .trash: "librime 替换下来的旧文件"
         case .systemFile: "访达的系统文件"
+        case .unavailableLink: "失效或循环的符号链接"
         }
     }
 }

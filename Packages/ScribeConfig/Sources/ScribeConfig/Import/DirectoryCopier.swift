@@ -26,22 +26,24 @@ struct DirectoryCopier {
 
     /// Copies everything except `installation.yaml`, which the importer writes.
     mutating func copy() throws {
-        try copyContents(ofDirectory: "")
+        try copyContents(ofDirectory: "", source: sourceRoot, ancestors: [])
     }
 
-    private mutating func copyContents(ofDirectory directory: String) throws {
+    private mutating func copyContents(ofDirectory directory: String, source folder: URL, ancestors: Set<String>) throws {
         let fileManager = FileManager.default
-        let names = try fileManager.contentsOfDirectory(atPath: sourcePath(directory)).sorted()
+        let ancestors = ancestors.union([folder.resolvingSymlinksInPath().path])
+        let names = try fileManager.contentsOfDirectory(atPath: folder.path).sorted()
         for name in names {
             let path = directory.isEmpty ? name : directory + "/" + name
-            let source = sourcePath(path)
+            var source = folder.appending(path: name)
             let target = stagingPath(path)
             if let reason = skipReason(path: path, name: name, atRoot: directory.isEmpty) {
                 skipped.append(SkippedItem(path: path, reason: reason))
                 continue
             }
-            if path == ".git" {
-                try fileManager.copyItem(atPath: source, toPath: target)
+            var type = try fileManager.attributesOfItem(atPath: source.path)[.type] as? FileAttributeType
+            if path == ".git", type != .typeSymbolicLink {
+                try fileManager.copyItem(atPath: source.path, toPath: target)
                 imported.append(ImportedItem(path: path, kind: .gitRepository))
                 continue
             }
@@ -49,21 +51,31 @@ struct DirectoryCopier {
                 continue
             }
 
-            let type = try fileManager.attributesOfItem(atPath: source)[.type] as? FileAttributeType
+            if type == .typeSymbolicLink {
+                let destination = try fileManager.destinationOfSymbolicLink(atPath: source.path)
+                source = source.resolvingSymlinksInPath()
+                type = (try? fileManager.attributesOfItem(atPath: source.path)[.type]) as? FileAttributeType
+                guard [.typeDirectory, .typeRegular].contains(type),
+                      !ancestors.contains(source.path),
+                      !source.pathComponents.starts(with: stagingRoot.pathComponents) else {
+                    skipped.append(SkippedItem(path: path, reason: .unavailableLink))
+                    fileNotices.append(((path, 0, 0), .symbolicLink(path: path, target: destination)))
+                    continue
+                }
+                fileNotices.append(((path, 0, 0), .copiedSymbolicLink(path: path, target: destination)))
+            }
             switch type {
             case .typeDirectory:
-                try fileManager.createDirectory(atPath: target, withIntermediateDirectories: false)
-                try copyContents(ofDirectory: path)
-            case .typeRegular:
-                try fileManager.copyItem(atPath: source, toPath: target)
-                record(path: path, at: target)
-            case .typeSymbolicLink:
-                let destination = try fileManager.destinationOfSymbolicLink(atPath: source)
-                try fileManager.createSymbolicLink(atPath: target, withDestinationPath: destination)
-                imported.append(ImportedItem(path: path, kind: ImportedFileKind(path: path)))
-                if Self.leavesSource(link: path, target: destination) {
-                    fileNotices.append(((path, 0, 0), .symbolicLink(path: path, target: destination)))
+                guard !ancestors.contains(source.path),
+                      !source.pathComponents.starts(with: stagingRoot.pathComponents) else {
+                    skipped.append(SkippedItem(path: path, reason: .unavailableLink))
+                    continue
                 }
+                try fileManager.createDirectory(atPath: target, withIntermediateDirectories: false)
+                try copyContents(ofDirectory: path, source: source, ancestors: ancestors)
+            case .typeRegular:
+                try fileManager.copyItem(atPath: source.path, toPath: target)
+                record(path: path, at: target)
             default:
                 // Sockets, pipes and devices have no place in a Rime directory.
                 continue
@@ -113,29 +125,6 @@ struct DirectoryCopier {
             }
             return name.hasSuffix(".userdb.txt") ? .userDictionary : nil
         }
-    }
-
-    /// Whether a link's target is absolute or climbs out of the source.
-    static func leavesSource(link: String, target: String) -> Bool {
-        if target.hasPrefix("/") {
-            return true
-        }
-        var components = link.split(separator: "/").dropLast()
-        for component in target.split(separator: "/") {
-            switch component {
-            case ".":
-                continue
-            case "..":
-                guard components.popLast() != nil else { return true }
-            default:
-                components.append(component)
-            }
-        }
-        return false
-    }
-
-    private func sourcePath(_ path: String) -> String {
-        sourceRoot.appending(path: path).path(percentEncoded: false)
     }
 
     private func stagingPath(_ path: String) -> String {

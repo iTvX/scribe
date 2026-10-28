@@ -9,7 +9,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIGURATION="${CONFIGURATION:-Release}"
-DERIVED_DATA="${ROOT}/build/DerivedData"
+DERIVED_DATA="${ROOT}/build/DerivedData.noindex"
 BUILT_APP="${DERIVED_DATA}/Build/Products/${CONFIGURATION}/Scribe.app"
 INSTALL_DIR="${HOME}/Library/Input Methods"
 INSTALLED_APP="${INSTALL_DIR}/Scribe.app"

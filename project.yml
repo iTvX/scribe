@@ -10,7 +10,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: 0.1.4
+    MARKETING_VERSION: 0.1.5
     CURRENT_PROJECT_VERSION: 1
     # CI and packaging override this: Xcode registers macOS build products
     # with LaunchServices even when Spotlight indexing is disabled.
@@ -149,6 +149,8 @@ targets:
     platform: macOS
     sources:
       - path: App/Sources/Adapter
+      - path: App/Sources/ScribeInputController.swift
+      - path: App/Sources/IMKTextClient.swift
       - path: App/Sources/Command.swift
       - path: App/Sources/DeployMessage.swift
       - path: App/Sources/DistributionIdentity.swift
@@ -171,6 +173,33 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.inputmethod.ScribeTests
+        GENERATE_INFOPLIST_FILE: YES
+
+  # Real startup/recovery wiring in an isolated process; no IMK server.
+  ScribeServiceTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App/ServiceTests
+      - path: App/Sources/Adapter
+      - path: App/Sources/RimeService.swift
+      - path: App/Sources/CarbonInputSources.swift
+      - path: App/Sources/InputSourceInstaller.swift
+      - path: App/Sources/DistributionIdentity.swift
+      - path: App/Sources/FrontendConfig.swift
+      - path: App/Sources/LaunchGuard.swift
+      - path: App/Sources/MaintenanceQueue.swift
+      - path: App/Sources/DeployMessage.swift
+      - path: App/Sources/RunLoopChordTimer.swift
+      - path: App/Sources/Log.swift
+    dependencies:
+      - package: RimeKit
+      - package: ScribeConfig
+      - package: ScribeCore
+      - package: ScribeUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.scribe.ServiceTests
         GENERATE_INFOPLIST_FILE: YES
 
   ScribeSettings:
@@ -203,9 +232,11 @@ schemes:
       targets:
         Scribe: all
         ScribeTests: [test]
+        ScribeServiceTests: [test]
     test:
       targets:
         - ScribeTests
+        - ScribeServiceTests
     run:
       config: Debug
     archive:

@@ -49,6 +49,8 @@ public enum SkipReason: String, Sendable, CaseIterable {
     case trash
     /// `.DS_Store` anywhere.
     case systemFile
+    /// A broken/cyclic link or a link into the import's staging directory.
+    case unavailableLink
 }
 
 /// The user dictionaries found in the source, and the snapshots Squirrel
@@ -74,6 +76,8 @@ public enum MigrationNotice: Sendable, Equatable {
     case luaChecksFrontend(file: String, line: Int, text: String)
     /// The configuration of another Rime frontend, which Scribe never reads.
     case otherFrontendConfig(file: String)
-    /// A symbolic link with an absolute target, or a relative one that leaves the source.
+    /// A link that could not be safely copied and was skipped.
     case symbolicLink(path: String, target: String)
+    /// A link whose contents were copied independently, never shared for writing.
+    case copiedSymbolicLink(path: String, target: String)
 }

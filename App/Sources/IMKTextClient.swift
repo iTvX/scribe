@@ -10,7 +10,7 @@ import ScribeCore
 struct IMKTextClient: @unchecked Sendable {
     private let client: any IMKTextInput
     /// Gives the attributes that mark the marked text.
-    private let controller: IMKInputController
+    private weak var controller: IMKInputController?
 
     init?(_ sender: Any?, controller: IMKInputController) {
         guard let client = sender as? any IMKTextInput else { return nil }
@@ -38,7 +38,9 @@ extension IMKTextClient: TextClient {
 
     func setMarkedText(_ text: MarkedText) {
         client.setMarkedText(
-            text.attributedString(marking: controller.markAttributes),
+            text.attributedString { [controller] style, range in
+                controller?.markAttributes(style, range) ?? [:]
+            },
             selectionRange: text.selectionRange,
             replacementRange: Self.noReplacement
         )

@@ -27,8 +27,18 @@ enum Snapshot {
         .deletingLastPathComponent() // Packages
         .deletingLastPathComponent()
 
+    // Font rasterization and vertical fallback behavior changed in 27.2.
+    // Keep the older OS references; both families use the same strict checks.
+    static var fixturesDirectory: URL {
+        let root = repositoryRoot.appending(path: "Tests/Fixtures/snapshots")
+        if #available(macOS 27.2, *) { return root.appending(path: "macos-27.2") }
+        return root
+    }
+
+    static var referenceDirectory: URL { fixturesDirectory.appending(path: "squirrel") }
+
     static func baselineURL(suite: String, name: String) -> URL {
-        repositoryRoot.appending(path: "Tests/Fixtures/snapshots/scribe/\(suite)/\(name).png")
+        fixturesDirectory.appending(path: "scribe/\(suite)/\(name).png")
     }
 
     static var artifactsDirectory: URL {

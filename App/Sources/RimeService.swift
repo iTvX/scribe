@@ -56,19 +56,17 @@ final class RimeService {
     /// Starts librime and deploys if the user's files changed. After a crash
     /// at startup it starts without librime, so the user can still type and
     /// fix the configuration; a reload starts librime again.
-    func start() {
-        if let logDirectory = Self.defaultLogDirectory {
+    func start(launchGuard: LaunchGuard = .standard, logDirectory: URL? = defaultLogDirectory,
+               warning: ((String) -> Void)? = nil) {
+        if let logDirectory {
             try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
             // Plugins such as librime-lua log here too.
             setenv("RIME_LOG_DIR", logDirectory.path(percentEncoded: false), 1)
         }
         observeServerNotifications()
         modeStatusItem.isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
-        if LaunchGuard.standard.isRelaunchTooSoon() {
-            Log.app.fault("Relaunched within two seconds; starting without Rime")
-            Self.speak(Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil))
-            return
-        }
+        // Install routing even when the crash guard defers engine startup:
+        // the user's later Redeploy must still receive completion and state.
         engine.notificationHandler = { notification in
             Self.log(notification)
             switch notification.type {
@@ -85,6 +83,12 @@ final class RimeService {
             default:
                 break
             }
+        }
+        if launchGuard.isRelaunchTooSoon() {
+            Log.app.fault("Relaunched within two seconds; starting without Rime")
+            let message = Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil)
+            if let warning { warning(message) } else { Self.speak(message) }
+            return
         }
         engine.start(Self.configuration(identity: identity))
         startMaintenance(fullCheck: false)

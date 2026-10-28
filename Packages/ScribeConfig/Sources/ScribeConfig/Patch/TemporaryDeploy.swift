@@ -15,7 +15,7 @@ struct TemporaryDeploy {
         try run([configID], replacing: replacing, body)
     }
 
-    /// Copies the top-level `*.yaml` files of the user directory (but not
+    /// Copies `*.yaml` files, including nested include dependencies (but not
     /// user.yaml, installation.yaml or dictionaries, which can be large and a
     /// config never includes) with `replacing` written over them, plus
     /// build/<schemaID>.schema.yaml when there is one; deploys
@@ -29,14 +29,7 @@ struct TemporaryDeploy {
         defer { try? fileManager.removeItem(at: temporary) }
         do {
             try fileManager.createDirectory(at: temporary, withIntermediateDirectories: true)
-            let names = try fileManager.contentsOfDirectory(atPath: userDirectory.path(percentEncoded: false))
-            for name in names where name.hasSuffix(".yaml") && !name.hasSuffix(".dict.yaml")
-                && !["user.yaml", "installation.yaml"].contains(name) {
-                // Reading follows symbolic links, which may be relative.
-                guard let data = fileManager.contents(atPath: userDirectory.appending(path: name).path(percentEncoded: false))
-                else { continue }
-                try data.write(to: temporary.appending(path: name))
-            }
+            try copyConfigs(from: userDirectory, to: temporary, ancestors: [], atRoot: true, snapshotRoot: temporary)
             for (name, text) in replacing {
                 try Data(text.utf8).write(to: temporary.appending(path: name))
             }
@@ -58,6 +51,35 @@ struct TemporaryDeploy {
         }
         return try body(engine)
     }
+
+    /// Materialize links in the snapshot so relative includes keep working
+    /// and a temporary deploy can never write through to the live directory.
+    private func copyConfigs(from source: URL, to target: URL, ancestors: Set<String>, atRoot: Bool, snapshotRoot: URL) throws {
+        let fileManager = FileManager.default
+        let resolved = source.resolvingSymlinksInPath()
+        guard !ancestors.contains(resolved.path), !resolved.pathComponents.starts(with: snapshotRoot.resolvingSymlinksInPath().pathComponents) else {
+            throw PatchSaveError.deployFailed("配置目录包含循环链接：\(source.path)")
+        }
+        let ancestors = ancestors.union([resolved.path])
+        for name in try fileManager.contentsOfDirectory(atPath: source.path).sorted() {
+            if name == ".git" || name.hasSuffix(".userdb") { continue }
+            if atRoot && ["build", "sync", "trash", "user.yaml", "installation.yaml"].contains(name) { continue }
+            let file = source.appending(path: name)
+            var directory: ObjCBool = false
+            let exists = fileManager.fileExists(atPath: file.path, isDirectory: &directory)
+            if directory.boolValue {
+                let destination = target.appending(path: name)
+                try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+                try copyConfigs(from: file, to: destination, ancestors: ancestors, atRoot: false, snapshotRoot: snapshotRoot)
+            } else if name.hasSuffix(".yaml"), !name.hasSuffix(".dict.yaml") {
+                let type = try fileManager.attributesOfItem(atPath: file.resolvingSymlinksInPath().path)[.type] as? FileAttributeType
+                guard exists, type == .typeRegular else {
+                    throw PatchSaveError.deployFailed("无法读取配置文件：\(file.path)")
+                }
+                try Data(contentsOf: file).write(to: target.appending(path: name))
+            }
+        }
+    }
 }
 
 /// A `<configID>.custom.yaml` as the pages load it: its text if it is valid
@@ -71,6 +93,10 @@ struct CustomFile {
         let file = CustomPatchWriter.resolvedFile(userDirectory.appending(path: "\(configID).custom.yaml"))
         let data = FileManager.default.contents(atPath: file.path(percentEncoded: false))
         text = data.flatMap(CustomPatchWriter.utf8Text)
+        if !file.pathComponents.starts(with: RimeDirectoryImporter.resolved(userDirectory).pathComponents) {
+            problem = .externalLink(file)
+            return
+        }
         if data != nil && text == nil {
             problem = .notUTF8
             return

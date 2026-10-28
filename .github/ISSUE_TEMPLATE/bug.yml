@@ -1,0 +1,39 @@
+name: Bug 报告
+description: 报告输入、配置、安装或更新问题
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: 请使用虚构输入和最小配置。不要上传完整词库、真实输入记录或未经脱敏的日志。
+  - type: input
+    id: version
+    attributes:
+      label: 中书版本、macOS 版本与芯片
+      placeholder: 例如 0.1.5 / macOS 27.2 / Apple Silicon
+    validations:
+      required: true
+  - type: input
+    id: app_schema
+    attributes:
+      label: 出问题的应用与输入方案
+      placeholder: 应用名称和版本、全拼或双拼方案；是否有自定义 Lua
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤、预期结果和实际结果
+      description: 安装问题请说明首次安装还是从哪个版本更新；输入问题请给出虚构的按键序列。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 最小配置、截图或日志（可选，先脱敏）
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私检查
+      options:
+        - label: 我已检查附件和文字，没有包含真实输入、用户词库或其他个人信息。
+          required: true

@@ -221,6 +221,14 @@ grep -q 'must run as the user from an installed Scribe.app' <<< "${refresh_log}"
   fail "unexpected staging refresh refusal: ${refresh_log}"
 pass "staging copies cannot modify the live input-source list"
 
+for notice in Scribe-LICENSE.txt librime-LICENSE.txt librime-lua-LICENSE.txt librime-octagram-LICENSE.txt librime-predict-LICENSE.txt Sparkle-LICENSE.txt Lua-LICENSE.txt manifest.json; do
+  [[ -s "${APP}/Contents/Resources/ThirdPartyNotices/${notice}" ]] || fail "missing third-party notice: ${notice}"
+done
+[[ -s "${APP}/Contents/Resources/Privacy.md" ]] || fail "missing privacy information"
+(cd "${APP}/Contents/Resources/ThirdPartyNotices" && shasum -a 256 --check --status SHA256SUMS) || fail "third-party notices differ from their manifest"
+pass "ships project/dependency notices and privacy information"
+
+
 mkdir "${WORK}/replay-user"
 replay_log="$("${APP}/Contents/MacOS/Scribe" --replay \
   "${ROOT}/Tests/Fixtures/prebuilt/luna-pinyin.replay" "${WORK}/replay-user" 2>&1)" ||

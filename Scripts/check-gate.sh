@@ -11,7 +11,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${1:-${ROOT}/build/DerivedData/Build/Products/Release/Scribe.app}"
+APP="${1:-${ROOT}/build/DerivedData.noindex/Build/Products/Release/Scribe.app}"
 EXECUTABLE="${APP}/Contents/MacOS/Scribe"
 [[ -x "${EXECUTABLE}" ]] || { echo "error: no Scribe at ${APP}; build it first" >&2; exit 2; }
 

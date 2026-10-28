@@ -128,7 +128,7 @@ struct RimeDirectoryImporterTests {
 
     // MARK: - Symbolic links
 
-    @Test func recreatesSymbolicLinks() throws {
+    @Test func copiesLinkContentsAndReportsUnavailableTargets() throws {
         let fake = try FakeRimeDirectory()
         defer { fake.remove() }
         let links = [
@@ -143,14 +143,15 @@ struct RimeDirectoryImporterTests {
 
         let report = try RimeDirectoryImporter(source: fake.source, destination: fake.destination).run()
 
-        for (path, target) in links {
-            let copy = fake.destination.appending(path: path).path(percentEncoded: false)
-            #expect(try FileManager.default.destinationOfSymbolicLink(atPath: copy) == target, "\(path)")
+        for path in ["lua/date.lua", "cn_dicts/base.dict.yaml"] {
+            let copy = fake.destination.appending(path: path)
+            #expect(try FileManager.default.attributesOfItem(atPath: copy.path)[.type] as? FileAttributeType == .typeRegular)
+            #expect(FileManager.default.contents(atPath: copy.path) == FileManager.default.contents(atPath: fake.url(path).path))
         }
-        #expect(report.imported.contains(ImportedItem(path: "lua/date.lua", kind: .lua)))
-        #expect(report.imported.contains(ImportedItem(path: "cn_dicts/base.dict.yaml", kind: .dictionary)))
-        #expect(report.imported.contains(ImportedItem(path: "linked_dicts", kind: .other)))
-        #expect(report.imported.contains(ImportedItem(path: "shared.yaml", kind: .sharedConfig)))
+        for path in ["linked_dicts", "shared.yaml"] {
+            #expect(!itemExists(fake.destination.appending(path: path)))
+            #expect(report.skipped.contains(SkippedItem(path: path, reason: .unavailableLink)))
+        }
         let linkNotices = report.notices.filter {
             if case .symbolicLink = $0 { true } else { false }
         }
@@ -158,20 +159,6 @@ struct RimeDirectoryImporterTests {
             .symbolicLink(path: "linked_dicts", target: "/Volumes/Fixture Cloud/dicts"),
             .symbolicLink(path: "shared.yaml", target: "../shared/shared.yaml"),
         ])
-    }
-
-    @Test(arguments: [
-        ("a.yaml", "b.yaml", false),
-        ("lua/a.lua", "../rime.lua", false),
-        ("lua/x/a.lua", "../../rime.lua", false),
-        ("lua/a.lua", "./b/../c.lua", false),
-        ("a.yaml", "../b.yaml", true),
-        ("lua/a.lua", "../../b.lua", true),
-        ("lua/a.lua", "b/../../../c.lua", true),
-        ("a.yaml", "/etc/hosts", true),
-    ])
-    func detectsLinksLeavingTheSource(link: String, target: String, leaves: Bool) {
-        #expect(DirectoryCopier.leavesSource(link: link, target: target) == leaves)
     }
 
     // MARK: - Destination

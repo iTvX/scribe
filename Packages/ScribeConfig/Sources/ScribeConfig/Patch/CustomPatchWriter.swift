@@ -15,10 +15,18 @@ public struct PatchSaveResult: Equatable, Sendable {
     public var file: URL
 }
 
-/// Why a save did not happen. The file is unchanged in every case.
+/// Why a save could not be completed or verified. Conflicts preserve the new
+/// on-disk contents; a failed post-write verification retains the backup.
 public enum PatchSaveError: Error, Equatable, Sendable {
     /// The file is no longer the text the page loaded.
     case changedOnDisk
+    /// A previously imported or manually created link points outside the
+    /// user's Scribe directory. Reading is allowed, writing requires making
+    /// an independent copy first.
+    case externalLink(URL)
+    /// An uncoordinated writer changed the file at replacement time. Both
+    /// versions are retained; the URL holds the displaced version.
+    case concurrentWrite(URL)
     /// The file is not valid UTF-8, so it cannot be edited byte for byte.
     case notUTF8
     /// librime is running in this process; the checks need it to themselves.
@@ -35,7 +43,7 @@ public enum PatchSaveError: Error, Equatable, Sendable {
     case deployFailed(String)
     /// After deploying, a set key does not have the value it was set to.
     case notEffective(key: String, expected: ConfigNode, actual: ConfigNode)
-    /// Writing or reading back failed; the original bytes are back in place.
+    /// Writing or verification failed; the message includes any recovery path.
     case writeFailed(String)
 }
 
@@ -51,6 +59,8 @@ public struct CustomPatchWriter {
     public let engine: LibrimeEngine
     /// For tests: replaces the value the effective check expects for a key.
     var expectation: (String, ConfigNode) -> ConfigNode = { $1 }
+    /// Exercises an uncoordinated editor racing the atomic replacement.
+    var beforeReplace: (() throws -> Void)?
 
     public init(userDirectory: URL, sharedDirectory: URL, engine: LibrimeEngine = .shared) {
         self.userDirectory = userDirectory
@@ -58,12 +68,16 @@ public struct CustomPatchWriter {
         self.engine = engine
     }
 
-    /// Applies `changes` to `<configID>.custom.yaml`, verifies, writes atomically. Throws without touching the file
-    /// when any check fails. `expectedOriginal` is the text the page loaded; a different file on disk throws .changedOnDisk.
+    /// Applies `changes` to `<configID>.custom.yaml`, verifies, writes atomically. Validation
+    /// or conflict failures leave the file untouched. `expectedOriginal` is the text the page loaded; a different file on disk throws .changedOnDisk.
     public func save(_ configID: String, changes: [PatchChange], expectedOriginal: String?) throws(PatchSaveError) -> PatchSaveResult {
         guard !engine.isRunning else { throw .engineBusy }
         // Edit the target of a symbolic link, never the link.
-        let file = Self.resolvedFile(userDirectory.appending(path: "\(configID).custom.yaml"))
+        let requestedFile = userDirectory.appending(path: "\(configID).custom.yaml")
+        let file = Self.resolvedFile(requestedFile)
+        guard file.pathComponents.starts(with: RimeDirectoryImporter.resolved(userDirectory).pathComponents) else {
+            throw .externalLink(file)
+        }
         let originalData = FileManager.default.contents(atPath: file.path(percentEncoded: false))
         var original: String?
         if let originalData {
@@ -107,7 +121,7 @@ public struct CustomPatchWriter {
 
         try checkParse(original: original ?? "", edited: editor.text, expectedKeys: expectedKeys)
         try checkEffect(configID, edited: editor.text, sets: sets)
-        try write(editor.text, to: file, original: originalData)
+        try write(editor.text, to: file, requestedFile: requestedFile, original: originalData)
         return PatchSaveResult(supersededKeys: superseded, file: file)
     }
 
@@ -153,32 +167,61 @@ public struct CustomPatchWriter {
         }
     }
 
-    /// Replaces the file through a temporary file next to it, then reads it
-    /// back; on any difference the original bytes go back.
-    private func write(_ text: String, to file: URL, original: Data?) throws(PatchSaveError) {
+    /// Validate again at commit time, inside a coordinated write. Keep the
+    /// replaced version until verification succeeds; never roll back over a
+    /// new edit made by a writer that does not participate in coordination.
+    private func write(_ text: String, to file: URL, requestedFile: URL, original: Data?) throws(PatchSaveError) {
+        let coordinator = NSFileCoordinator()
+        var coordinationError: NSError?
+        var failure: PatchSaveError?
+        coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &coordinationError) { coordinated in
+            guard Self.resolvedFile(requestedFile).path == file.path,
+                  FileManager.default.contents(atPath: coordinated.path) == original else {
+                failure = .changedOnDisk
+                return
+            }
+            do {
+                try replace(text, at: coordinated, original: original)
+            } catch {
+                failure = error as? PatchSaveError ?? .writeFailed(error.localizedDescription)
+            }
+        }
+        if let failure { throw failure }
+        if let coordinationError { throw .writeFailed(coordinationError.localizedDescription) }
+    }
+
+    private func replace(_ text: String, at file: URL, original: Data?) throws(PatchSaveError) {
         let fileManager = FileManager.default
         let data = Data(text.utf8)
         let temporary = file.deletingLastPathComponent()
             .appending(path: ".\(file.lastPathComponent).scribe-\(UUID().uuidString)", directoryHint: .notDirectory)
+        let backupName = ".\(file.lastPathComponent).scribe-backup-\(UUID().uuidString)"
+        let backup = file.deletingLastPathComponent().appending(path: backupName)
         do {
             try data.write(to: temporary)
+            try beforeReplace?()
             if original == nil {
                 try fileManager.moveItem(at: temporary, to: file)
             } else {
-                _ = try fileManager.replaceItemAt(file, withItemAt: temporary)
+                _ = try fileManager.replaceItemAt(file, withItemAt: temporary, backupItemName: backupName,
+                                                 options: .withoutDeletingBackupItem)
             }
         } catch {
             try? fileManager.removeItem(at: temporary)
-            throw .writeFailed(error.localizedDescription)
+            let recovery = fileManager.fileExists(atPath: backup.path) ? "；原文件备份：\(backup.path)" : ""
+            throw .writeFailed(error.localizedDescription + recovery)
+        }
+        if let original {
+            guard let displaced = fileManager.contents(atPath: backup.path) else {
+                throw .writeFailed("无法校验替换时的备份，请检查当前文件和 \(backup.path)")
+            }
+            guard displaced == original else { throw .concurrentWrite(backup) }
         }
         guard fileManager.contents(atPath: file.path(percentEncoded: false)) == data else {
-            if let original {
-                try? original.write(to: file)
-            } else {
-                try? fileManager.removeItem(at: file)
-            }
-            throw .writeFailed("写入后读回的内容不一致，已恢复原文件")
+            let recovery = original == nil ? "" : "，原文件保存在 \(backup.path)"
+            throw .writeFailed("写入后的文件被再次改动，已保留当前内容\(recovery)")
         }
+        try? fileManager.removeItem(at: backup)
     }
 
     /// The text of valid UTF-8 bytes, or nil; decoding is exact, so writing
