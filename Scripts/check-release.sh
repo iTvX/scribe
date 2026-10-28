@@ -129,6 +129,17 @@ done
 [[ ! -e "${SETTINGS}/Contents/Frameworks/librime.1.dylib" ]] || fail "Scribe Settings carries a second librime"
 pass "ships Scribe Settings in Contents/Helpers, universal, using Scribe.app's librime"
 
+# A nested helper is a separate Dock app: it does not inherit Scribe's icon.
+settings_icon="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "${SETTINGS}/Contents/Info.plist" 2>/dev/null || true)"
+[[ -n "${settings_icon}" && "${settings_icon}" != */* ]] || fail "Scribe Settings does not declare an app icon"
+[[ "${settings_icon}" == *.icns ]] || settings_icon="${settings_icon}.icns"
+[[ -s "${SETTINGS}/Contents/Resources/${settings_icon}" ]] || fail "Scribe Settings app icon is missing or empty"
+iconutil --convert iconset --output "${WORK}/settings.iconset" "${SETTINGS}/Contents/Resources/${settings_icon}" ||
+  fail "Scribe Settings app icon cannot be decoded"
+[[ -n "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "${SETTINGS}/Contents/Info.plist" 2>/dev/null || true)" ]] ||
+  fail "Scribe Settings has no display name"
+pass "Scribe Settings declares an embedded, decodable Dock icon and a display name"
+
 # Software updates (docs/decisions/0011-releases-and-updates.md).
 SPARKLE="${APP}/Contents/Frameworks/Sparkle.framework"
 [[ -f "${SPARKLE}/Versions/B/Sparkle" ]] || fail "Sparkle.framework is not embedded"
