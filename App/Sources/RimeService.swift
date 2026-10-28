@@ -4,7 +4,13 @@ import ScribeConfig
 import ScribeCore
 import ScribeUI
 
-extension CandidatePanel: CandidatePresenting {}
+@MainActor
+protocol FrontendPanel: CandidatePresenting {
+    var appearance: Appearance { get set }
+    func prepare()
+}
+
+extension CandidatePanel: FrontendPanel {}
 
 extension RimeService: MaintenanceEngine {
     var isInMaintenance: Bool {
@@ -40,14 +46,30 @@ final class RimeService {
     static let asciiModeResponseNotification = Notification.Name(ServerNotification.asciiModeResponse)
 
     let engine = LibrimeEngine.shared
-    let candidatePanel = CandidatePanel()
-    private let modeStatusItem = ModeStatusItem()
+    let candidatePanel: any FrontendPanel
+    private let modeStatusItem: ModeStatusItem
+    private let isDark: () -> Bool
+    private var appearanceObservation: NSKeyValueObservation?
+    private var lastIsDark: Bool?
 
     private lazy var maintenance = MaintenanceQueue(engine: self)
     /// Checks for finished maintenance while tasks wait in the queue.
     private var maintenanceTimer: Timer?
 
-    private init() {}
+    init(candidatePanel: any FrontendPanel = CandidatePanel(),
+         modeStatusItem: ModeStatusItem = ModeStatusItem(),
+         isDark: @escaping () -> Bool = {
+             NSApplication.shared.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+         }) {
+        self.candidatePanel = candidatePanel
+        self.modeStatusItem = modeStatusItem
+        self.isDark = isDark
+        appearanceObservation = NSApplication.shared.observe(\.effectiveAppearance) { [weak self] _, _ in
+            // AppKit can deliver KVO during drawing. Finish that transaction
+            // before asking the client to replace its marked text.
+            DispatchQueue.main.async { self?.systemAppearanceChanged() }
+        }
+    }
 
     /// The distribution librime reports to schemas and plugins, as the last
     /// deploy's scribe.yaml chose it.
@@ -67,19 +89,20 @@ final class RimeService {
         modeStatusItem.isScribeCurrent = InputSourceInstaller(system: CarbonInputSources()).isScribeCurrent
         // Install routing even when the crash guard defers engine startup:
         // the user's later Redeploy must still receive completion and state.
-        engine.notificationHandler = { notification in
+        engine.notificationHandler = { [weak self] notification in
+            guard let self else { return }
             Self.log(notification)
             switch notification.type {
             case "deploy":
                 DeployMessage(event: notification.value)?.post()
-                RimeService.shared.resumeMaintenance()
+                self.resumeMaintenance()
                 if notification.value != "start" {
-                    RimeService.shared.updateIdentity()
+                    self.updateIdentity()
                     // Schemas, and their styles, are deployed now.
-                    RimeService.shared.loadAppearance()
+                    self.loadAppearance()
                 }
             case "option", "schema", "property":
-                RimeService.shared.announce(notification)
+                self.announce(notification)
             default:
                 break
             }
@@ -108,26 +131,51 @@ final class RimeService {
 
     /// From the deployed squirrel.yaml.
     private var settings: ScribeSettings?
-    /// The schema whose style the candidate window follows: the one a
-    /// session started using last.
-    private var schemaID = ""
-    /// What sessions take from the settings and the schema's style.
+    /// Parsed once per schema/deploy, never from disk for each typed key.
+    private var appearances: [String: Appearance] = [:]
     private var configuration = SessionConfiguration()
 
-    /// Reads the current schema's style and hands the result to the
-    /// candidate window and every session. While librime deploys, schemas
-    /// are being rewritten; the deploy's end brings us back.
+    /// A deploy invalidates all cached themes. Each retained session keeps
+    /// its own schema's configuration; only the focused one owns the window.
     func loadAppearance() {
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        guard let settings, !engine.isInMaintenance,
-              let loaded = FrontendConfig.load(engine, settings: settings, schemaID: schemaID, isDark: isDark)
-        else { return }
-        candidatePanel.appearance = loaded.appearance
-        configuration = loaded.configuration
+        guard !engine.isInMaintenance else { return }
+        settings = ScribeSettings.load(from: engine)
+        appearances.removeAll()
+        lastIsDark = isDark()
+        if let settings, let appearance = appearance(for: "") {
+            configuration = SessionConfiguration(settings: settings, theme: appearance.theme(isDark: isDark()))
+            if activeAdapter == nil { candidatePanel.appearance = appearance }
+        }
         adapters.removeAll { $0.adapter == nil }
         for adapter in adapters.compactMap(\.adapter) {
-            adapter.configuration = configuration
+            configure(adapter, schemaID: adapter.currentSchemaID ?? "")
         }
+        activeAdapter?.refreshPresentation()
+    }
+
+    private func appearance(for schemaID: String) -> Appearance? {
+        if let appearance = appearances[schemaID] { return appearance }
+        guard !engine.isInMaintenance, let appearance = Appearance.load(from: engine, schemaID: schemaID) else { return nil }
+        appearances[schemaID] = appearance
+        return appearance
+    }
+
+    private func configure(_ adapter: InputAdapter, schemaID: String) {
+        guard let settings, let appearance = appearance(for: schemaID) else { return }
+        adapter.configuration = SessionConfiguration(settings: settings, theme: appearance.theme(isDark: isDark()))
+        if activeAdapter === adapter {
+            candidatePanel.appearance = appearance
+            updateModeIndicator(adapter)
+        }
+    }
+
+    func systemAppearanceChanged() {
+        let dark = isDark()
+        guard dark != lastIsDark else { return }
+        lastIsDark = dark
+        guard let adapter = activeAdapter else { return }
+        configure(adapter, schemaID: adapter.currentSchemaID ?? "")
+        adapter.refreshPresentation()
     }
 
     /// Applies scribe.yaml's `compatibility/report_as_squirrel` after a
@@ -144,12 +192,6 @@ final class RimeService {
         engine.stop()
         engine.start(Self.configuration(identity: identity))
         startMaintenance(fullCheck: false)
-    }
-
-    private func schemaChanged(to schemaID: String) {
-        guard schemaID != self.schemaID else { return }
-        self.schemaID = schemaID
-        loadAppearance()
     }
 
     private func observeServerNotifications() {
@@ -207,12 +249,36 @@ final class RimeService {
         modeStatusItem.isScribeCurrent = isScribeCurrent
         guard !isScribeCurrent else { return }
         activeAdapter?.finishComposition()
+        activeAdapter = nil
+        candidatePanel.hide()
+        candidatePanel.delegate = nil
     }
 
     func activated(_ adapter: InputAdapter) {
+        if activeAdapter !== adapter {
+            candidatePanel.hide()
+            candidatePanel.delegate = nil
+        }
         activeAdapter = adapter
         modeStatusItem.isScribeCurrent = true
-        if let indicator = adapter.modeIndicator {
+        lastIsDark = isDark()
+        configure(adapter, schemaID: adapter.currentSchemaID ?? "")
+        updateModeIndicator(adapter)
+    }
+
+    private func deactivated(_ adapter: InputAdapter) {
+        if activeAdapter === adapter { activeAdapter = nil }
+    }
+
+    private func prepareForInput(_ adapter: InputAdapter) {
+        // IMK may reuse a controller for another input field without the
+        // usual activation pair. The client delivering a key owns focus.
+        if activeAdapter !== adapter { activated(adapter) }
+        systemAppearanceChanged()
+    }
+
+    private func updateModeIndicator(_ adapter: InputAdapter) {
+        if let indicator = adapter.modeIndicator, indicator != modeStatusItem.title {
             modeStatusItem.title = indicator
         }
     }
@@ -304,7 +370,33 @@ final class RimeService {
     func makeAdapter() -> InputAdapter {
         let adapter = InputAdapter(session: InputSession(engine: engine, chordTimer: RunLoopChordTimer()), candidates: candidatePanel)
         adapter.configuration = configuration
-        adapter.onSchemaChange = { RimeService.shared.schemaChanged(to: $0) }
+        adapter.canPresent = { [weak self, weak adapter] in
+            guard let self, let adapter else { return false }
+            return self.activeAdapter === adapter
+        }
+        adapter.onActivate = { [weak self, weak adapter] in
+            guard let adapter else { return }
+            self?.activated(adapter)
+        }
+        adapter.onDeactivate = { [weak self, weak adapter] in
+            guard let adapter else { return }
+            self?.deactivated(adapter)
+        }
+        adapter.beforeInput = { [weak self, weak adapter] in
+            guard let adapter else { return }
+            self?.prepareForInput(adapter)
+        }
+        adapter.onStateChange = { [weak self, weak adapter] in
+            guard let self, let adapter, self.activeAdapter === adapter else { return }
+            self.updateModeIndicator(adapter)
+        }
+        adapter.onSchemaChange = { [weak self, weak adapter] schemaID in
+            guard let adapter else { return }
+            // This can run inside InputSession.update, before its commit and
+            // marked-text actions reach the client. Change configuration
+            // only; a nested refresh would reorder or lose those actions.
+            self?.configure(adapter, schemaID: schemaID)
+        }
         adapters.append(WeakAdapter(adapter: adapter))
         return adapter
     }
@@ -316,17 +408,27 @@ final class RimeService {
     /// Every client's adapter, for routing notifications to their sessions.
     private var adapters: [WeakAdapter] = []
 
-    /// Shows option and schema changes to the client whose session they
-    /// concern.
-    private func announce(_ notification: RimeNotification) {
-        adapters.removeAll { $0.adapter == nil }
-        for adapter in adapters.compactMap(\.adapter) {
-            adapter.handle(notification)
-            if notification.type == "option", ["ascii_mode", "!ascii_mode"].contains(notification.value),
-               adapter.owns(notification), let indicator = adapter.modeIndicator {
-                modeStatusItem.title = indicator
-            }
+    /// Queued notifications can arrive after focus or the option changed.
+    /// Inactive sessions keep their engine state but cannot change this UI.
+    func announce(_ notification: RimeNotification) {
+        guard let adapter = activeAdapter, adapter.owns(notification),
+              let id = adapter.sessionID, engine.sessionExists(id), !engine.isInMaintenance else { return }
+        switch notification.type {
+        case "schema":
+            let schemaID = String(notification.value.prefix { $0 != "/" })
+            guard schemaID == adapter.currentSchemaID else { return }
+            configure(adapter, schemaID: schemaID)
+            adapter.refreshPresentation()
+            updateModeIndicator(adapter)
+        case "option":
+            let value = !notification.value.hasPrefix("!")
+            let option = value ? notification.value : String(notification.value.dropFirst())
+            guard engine.option(option, in: id) == value else { return }
+            updateModeIndicator(adapter)
+        default:
+            break
         }
+        adapter.handle(notification)
     }
 
     /// Shared data from the app bundle, user data in ~/Library/Scribe, logs

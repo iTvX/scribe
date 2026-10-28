@@ -90,6 +90,13 @@ final class InputAdapter {
     /// The client of the last event, for actions that come without one,
     /// such as a chord released after a delay.
     private var client: TextClient?
+    /// The service owns focus across controllers; a late old controller may
+    /// still commit to its client, but must not touch the shared window.
+    var canPresent: () -> Bool = { true }
+    var onActivate: (() -> Void)?
+    var onDeactivate: (() -> Void)?
+    var beforeInput: (() -> Void)?
+    var onStateChange: (() -> Void)?
     /// From squirrel.yaml and the current schema's style.
     var configuration = SessionConfiguration() {
         didSet {
@@ -117,6 +124,8 @@ final class InputAdapter {
         session.currentSessionID
     }
 
+    var currentSchemaID: String? { session.currentSchemaID }
+
     /// The input method became active for the client. It gets no modifier
     /// event for keys already locked, so the Caps Lock state comes from the
     /// hardware. The Rime session starts now, if it has not yet, so the
@@ -125,8 +134,14 @@ final class InputAdapter {
     /// Returns the keyboard layout the client should type with while Scribe
     /// is active, from `keyboard_layout`, or nil to keep the last one.
     @discardableResult
-    func activate(capsLockOn: Bool) -> String? {
+    func activate(capsLockOn: Bool, client: TextClient? = nil) -> String? {
         session.start()
+        onActivate?()
+        if let client {
+            self.client = client
+            session.setClientApp(configuration.clientApp(client.bundleIdentifier))
+        }
+        onStateChange?()
         if capsLockOn {
             modifiers.insert(.capsLock)
         } else {
@@ -141,6 +156,8 @@ final class InputAdapter {
     /// stays right; an event that changes no modifier is consumed.
     func handle(_ input: KeyInput, client: TextClient) -> Bool {
         self.client = client
+        beforeInput?()
+        defer { onStateChange?() }
         session.setClientApp(configuration.clientApp(client.bundleIdentifier))
         switch input.kind {
         case .keyDown:
@@ -173,7 +190,7 @@ final class InputAdapter {
     /// Announces an option or schema change of this adapter's session, or
     /// takes a property a plugin set in it.
     func handle(_ notification: RimeNotification) {
-        guard session.owns(notification.sessionID), let client else { return }
+        guard canPresent(), session.owns(notification.sessionID), let client else { return }
         let actions = notification.type == "property"
             ? session.handleProperty(notification.value)
             : session.status(for: notification, notifications: configuration.notifications, messageType: configuration.statusMessageType)
@@ -182,6 +199,7 @@ final class InputAdapter {
 
     /// Turns ASCII mode on or off, as `Scribe --ascii` and `--nascii` ask.
     func setASCIIMode(_ on: Bool) {
+        defer { onStateChange?() }
         let actions = session.setOption("ascii_mode", on)
         if let client {
             apply(actions, to: client)
@@ -213,8 +231,17 @@ final class InputAdapter {
     /// The input method is no longer active for this client.
     func deactivate(client: TextClient) {
         commitComposition(client: client)
-        candidates.hide()
+        if canPresent() {
+            candidates.hide()
+            candidates.delegate = nil
+        }
         self.client = nil
+        onDeactivate?()
+    }
+
+    func refreshPresentation() {
+        guard canPresent(), let client else { return }
+        apply(session.refreshPresentation(), to: client)
     }
 
     func close() {
@@ -226,6 +253,7 @@ final class InputAdapter {
             candidates.delegate = nil
         }
         client = nil
+        onDeactivate?()
     }
 
     func apply(_ actions: [SessionAction], to client: TextClient) {
@@ -237,15 +265,19 @@ final class InputAdapter {
                 client.setMarkedText(marked)
             case .showCandidates(let snapshot) where snapshot.entries.isEmpty && snapshot.preedit?.text.isEmpty ?? true:
                 // No candidates, and the input is shown inline: nothing to show.
+                guard canPresent() else { continue }
                 candidates.hide()
             case .showCandidates(let snapshot):
+                guard canPresent() else { continue }
                 // The window shows this client's candidates, so clicks in it
                 // are for this client.
                 candidates.delegate = self
                 candidates.show(snapshot, near: client.caretRect())
             case .hideCandidates:
+                guard canPresent() else { continue }
                 candidates.hide()
             case .showStatus(let message):
+                guard canPresent() else { continue }
                 candidates.delegate = self
                 candidates.showStatus(message, near: client.caretRect())
             }
@@ -257,19 +289,19 @@ final class InputAdapter {
 /// candidates.
 extension InputAdapter: CandidatePanelDelegate {
     func candidatePanel(_ panel: CandidatePanel, didSelectCandidateAt index: Int) {
-        if let client {
+        if canPresent(), let client {
             apply(session.selectCandidate(at: index), to: client)
         }
     }
 
     func candidatePanel(_ panel: CandidatePanel, didRequestPage direction: PageDirection) {
-        if let client {
+        if canPresent(), let client {
             apply(session.changePage(direction), to: client)
         }
     }
 
     func candidatePanel(_ panel: CandidatePanel, didRequestCaretMove direction: CaretMove) {
-        if let client {
+        if canPresent(), let client {
             apply(session.moveCaret(direction), to: client)
         }
     }

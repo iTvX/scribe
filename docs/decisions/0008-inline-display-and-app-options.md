@@ -28,5 +28,14 @@
 ## 什么时候读配置
 
 - 每次开始维护（启动、重新部署、`--reload`）时，先部署 squirrel.yaml 和 scribe.yaml，紧接着读设置（scribe.yaml 里设了的键覆盖 squirrel.yaml）：这两个文件在主线程上同步部署，读的时候已经是新的。
-- 方案的 `style` 在部署结束后读，也在某个会话开始用一个方案时读（新会话的第一次更新或切换方案之后），和鼠须管一样；部署进行中不读，因为方案文件正在重写。
-- 读到的设置和主题一起交给每个会话（`SessionConfiguration`）：`chord_duration`、`show_notifications_when`、`status_message_type`、行内显示、`_linear`/`_vertical`、`app_options`、`unsafe/report_bundleid`、`keyboard_layout`；主题交给候选窗。
+- 方案的 `style` 在部署结束后读，也在某个会话开始用一个方案时读；部署进行中不读，因为方案文件正在重写。0.1.6 起按方案缓存解析结果，在重新部署后失效，首键前就准备好配置。
+- 每个会话取得自己方案的 `SessionConfiguration`：`chord_duration`、`show_notifications_when`、`status_message_type`、行内显示、`_linear`/`_vertical`、`app_options`、`unsafe/report_bundleid`、`keyboard_layout`。不能将最后一个切换方案的配置广播给其他会话。重新激活保留的会话时，按它在引擎中的实际方案恢复候选窗主题。
+- 观察应用的 `effectiveAppearance`，深浅色改变时同步当前会话的行内显示和候选窗；下一次按键前也检查，覆盖观察回调尚未执行的情况。已有拼音重新呈现，不发送合成按键，不提交文字。
+
+## 共享窗口的归属
+
+0.1.6 起由 `RimeService` 记录当前激活的适配器。输入会话继续保留，但只有当前适配器能显示、隐藏或接收候选窗操作。较晚到达的旧控制器失焦可以向旧输入框上屏，不得隐藏新输入框的候选窗；失焦和关闭会撤销当前适配器的归属。
+
+异步通知只路由给当前会话，并核对方案或选项是否仍是通知所说的状态，避免过期提示覆盖现在的状态。方案改变回调只修改配置：它可能发生在一次更新中间，不能递归刷新，否则会打乱上屏文字和新的标记文字的顺序。应用专属选项在激活时设置，当前模式标识在按键后同步更新。
+
+`App/ServiceTests/SessionStateTests.swift` 用真实服务、适配器、输入会话和 librime 重现应用间、同应用输入框间的切换；录制客户端和候选窗用于精确核对文字、归属和可见状态。测试目录和词库均为临时副本。`ScribeCore` 另测首次配置、无按键重画和失效会话，真实应用仍按手动清单检查。

@@ -9,7 +9,7 @@ import Testing
     var title = ""
 }
 
-@MainActor @Suite struct RecoveryTests {
+@MainActor @Suite(.serialized) struct RecoveryTests {
     @Test func crashGuardStillInstallsTheHandlerNeededByRedeploy() throws {
         let file = FileManager.default.temporaryDirectory.appending(path: "scribe-launch-test-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: file) }
