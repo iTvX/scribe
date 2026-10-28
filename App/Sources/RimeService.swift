@@ -57,7 +57,7 @@ final class RimeService {
     /// at startup it starts without librime, so the user can still type and
     /// fix the configuration; a reload starts librime again.
     func start(launchGuard: LaunchGuard = .standard, logDirectory: URL? = defaultLogDirectory,
-               warning: ((String) -> Void)? = nil) {
+               warning: ((String) -> Void)? = nil, now: Date = Date()) {
         if let logDirectory {
             try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
             // Plugins such as librime-lua log here too.
@@ -84,7 +84,7 @@ final class RimeService {
                 break
             }
         }
-        if launchGuard.isRelaunchTooSoon() {
+        if launchGuard.isRelaunchTooSoon(now: now) {
             Log.app.fault("Relaunched within two seconds; starting without Rime")
             let message = Bundle.main.localizedString(forKey: LaunchGuard.warningKey, value: nil, table: nil)
             if let warning { warning(message) } else { Self.speak(message) }

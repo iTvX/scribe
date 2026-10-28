@@ -14,12 +14,13 @@ import Testing
         let file = FileManager.default.temporaryDirectory.appending(path: "scribe-launch-test-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: file) }
         let guardState = LaunchGuard(file: file)
-        #expect(!guardState.isRelaunchTooSoon())
+        let launchTime = Date(timeIntervalSince1970: 1_000)
+        #expect(!guardState.isRelaunchTooSoon(now: launchTime))
         let service = RimeService.shared
         service.engine.notificationHandler = nil
         defer { service.engine.notificationHandler = nil }
         var warned = false
-        service.start(launchGuard: guardState, logDirectory: nil, warning: { _ in warned = true })
+        service.start(launchGuard: guardState, logDirectory: nil, warning: { _ in warned = true }, now: launchTime.addingTimeInterval(1))
         #expect(warned)
         #expect(!service.engine.isRunning)
         #expect(service.engine.notificationHandler != nil)
