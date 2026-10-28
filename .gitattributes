@@ -1,0 +1,2 @@
+# Preserve verified upstream license/notice text byte for byte.
+ThirdPartyNotices/* -whitespace

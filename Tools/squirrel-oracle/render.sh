@@ -30,7 +30,7 @@ SOURCES=(
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="${ROOT}/Tools/squirrel-oracle"
-BUILD="${ROOT}/build/squirrel-oracle"
+BUILD="${ROOT}/build/squirrel-oracle.noindex"
 mkdir -p "${BUILD}/squirrel"
 
 for entry in "${SOURCES[@]}"; do
@@ -50,12 +50,31 @@ for entry in "${SOURCES[@]}"; do
   mv "${file}.part" "${file}"
 done
 
+# Preserve the downloaded/verified upstream files. The only source adjustment
+# in the reference build is concrete font selection for the macOS 27.2 bug;
+# geometry, painting and placement still come from upstream Squirrel.
+mkdir -p "${BUILD}/patched"
+cp "${BUILD}"/squirrel/*.swift "${BUILD}/patched/"
+python3 - "${BUILD}/patched/SquirrelPanel.swift" <<'PY_PATCH'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+s = p.read_text()
+assert s.count("attributedString = text") == 2
+p.write_text(s.replace("attributedString = text", "attributedString = oracleVerticalFonts(text, vertical: vertical)"))
+PY_PATCH
+
+output="${ROOT}/Tests/Fixtures/snapshots"
+IFS=. read -r major minor _ <<< "$(sw_vers -productVersion)"
+if (( major > 27 || (major == 27 && minor >= 2) )); then
+  output="${output}/macos-27.2"
+fi
+
 # Squirrel builds in the Swift 5 language mode.
 xcrun swiftc -swift-version 5 -enable-bare-slash-regex -O \
   -o "${BUILD}/squirrel-oracle" \
-  "${HERE}"/Sources/*.swift "${BUILD}"/squirrel/*.swift
+  "${HERE}"/Sources/*.swift "${BUILD}"/patched/*.swift
 
 "${BUILD}/squirrel-oracle" \
   "${ROOT}/Tests/Fixtures/snapshots/cases.json" \
-  "${ROOT}/Tests/Fixtures/snapshots/squirrel" \
+  "${output}/squirrel" \
   "$@"

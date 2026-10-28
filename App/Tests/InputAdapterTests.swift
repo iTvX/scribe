@@ -355,3 +355,18 @@ final class CallLog: TextClient, CandidatePresenting {
         #expect(log.calls == ["caret", "show 拟 腻"])
     }
 }
+
+extension InputAdapterTests {
+    @Test func closingAnOldControllerKeepsTheCurrentCandidatesVisible() {
+        let current = InputAdapter(session: InputSession(engine: engine), candidates: log)
+        _ = adapter.handle(input(key("n", code: 45)), client: log)
+        _ = current.handle(input(key("h", code: 4)), client: log)
+        #expect(log.delegate === current)
+        log.calls.removeAll()
+        adapter.close()
+        #expect(log.calls.isEmpty)
+        #expect(log.delegate === current)
+        current.close()
+        #expect(log.calls == ["hide"])
+    }
+}

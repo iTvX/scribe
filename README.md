@@ -2,7 +2,7 @@
 
 中书是 macOS 上的 [Rime](https://rime.im) 输入法前端：引擎是原样使用的 [librime](https://github.com/rime/librime)，前端用 Swift 重新实现，可以替代鼠须管（Squirrel）。按键、行内显示、`app_options`、皮肤等行为都和鼠须管一致，鼠须管的 `squirrel.yaml` / `squirrel.custom.yaml` 照常生效。中书用自己的用户目录 `~/Library/Scribe`，和鼠须管可以同时装着，互不影响。
 
-- **当前版本**：0.1.4，改动见 [更新记录](CHANGELOG.md)
+- **当前版本**：0.1.5，改动见 [更新记录](CHANGELOG.md)
 - **系统要求**：macOS 14 及以上
 
 ## 安装
@@ -47,6 +47,12 @@
 
 卸载中书不影响鼠须管和 `~/Library/Rime`。
 
+## 支持与反馈
+
+当前以官网／GitHub 开源分发为主。已验证范围与限制见 [支持状态](docs/support-status.md)，安装、更新或配置异常的处理见 [故障恢复](docs/recovery.md)。反馈问题请使用 [Bug 模板](https://github.com/iTvX/scribe/issues/new/choose)，只提供最小配置和虚构输入，不要上传完整词库或未经检查的日志。
+
+[隐私说明](PRIVACY.md) · [第三方许可](ThirdPartyNotices/README.md)
+
 ## 从源码构建
 
 需要 Xcode 27 和 [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）：
@@ -61,7 +67,7 @@ Scripts/install-local.sh
 
 Scribe (中书) is a [Rime](https://rime.im) input method for macOS: [librime](https://github.com/rime/librime) as is, with a new Swift frontend that replaces Squirrel and behaves like it. Squirrel's `squirrel.yaml` and `squirrel.custom.yaml` keep working, and Scribe also has its own `scribe.yaml` format with `#RRGGBB` colours and themes that carry light and dark palettes. Scribe keeps its user data in `~/Library/Scribe` and can be installed next to Squirrel.
 
-- **Status**: 0.1.4. macOS 14 or later.
+- **Status**: 0.1.5. macOS 14 or later.
 - **Install**: download `Scribe-<version>.pkg` from [GitHub Releases](https://github.com/iTvX/scribe/releases/latest) and open it, then add 中书 under Simplified Chinese in System Settings → Keyboard → Input Sources.
 - **Updates**: Sparkle checks once a day and posts a notification; the input menu also has Check for updates….
 - **Uninstall**: remove 中书 from Input Sources, run `"/Library/Input Methods/Scribe.app/Contents/MacOS/Scribe" --quit`, and move `/Library/Input Methods/Scribe.app` to the Trash. `~/Library/Scribe` holds your settings and learned words.

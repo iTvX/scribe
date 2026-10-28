@@ -15,7 +15,7 @@ import Testing
             var width: Double
             var height: Double
         }
-        let url = Snapshot.repositoryRoot.appending(path: "Tests/Fixtures/snapshots/squirrel/screen.json")
+        let url = Snapshot.referenceDirectory.appending(path: "screen.json")
         guard let data = try? Data(contentsOf: url), let size = try? JSONDecoder().decode(Size.self, from: data) else {
             return PanelRenderer.referenceScreen
         }
@@ -36,7 +36,7 @@ import Testing
 
     @Test(arguments: SnapshotCases.shared.suites.keys.sorted().flatMap { SnapshotCases.shared.cases(in: $0) })
     func matchesSquirrel(_ snapshot: SnapshotCase) throws {
-        let reference = Snapshot.repositoryRoot.appending(path: "Tests/Fixtures/snapshots/squirrel/\(snapshot.suite)/\(snapshot.name).png")
+        let reference = Snapshot.referenceDirectory.appending(path: "\(snapshot.suite)/\(snapshot.name).png")
         let expected = try #require(Snapshot.read(reference), "No Squirrel reference; run Tools/squirrel-oracle/render.sh")
         let theme = PanelTheme(snapshot.theme, palette: snapshot.dark ? Fixtures.darkPalette : Fixtures.lightPalette)
         let actual = try #require(PanelRenderer.render(snapshot.content, theme: theme, appearance: snapshot.dark ? Fixtures.dark : Fixtures.light, screen: Self.screen))

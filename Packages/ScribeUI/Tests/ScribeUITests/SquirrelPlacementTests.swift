@@ -38,10 +38,13 @@ import Testing
     }
 
     nonisolated static let inputs: Inputs = load("Tests/Fixtures/snapshots/placements.json")
-    nonisolated static let recorded: Recorded = load("Tests/Fixtures/snapshots/squirrel/placements.json")
+    nonisolated static let recorded: Recorded = load(Snapshot.referenceDirectory.appending(path: "placements.json"))
 
     private nonisolated static func load<T: Decodable>(_ path: String) -> T {
-        let url = Snapshot.repositoryRoot.appending(path: path)
+        load(Snapshot.repositoryRoot.appending(path: path))
+    }
+
+    private nonisolated static func load<T: Decodable>(_ url: URL) -> T {
         do {
             return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
         } catch {

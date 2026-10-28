@@ -32,7 +32,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="${ROOT}/build/release"
-DERIVED_DATA="${ROOT}/build/DerivedData-release"
+DERIVED_DATA="${ROOT}/build/DerivedData-release.noindex"
 # The package root. ".noindex" keeps Spotlight from finding the app in it and
 # registering it with LaunchServices next to the installed Scribe.
 STAGING="${OUTPUT}/root.noindex"
@@ -150,6 +150,9 @@ APP="${STAGING}/Scribe.app"
 ditto "${DERIVED_DATA}/Build/Products/Release/Scribe.app" "${APP}"
 cp "${ROOT}/Scripts/pkg/refresh-input-menu" "${APP}/Contents/MacOS/scribe-refresh-input-menu"
 chmod 755 "${APP}/Contents/MacOS/scribe-refresh-input-menu"
+ditto "${ROOT}/ThirdPartyNotices" "${APP}/Contents/Resources/ThirdPartyNotices"
+cp "${ROOT}/LICENSE" "${APP}/Contents/Resources/ThirdPartyNotices/Scribe-LICENSE.txt"
+cp "${ROOT}/PRIVACY.md" "${APP}/Contents/Resources/Privacy.md"
 
 # Xcode explicitly registers its products with LaunchServices. Build under a
 # separate identity so registration/cleanup cannot replace the installed

@@ -2,6 +2,10 @@
 
 给用户的：
 
+- [`support-status.md`](support-status.md)：已验证范围、已知限制和公测验收
+- [`recovery.md`](recovery.md)：安装、更新、配置故障的恢复步骤
+- [隐私说明](../PRIVACY.md)与[第三方许可](../ThirdPartyNotices/README.md)
+
 - [`migrating-from-squirrel.md`](migrating-from-squirrel.md)：从鼠须管迁移，一键导入复制什么、不复制什么，怎么切回鼠须管
 - [`configuration.md`](configuration.md)：`scribe.yaml` / `scribe.custom.yaml` 的全部设置，和鼠须管格式的对照与转换
 

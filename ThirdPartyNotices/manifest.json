@@ -1,0 +1,179 @@
+[
+  {
+    "file": "librime-LICENSE.txt",
+    "source": "https://github.com/rime/librime/blob/1.17.0/LICENSE",
+    "sha256": "f67d27a6d2d586fcfed4b4c886a83747095396a39b6641e18e855086be2ec400"
+  },
+  {
+    "file": "librime-lua-LICENSE.txt",
+    "source": "https://github.com/hchunhui/librime-lua/blob/ec52e48/LICENSE",
+    "sha256": "c6bd4f58b13ae9d45c5e53adddeea5049114a25862797c6c6f64920431eea249"
+  },
+  {
+    "file": "librime-octagram-LICENSE.txt",
+    "source": "https://github.com/lotem/librime-octagram/blob/dfcc151/LICENSE",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "file": "librime-predict-LICENSE.txt",
+    "source": "https://github.com/rime/librime-predict/blob/920bd41/LICENSE",
+    "sha256": "9b1bbdf15a381884b47dfd9422e68f6382170b2841c476afc076f2d448c7a59f"
+  },
+  {
+    "file": "glog-LICENSE.txt",
+    "source": "https://github.com/google/glog/blob/7b134a5c82c0c0b5698bb6bf7a835b230c5638e4/COPYING",
+    "sha256": "136d48dea7a681413691f3db3098f6cf5ffaa3119d96d97bb83b8cff3ce38c4a"
+  },
+  {
+    "file": "leveldb-LICENSE.txt",
+    "source": "https://github.com/google/leveldb/blob/99b3c03b3284f5886f9ef9a4ef703d57373e61be/LICENSE",
+    "sha256": "ccc19f1da0798ed666609b65a5b44dd8b3abe6fc08b9c0592eb76e82e174db19"
+  },
+  {
+    "file": "yaml-cpp-LICENSE.txt",
+    "source": "https://github.com/jbeder/yaml-cpp/blob/2f86d13775d119edbb69af52e5f566fd65c6953b/LICENSE",
+    "sha256": "aa6fcc27be034e41e21dd832f9175bfe694a48491d9e14ff0fa278e19ad14f1b"
+  },
+  {
+    "file": "marisa-trie-LICENSE.txt",
+    "source": "https://github.com/s-yata/marisa-trie/blob/3e87d53b78e15f2f43783d5e376561a8c9722051/COPYING.md",
+    "sha256": "edf58dab34c3dc239ba4ba2d5d3d844d8c5b442aa4dd1149fac81b2d8c6cb8d1"
+  },
+  {
+    "file": "OpenCC-LICENSE.txt",
+    "source": "https://github.com/BYVoid/OpenCC/blob/556ed22496d650bd0b13b6c163be9814637970ae/LICENSE",
+    "sha256": "b534e465949558eec2597b04f5092b5e161236a68dfbfd04d547592ac3964308"
+  },
+  {
+    "file": "OpenCC-marisa-LICENSE.txt",
+    "source": "https://github.com/BYVoid/OpenCC/blob/556ed22496d650bd0b13b6c163be9814637970ae/deps/marisa-0.2.6/COPYING.md",
+    "sha256": "c0e214362b4dcf118371b02c87321f64a4d8317112d732b6d768167a635f383a"
+  },
+  {
+    "file": "Boost-LICENSE.txt",
+    "source": "https://github.com/boostorg/boost/blob/boost-1.89.0/LICENSE_1_0.txt",
+    "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566"
+  },
+  {
+    "file": "Sparkle-LICENSE.txt",
+    "source": "https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE",
+    "sha256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe"
+  },
+  {
+    "file": "Lua-LICENSE.txt",
+    "source": "https://github.com/lua/lua/blob/v5.4.8/lua.h",
+    "sha256": "d83103413067359fa162d5c465c076d6a9a25f8d678f06b7ed2a7c9d9e4fa704"
+  },
+  {
+    "file": "rime-prelude-082425e-LICENSE",
+    "source": "https://github.com/rime/rime-prelude/blob/082425ea0684bca36474415d4a0e8db9b016487e/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-prelude-082425e-README.md",
+    "source": "https://github.com/rime/rime-prelude/blob/082425ea0684bca36474415d4a0e8db9b016487e/README.md",
+    "sha256": "73d24d71706e1a433280df4fd903c384ffcacf5a66b2d1fb2e749ed85085bf94"
+  },
+  {
+    "file": "rime-essay-054920d-LICENSE",
+    "source": "https://github.com/rime/rime-essay/blob/054920de4f54c9e5994276a96a4fc2a35cb51aa3/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-essay-054920d-README.md",
+    "source": "https://github.com/rime/rime-essay/blob/054920de4f54c9e5994276a96a4fc2a35cb51aa3/README.md",
+    "sha256": "e34e69e56829dc3eb9236bd750e982bb0849be635756e26cde196c62b9409342"
+  },
+  {
+    "file": "rime-luna-pinyin-56b934b-LICENSE",
+    "source": "https://github.com/rime/rime-luna-pinyin/blob/56b934b099dfbeab842320f13aa8b461a6ab3e42/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-luna-pinyin-56b934b-README.md",
+    "source": "https://github.com/rime/rime-luna-pinyin/blob/56b934b099dfbeab842320f13aa8b461a6ab3e42/README.md",
+    "sha256": "536daa306647bd9b4ef736d264fc36c9d77e30a123cebe56469a0ab5f27d9597"
+  },
+  {
+    "file": "rime-stroke-1e8fff9-LICENSE",
+    "source": "https://github.com/rime/rime-stroke/blob/1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-stroke-1e8fff9-README.md",
+    "source": "https://github.com/rime/rime-stroke/blob/1e8fff9b9494ddec23b0cbc526bcfd8171a6fd48/README.md",
+    "sha256": "024c5ff587a9d3340d1239946f02141ca98489a125d51b9aa5fe4620c0377545"
+  },
+  {
+    "file": "rime-terra-pinyin-723e51b-LICENSE",
+    "source": "https://github.com/rime/rime-terra-pinyin/blob/723e51bc266cf9464530c1ddedb856aa18e3da34/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-terra-pinyin-723e51b-README.md",
+    "source": "https://github.com/rime/rime-terra-pinyin/blob/723e51bc266cf9464530c1ddedb856aa18e3da34/README.md",
+    "sha256": "39f23b80d580f094701f218080a176c3038f221121cee9207829d01d21f6b090"
+  },
+  {
+    "file": "rime-bopomofo-6085c9a-LICENSE",
+    "source": "https://github.com/rime/rime-bopomofo/blob/6085c9a38a4a728047862b33d67eee18aa86f3b9/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-bopomofo-6085c9a-README.md",
+    "source": "https://github.com/rime/rime-bopomofo/blob/6085c9a38a4a728047862b33d67eee18aa86f3b9/README.md",
+    "sha256": "01dd016974d1af6777085f945a8bc38a0193902ae9c333ec4552e7adb6b24b14"
+  },
+  {
+    "file": "rime-cangjie-52d90a1-LICENSE",
+    "source": "https://github.com/rime/rime-cangjie/blob/52d90a1b1312e74042b38c1cbc8142defbc53171/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-cangjie-52d90a1-README.md",
+    "source": "https://github.com/rime/rime-cangjie/blob/52d90a1b1312e74042b38c1cbc8142defbc53171/README.md",
+    "sha256": "a4b006a85941c3a5397c1c75ce6dfa67756f97db5c36dc7a2a29b2c937b590c8"
+  },
+  {
+    "file": "rime-quick-5dcdb9e-LICENSE",
+    "source": "https://github.com/rime/rime-quick/blob/5dcdb9e353d314239e9c8cddc0f42d52da4837bb/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-quick-5dcdb9e-README.md",
+    "source": "https://github.com/rime/rime-quick/blob/5dcdb9e353d314239e9c8cddc0f42d52da4837bb/README.md",
+    "sha256": "a6cdf6ce74c0eb79b492251e49da84c4fd9d04199357dcda7b68c2579a4064af"
+  },
+  {
+    "file": "rime-octagram-data-8ceef1b-LICENSE",
+    "source": "https://github.com/lotem/rime-octagram-data/blob/8ceef1b42eb77e86501382a52e85c309c0f2f04c/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-octagram-data-8ceef1b-README.md",
+    "source": "https://github.com/lotem/rime-octagram-data/blob/8ceef1b42eb77e86501382a52e85c309c0f2f04c/README.md",
+    "sha256": "242b2b0bcb3d284f406c0606ec0aa8b37e4725a1b4dee7ef14a6e2a3e5002763"
+  },
+  {
+    "file": "rime-octagram-data-97bf550-LICENSE",
+    "source": "https://github.com/lotem/rime-octagram-data/blob/97bf55046aad163c3d1881abae5312040b1bbed9/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "rime-octagram-data-97bf550-README.md",
+    "source": "https://github.com/lotem/rime-octagram-data/blob/97bf55046aad163c3d1881abae5312040b1bbed9/README.md",
+    "sha256": "42ddc31085d74741f573b7de2ca86a804345f6d67cd70d4a5173e2ab67c70262"
+  },
+  {
+    "file": "plum-LICENSE.txt",
+    "source_archive": "plum-b1be1969f914cc005add4090631b855db00c2591.tar.gz",
+    "member": "plum-b1be1969f914cc005add4090631b855db00c2591/LICENSE",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "darts-clone-LICENSE.txt",
+    "source_archive": "rime-deps-33e7814-macOS-universal.tar.bz2",
+    "member": "include/COPYING.darts-clone",
+    "sha256": "11bf6ca180d01e60656cd3cbe65cff95b738afe4ca5a8a66b9dd1ec594a41d2f"
+  }
+]

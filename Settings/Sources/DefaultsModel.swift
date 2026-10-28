@@ -215,6 +215,10 @@ final class DefaultsModel {
         switch error {
         case .changedOnDisk:
             "\(file) 在读取之后被改过了，没有保存。点「还原」重新读取。"
+        case .externalLink(let target):
+            "\(file) 链接到中书目录外的 \(target.path)，当前只读。请先把链接替换为独立文件，再重新读取，避免修改其他程序的配置。"
+        case .concurrentWrite(let backup):
+            "替换文件时检测到其他程序的修改，两个版本均已保留。请比较当前文件与 \(backup.path)，处理后再重新读取。"
         case .notUTF8:
             "\(file) 不是 UTF-8 编码，没法安全地修改"
         case .engineBusy:

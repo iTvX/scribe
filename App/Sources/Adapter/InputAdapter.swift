@@ -214,11 +214,17 @@ final class InputAdapter {
     func deactivate(client: TextClient) {
         commitComposition(client: client)
         candidates.hide()
+        self.client = nil
     }
 
     func close() {
         session.close()
-        candidates.hide()
+        // Another controller may already own the shared window by the time
+        // this controller's asynchronous teardown runs.
+        if candidates.delegate === self {
+            candidates.hide()
+            candidates.delegate = nil
+        }
         client = nil
     }
 
@@ -240,6 +246,7 @@ final class InputAdapter {
             case .hideCandidates:
                 candidates.hide()
             case .showStatus(let message):
+                candidates.delegate = self
                 candidates.showStatus(message, near: client.caretRect())
             }
         }

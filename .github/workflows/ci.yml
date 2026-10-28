@@ -158,7 +158,7 @@ jobs:
             -project Scribe.xcodeproj \
             -scheme Scribe \
             -configuration Release \
-            -derivedDataPath build/DerivedData \
+            -derivedDataPath build/DerivedData.noindex \
             -destination "generic/platform=macOS" \
             SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
             SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \
@@ -172,7 +172,7 @@ jobs:
             -project Scribe.xcodeproj \
             -scheme ScribeSettings \
             -configuration Release \
-            -derivedDataPath build/DerivedData \
+            -derivedDataPath build/DerivedData.noindex \
             -destination "generic/platform=macOS" \
             SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
             SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \
@@ -210,7 +210,7 @@ jobs:
           xcodebuild \
             -project Scribe.xcodeproj \
             -scheme Scribe \
-            -derivedDataPath build/DerivedData \
+            -derivedDataPath build/DerivedData.noindex \
             -destination "platform=macOS" \
             SCRIBE_BUNDLE_IDENTIFIER="${SCRIBE_BUNDLE_IDENTIFIER}" \
             SCRIBE_INFOPLIST_FILE="${SCRIBE_INFOPLIST_FILE}" \

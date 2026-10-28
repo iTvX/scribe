@@ -138,14 +138,14 @@ struct CustomPatchWriterTests {
         engine.stop()
 
         // A symbolic link: the target changes and the link stays a link.
-        let dotfiles = root.appending(path: "dotfiles", directoryHint: .isDirectory)
+        let dotfiles = user.appending(path: "dotfiles", directoryHint: .isDirectory)
         try fileManager.createDirectory(at: dotfiles, withIntermediateDirectories: true)
         let target = dotfiles.appending(path: "default.custom.yaml")
         try Data(Self.defaultCustom.utf8).write(to: target)
         try fileManager.removeItem(at: file)
-        try fileManager.createSymbolicLink(atPath: file.path(percentEncoded: false), withDestinationPath: "../dotfiles/default.custom.yaml")
+        try fileManager.createSymbolicLink(atPath: file.path(percentEncoded: false), withDestinationPath: "dotfiles/default.custom.yaml")
         let linked = try writer.save("default", changes: [.set("menu/page_size", 7)], expectedOriginal: Self.defaultCustom)
-        #expect(try fileManager.destinationOfSymbolicLink(atPath: file.path(percentEncoded: false)) == "../dotfiles/default.custom.yaml")
+        #expect(try fileManager.destinationOfSymbolicLink(atPath: file.path(percentEncoded: false)) == "dotfiles/default.custom.yaml")
         #expect(linked.file.path(percentEncoded: false) == CustomPatchWriter.resolvedFile(target).path(percentEncoded: false))
         #expect(try String(contentsOf: target, encoding: .utf8).contains("  menu/page_size: 7\n"))
         #expect(try RimeDefaults.load(userDirectory: user, sharedDirectory: Self.shared).pageSize == 7)
