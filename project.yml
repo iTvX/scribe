@@ -10,7 +10,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: 0.1.6
+    MARKETING_VERSION: 0.1.7
     CURRENT_PROJECT_VERSION: 1
     # CI and packaging override this: Xcode registers macOS build products
     # with LaunchServices even when Spotlight indexing is disabled.
@@ -208,6 +208,9 @@ targets:
     sources:
       - path: Settings/Sources
       - path: Settings/Resources
+      # Settings is its own Dock application, even inside Scribe.app.
+      - path: App/Resources/Scribe.icns
+        buildPhase: resources
     dependencies:
       - package: ScribeConfig
       - package: ScribeCore
@@ -219,6 +222,8 @@ targets:
         PRODUCT_MODULE_NAME: SettingsApp
         PRODUCT_BUNDLE_IDENTIFIER: $(SCRIBE_BUNDLE_IDENTIFIER).Settings
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Settings/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Scribe Settings
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         # ScribeConfig links librime through RimeKit; see the Scribe target.
         CODE_SIGN_ENTITLEMENTS: Settings/ScribeSettings.entitlements
