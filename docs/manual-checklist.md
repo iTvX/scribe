@@ -142,7 +142,7 @@
 | I3 | 选「用户目录…」 | 访达打开 `~/Library/Scribe` |
 | I4 | 选「使用说明…」 | 浏览器打开 GitHub 上中书的 README |
 | I5 | 在文本编辑里按 Control-Option-` | 通知中心先后出现「正在部署…」「部署完成。」 |
-| I6 | 选「设置…」 | 中书设置的窗口出现在最前面，左边是导入、方案、外观、快捷键 |
+| I6 | 选「设置…」 | 中书设置的窗口出现在最前面，左边是输入方案、外观、快捷键、导入配置 |
 | I7 | 把系统语言换成英文（系统设置 → 通用 → 语言与地区），注销再登录，打开输入法菜单 | 菜单项是 Deploy、Sync user data、Settings…、Logs…、User folder…、Help…、Check for updates… |
 
 ## 导入和设置
@@ -154,6 +154,10 @@ R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 
 | R1 | 在终端运行 `mkdir -p /tmp/scribe-lua/rime/lua /tmp/scribe-lua/scribe && echo 'if rime_api.get_distribution_code_name() == "Squirrel" then end' > /tmp/scribe-lua/rime/lua/check.lua`，再运行 `"<中书设置>/Contents/MacOS/ScribeSettings" -ScribeImportSource /tmp/scribe-lua/rime -ScribeUserDirectory /tmp/scribe-lua/scribe -ScribeImportOnLaunch YES` | 导入报告的「需要留意」里有「lua/check.lua 第 1 行按前端名称判断，这段脚本在中书里可能走另一条分支。」（测完退出中书设置，删掉 `/tmp/scribe-lua`） |
 | N1 | 打开中书设置 → 外观，点开「浅色主题」 | 列表里的主题显示的是名字（比如「微信键盘」），不是 ID |
 | N2 | 紧接 N1，选一个写了作者的主题，鼠标停在「浅色主题」上 | 浮出的提示是这个主题的作者 |
+| N3 | 在输入方案中搜索并添加方案，拖动或用菜单调整默认项，保存后重开 | 顺序、默认项和候选数保持一致 |
+| N4 | 外观 → 自定义外观，修改字号后直接点保存（不按回车），重开 | 浅／深色预览同步更新，保存提示明确，原主题仍可选择 |
+| N5 | 在快捷键页录制新组合键、取消录制或移除一项，保存 | 列表准确，至少保留一个方案切换键 |
+| N6 | 浅色和深色系统外观下查看四页，展开所有高级选项 | 文字可读、控件可访问，底部操作不遮挡内容 |
 | L1 | 导入之后，输入法菜单 → 重新部署 | 通知中心出现「部署完成。」，没有「部署出错，请查看日志。」 |
 | L2 | 在鼠须管里打一个你常打、鼠须管已经学会的词（比如一个人名），记下它在第几位；切到中书打同样的编码 | 这个词在中书里也在同一位 |
 | L3 | 挑三个你常用的编码，在鼠须管和中书里各打一遍，比较第一页 | 两边第一页的候选和顺序一样 |
@@ -162,7 +166,7 @@ R1 用临时目录，不碰 `~/Library/Scribe`。下面的 `<中书设置>` 是 
 
 | # | 操作 | 预期 |
 |---|------|------|
-| X1 | 中书设置 → 方案，在「用东风破（plum）安装方案」的「配方」里输入 `prelude` | 下面的命令是 `rime_dir='/Users/<你>/Library/Scribe' bash '/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install' prelude` |
+| X1 | 中书设置 → 输入方案，展开「安装更多方案」，在「安装配方」里输入 `prelude` | 下面的命令是 `rime_dir='/Users/<你>/Library/Scribe' bash '/Library/Input Methods/Scribe.app/Contents/MacOS/rime-install' prelude` |
 | X2 | 紧接 X1，点「拷贝命令」，在终端里粘贴，把 `rime_dir=` 后面引号里的目录改成 `/tmp/scribe-plum` 再回车 | `/tmp/scribe-plum/default.yaml` 出现（测完删掉 `/tmp/scribe-plum`） |
 | X3 | 在终端运行 `cd ~/Library/Scribe && "/Library/Input Methods/Scribe.app/Contents/MacOS/rime_dict_manager" --list` | 列出你的用户词库名，比如 `rime_ice` |
 

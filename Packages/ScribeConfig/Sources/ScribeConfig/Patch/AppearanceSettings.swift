@@ -222,12 +222,27 @@ public struct AppearanceEdits: Equatable, Sendable {
 
     /// One change per path, in path order.
     public var changes: [PatchChange] {
-        edits.keys.sorted().map { path in
+        var result: [PatchChange] = []
+        for path in edits.keys.sorted() {
+            // Creating a personal theme then editing one of its fields must
+            // validate the final whole theme, not the superseded original.
+            if let index = result.firstIndex(where: {
+                if case .set(let parent, _) = $0 { return path.hasPrefix(parent + "/") }
+                return false
+            }), case .set(let parent, let node) = result[index] {
+                let child = String(path.dropFirst(parent.count + 1))
+                switch edits[path] {
+                case .set(let value): result[index] = .set(parent, node.setting(child, to: value))
+                case .remove, nil: result[index] = .set(parent, node.removing(child))
+                }
+                continue
+            }
             switch edits[path] {
-            case .set(let value): .set(path, value)
-            case .remove, nil: .remove(path)
+            case .set(let value): result.append(.set(path, value))
+            case .remove, nil: result.append(.remove(path))
             }
         }
+        return result
     }
 
     /// A number written minimally: "16", "0.85".

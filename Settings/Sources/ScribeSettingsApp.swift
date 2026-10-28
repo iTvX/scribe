@@ -14,6 +14,13 @@ struct ScribeSettingsApp: App {
             Self.selfTest()
         }
         let directories = SettingsDirectories()
+        #if DEBUG
+            // UI checks may force this test application's appearance, never the
+            // system's or a live settings session's appearance.
+            if !directories.isLive, let appearance = UserDefaults.standard.string(forKey: "ScribeTestAppearance") {
+                NSApplication.shared.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
+            }
+        #endif
         _importModel = State(initialValue: ImportModel(directories: directories))
         _defaults = State(initialValue: DefaultsModel(directories: directories))
         _looks = State(initialValue: LooksModel(directories: directories))
@@ -24,6 +31,7 @@ struct ScribeSettingsApp: App {
             SettingsView(importModel: importModel, defaults: defaults, looks: looks)
                 .task { launch() }
         }
+        .defaultSize(width: 1020, height: 760)
         .windowResizability(.contentMinSize)
     }
 
@@ -43,8 +51,9 @@ struct ScribeSettingsApp: App {
     private func launch() {
         let refresh = { [defaults, looks] in
             defaults.load()
-            looks.load(activeSchema: defaults.activeSchema,
-                       schemaName: defaults.activeSchema.map { defaults.name(ofSchema: $0) })
+            looks.load(
+                activeSchema: defaults.activeSchema,
+                schemaName: defaults.activeSchema.map { defaults.name(ofSchema: $0) })
         }
         importModel.onImported = refresh
         refresh()

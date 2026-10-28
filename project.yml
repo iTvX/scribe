@@ -10,7 +10,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: 0.1.7
+    MARKETING_VERSION: 0.2.0
     CURRENT_PROJECT_VERSION: 1
     # CI and packaging override this: Xcode registers macOS build products
     # with LaunchServices even when Spotlight indexing is disabled.
@@ -212,6 +212,7 @@ targets:
       - path: App/Resources/Scribe.icns
         buildPhase: resources
     dependencies:
+      - package: ScribeUI
       - package: ScribeConfig
       - package: ScribeCore
       - package: RimeKit

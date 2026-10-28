@@ -2,7 +2,7 @@
 
 中书是 macOS 上的 [Rime](https://rime.im) 输入法前端：引擎是原样使用的 [librime](https://github.com/rime/librime)，前端用 Swift 重新实现，可以替代鼠须管（Squirrel）。按键、行内显示、`app_options`、皮肤等行为都和鼠须管一致，鼠须管的 `squirrel.yaml` / `squirrel.custom.yaml` 照常生效。中书用自己的用户目录 `~/Library/Scribe`，和鼠须管可以同时装着，互不影响。
 
-- **当前版本**：0.1.5，改动见 [更新记录](CHANGELOG.md)
+- **当前版本**：0.2.0，改动见 [更新记录](CHANGELOG.md)
 - **系统要求**：macOS 14 及以上
 
 ## 安装
@@ -15,12 +15,12 @@
 
 ## 从鼠须管迁移
 
-在输入法菜单里选「设置…」打开中书设置，「导入」页的一键导入会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。中书设置随中书一起安装（0.1.1 起才有；还在用 0.1.0 的话，先在输入法菜单里选「检查更新…」）。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
+在输入法菜单里选「设置…」打开中书设置，「导入配置」页的「开始导入」会把 `~/Library/Rime` 复制到 `~/Library/Scribe`，用户词也一起合并过来，鼠须管的文件一个都不改。中书设置随中书一起安装（0.1.1 起才有；还在用 0.1.0 的话，先在输入法菜单里选「检查更新…」）。步骤、哪些文件不复制、怎么切回鼠须管，见 [从鼠须管迁移](docs/migrating-from-squirrel.md)。
 
 ## 使用
 
 - **输入法菜单**：重新部署（Control-Option-`）、同步用户数据、设置、日志目录、用户目录、使用说明、检查更新。
-- **中书设置**：在输入法菜单里选「设置…」，可以导入鼠须管的配置，选方案、改快捷键和外观，把鼠须管格式的设置转成中书的格式。
+- **中书设置**：在输入法菜单里选「设置…」，可以导入鼠须管的配置，选方案、改快捷键和外观，把鼠须管格式的设置转成中书的格式。外观页提供真实候选窗预览；「自定义外观」会复制主题，保留原配色，再调整字号、排列和间距。
 - **配置**：鼠须管格式的 `squirrel.custom.yaml` 和中书自己的 `scribe.custom.yaml` 都放在 `~/Library/Scribe`，改完选「重新部署」。中书的格式（`#RRGGBB` 颜色、一个主题同时带浅色和深色配色）见 [配置](docs/configuration.md)。
 - **菜单栏图标**：切到中书时显示当前的中西文状态，`scribe.custom.yaml` 里设 `status_icon: false` 可以关掉。
 - **日志**：librime 的日志在 `~/Library/Logs/Scribe`；中书自己的日志在「控制台」里按子系统 `io.github.itvx.inputmethod.Scribe` 过滤。

@@ -9,15 +9,22 @@ struct MigrationReportView: View {
     var onDone: () -> Void
 
     var body: some View {
-        Form {
-            Section {
-                Text(verbatim: "从 \(report.source.displayPath) 导入到 \(report.destination.displayPath)，共 \(report.imported.count) 个文件")
-                    .font(.headline)
-                    .textSelection(.enabled)
+        SettingsScroll {
+            SettingsCard(title: "导入完成", icon: "checkmark.circle") {
+                Text("已导入 \(report.imported.count) 个文件")
+                    .font(.system(size: 21, weight: .semibold))
+                DisclosureGroup("查看来源与目标目录") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("来源：\(report.source.displayPath)")
+                        Text("目标：\(report.destination.displayPath)")
+                    }.font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                }
                 if let backup = report.backup {
-                    LabeledContent("原来的中书目录已移到") {
+                    SettingsFieldRow(title: "原配置已备份") {
                         HStack {
-                            Text(backup.displayPath)
+                            Text(backup.lastPathComponent)
+                                .font(.caption).foregroundStyle(.secondary)
+                                .lineLimit(1).truncationMode(.middle).help(backup.displayPath)
                                 .textSelection(.enabled)
                             Button("在访达中显示") {
                                 NSWorkspace.shared.activateFileViewerSelecting([backup])
@@ -31,7 +38,7 @@ struct MigrationReportView: View {
             itemSection("通过鼠须管兼容层生效", effect: .squirrelCompatibility)
             itemSection("已复制，中书不读取", effect: .notRead)
 
-            Section("需要留意") {
+            SettingsDisclosure(title: "需要留意", subtitle: "\(report.notices.count) 条说明") {
                 if report.notices.isEmpty {
                     Text("没有")
                         .foregroundStyle(.secondary)
@@ -41,11 +48,12 @@ struct MigrationReportView: View {
                 }
             }
 
-            Section("用户词") {
+            SettingsCard(title: "用户词", icon: "text.bubble") {
                 LabeledContent("用户词库") {
-                    Text(report.userDictionaries.dictionaries.isEmpty
-                         ? "没有"
-                         : report.userDictionaries.dictionaries.joined(separator: "、"))
+                    Text(
+                        report.userDictionaries.dictionaries.isEmpty
+                            ? "没有"
+                            : report.userDictionaries.dictionaries.joined(separator: "、"))
                 }
                 if !userWords.merged.isEmpty {
                     LabeledContent("已合并") {
@@ -76,7 +84,7 @@ struct MigrationReportView: View {
                 }
             }
 
-            Section("未复制") {
+            SettingsDisclosure(title: "未复制的文件", subtitle: "\(report.skipped.count) 项，查看原因") {
                 if report.skipped.isEmpty {
                     Text("没有")
                         .foregroundStyle(.secondary)
@@ -88,7 +96,7 @@ struct MigrationReportView: View {
                 }
             }
 
-            Section("同步") {
+            SettingsDisclosure(title: "安装与同步信息", subtitle: "安装标识、同步目录及迁移说明") {
                 LabeledContent("中书的安装 ID") {
                     Text(report.installationID)
                         .textSelection(.enabled)
@@ -105,11 +113,12 @@ struct MigrationReportView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
-        .toolbar {
-            ToolbarItem {
-                Button("完成", action: onDone)
-            }
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Text("导入结果已列出，原始文件保持不变。").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("完成", action: onDone).buttonStyle(.borderedProminent).controlSize(.large)
+            }.padding(20).background(SettingsStyle.card)
         }
     }
 
@@ -120,7 +129,7 @@ struct MigrationReportView: View {
             return paths.isEmpty ? nil : KindGroup(kind: kind, paths: paths)
         }
         if !groups.isEmpty {
-            Section(title) {
+            SettingsDisclosure(title: title, subtitle: "\(groups.reduce(0) { $0 + $1.paths.count }) 个文件，按类型查看") {
                 ForEach(groups) { group in
                     DisclosureGroup {
                         ForEach(group.paths, id: \.self) { path in
