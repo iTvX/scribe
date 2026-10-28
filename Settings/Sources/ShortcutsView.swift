@@ -1,6 +1,6 @@
 import AppKit
-import SwiftUI
 import ScribeConfig
+import SwiftUI
 
 /// 快捷键: the keys that open the schema menu and the keys that switch
 /// between Chinese and English, saved to default.custom.yaml.
@@ -19,6 +19,7 @@ struct ShortcutsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SettingsHeader(title: "快捷键", subtitle: "切换方案与中英文，让每一次按键符合习惯。")
             if model.loaded == nil, let error = model.loadError {
                 LoadErrorView(message: error)
             } else {
@@ -27,7 +28,6 @@ struct ShortcutsView: View {
             Divider()
             SaveBar(model: model, page: .shortcuts)
         }
-        .navigationTitle("快捷键")
         .onDisappear(perform: stopRecording)
     }
 
@@ -36,58 +36,53 @@ struct ShortcutsView: View {
     }
 
     private var list: some View {
-        List {
-            Section {
+        SettingsScroll {
+            SettingsCard(title: "切换输入方案", subtitle: "按下任一快捷键，打开方案菜单。", icon: "command") {
                 ForEach(model.hotkeys, id: \.self) { name in
                     HStack {
-                        Text(verbatim: KeySymbols.display(name))
-                            .font(.body.monospaced())
+                        Text(KeySymbols.display(name)).font(.system(.body, design: .monospaced).weight(.medium))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(SettingsStyle.canvas, in: RoundedRectangle(cornerRadius: 6))
                             .help(name)
-                        Text(verbatim: name)
-                            .foregroundStyle(.secondary)
                         Spacer()
                         Button {
                             model.removeHotkey(name)
                         } label: {
                             Image(systemName: "minus.circle")
                         }
-                        .buttonStyle(.borderless)
-                        .help("移除")
+                        .buttonStyle(.borderless).foregroundStyle(.secondary)
+                        .accessibilityLabel("移除快捷键 \(KeySymbols.display(name))")
                         .disabled(!editable || model.hotkeys.count <= 1)
                     }
                 }
                 HStack {
-                    Button(monitor == nil ? "录制" : "请按下按键…（Esc 取消）", action: startRecording)
-                        .disabled(!editable || monitor != nil)
-                    if let recordingMessage {
-                        Text(verbatim: recordingMessage)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            } header: {
-                Text("方案菜单")
-            } footer: {
-                Text("按下其中任何一个键都会打开方案菜单。至少要留一个。")
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("中英切换") {
-                ForEach(model.switchKeyRows, id: \.self) { key in
-                    Picker(selection: action(for: key)) {
-                        ForEach(options(for: key), id: \.0) { option in
-                            Text(option.1).tag(option.0)
-                        }
+                    Button {
+                        startRecording()
                     } label: {
-                        Text(verbatim: KeySymbols.display(key))
-                            .help(key)
-                    }
-                    .disabled(!editable)
+                        Label(monitor == nil ? "添加快捷键" : "请按下快捷键…", systemImage: monitor == nil ? "plus" : "record.circle")
+                    }.disabled(!editable || monitor != nil)
+                    if monitor != nil { Button("取消", action: stopRecording).buttonStyle(.link) }
                 }
-                ForEach(switchKeyNotes, id: \.self) { note in
-                    Label(note, systemImage: "info.circle")
-                        .foregroundStyle(.secondary)
+                if let recordingMessage { SettingsHint(text: recordingMessage, icon: "exclamationmark.circle") }
+                if monitor != nil { Text("按 Esc 取消录制。").font(.caption).foregroundStyle(.secondary) }
+            }
+            SettingsCard(title: "中英文切换", subtitle: "选择按下这些键时如何处理正在输入的文字。", icon: "character.cursor.ibeam") {
+                ForEach(model.switchKeyRows, id: \.self) { key in
+                    HStack {
+                        Text(KeySymbols.display(key)).font(.system(.body, design: .monospaced)).help(key)
+                        Spacer()
+                        Picker("\(KeySymbols.display(key))的操作", selection: action(for: key)) {
+                            ForEach(options(for: key), id: \.0) { option in Text(option.1).tag(option.0) }
+                        }.labelsHidden().frame(maxWidth: 270).disabled(!editable)
+                    }.padding(.vertical, 3)
+                }
+                if !switchKeyNotes.isEmpty {
+                    DisclosureGroup("部分方案有自己的切换设置") {
+                        ForEach(switchKeyNotes, id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
+                    }.font(.callout)
                 }
             }
+            SettingsHint(text: "“上屏”是将拼音或候选文字插入当前输入框。保留至少一个方案切换快捷键。")
         }
     }
 

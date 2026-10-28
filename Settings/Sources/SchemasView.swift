@@ -2,135 +2,159 @@ import AppKit
 import ScribeConfig
 import SwiftUI
 
-/// 方案: the selected schemas and the page size, saved to default.custom.yaml.
 struct SchemasView: View {
     @Bindable var model: DefaultsModel
-    /// The plum recipe to install, as typed.
     @State private var recipe = ""
+    @State private var adding = false
+    @State private var copied = false
 
     var body: some View {
         VStack(spacing: 0) {
+            SettingsHeader(title: "输入方案", subtitle: "选择常用的输入方式，按习惯排列。")
             if model.loaded == nil, let error = model.loadError {
                 LoadErrorView(message: error)
             } else {
-                list
+                SettingsScroll {
+                    SettingsCard(title: "常用方案", subtitle: "第一项为默认方案。拖动手柄调整顺序。", icon: "character.book.closed") {
+                        VStack(spacing: 0) {
+                            ForEach(Array(model.schemaItems.enumerated()), id: \.element.id) { index, item in
+                                if index > 0 { Divider().padding(.leading, 32) }
+                                row(item, index: index)
+                                    .draggable(item.id.uuidString)
+                                    .dropDestination(for: String.self) { ids, _ in
+                                        guard editable, let id = ids.first,
+                                            let from = model.schemaItems.firstIndex(where: { $0.id.uuidString == id }),
+                                            let to = model.schemaItems.firstIndex(where: { $0.id == item.id }), from != to
+                                        else { return false }
+                                        model.schemaItems.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+                                        return true
+                                    }
+                            }
+                        }
+                        Button {
+                            adding = true
+                        } label: {
+                            Label("添加方案", systemImage: "plus")
+                        }
+                        .disabled(!editable)
+                    }
+                    SettingsCard(title: "候选数量", icon: "list.number") {
+                        HStack {
+                            Text("每页显示")
+                            Spacer()
+                            Picker("每页候选数量", selection: $model.pageSize) {
+                                ForEach(1...10, id: \.self) { Text("\($0) 个").tag($0) }
+                            }.labelsHidden().frame(width: 100).disabled(!editable)
+                        }
+                        if !pageSizeNotes.isEmpty {
+                            DisclosureGroup("部分方案有自己的候选数量") {
+                                ForEach(pageSizeNotes, id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
+                            }.font(.callout)
+                        }
+                    }
+                    if let plum = model.plum {
+                        SettingsDisclosure(title: "安装更多方案", subtitle: "使用东风破（plum）安装社区方案") {
+                            Text("输入配方，拷贝命令到终端运行。完成后重新部署中书，再添加新方案。")
+                                .font(.callout).foregroundStyle(.secondary)
+                            TextField("安装配方", text: $recipe, prompt: Text("例如 iDvel/rime-ice:others/recipes/full"))
+                                .textFieldStyle(.roundedBorder)
+                            HStack(alignment: .top) {
+                                Text(plum.command(recipe: recipe)).font(.caption.monospaced()).textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Button(copied ? "已拷贝" : "拷贝命令") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(plum.command(recipe: recipe), forType: .string)
+                                    copied = true
+                                }.disabled(recipe.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }.padding(12).background(SettingsStyle.canvas, in: RoundedRectangle(cornerRadius: 8))
+                            DisclosureGroup("工具位置") { Text(plum.tool.path).font(.caption).textSelection(.enabled) }
+                        }
+                    }
+                }
             }
             Divider()
             SaveBar(model: model, page: .schemas)
         }
-        .navigationTitle("方案")
+        .onChange(of: recipe) { copied = false }
+        .sheet(isPresented: $adding) { AddSchemaSheet(model: model) }
     }
 
-    private var editable: Bool {
-        model.readOnlyReason == nil
-    }
+    private var editable: Bool { model.readOnlyReason == nil }
 
-    private var list: some View {
-        List {
-            Section {
-                ForEach(model.schemaItems) { item in
-                    row(item)
-                }
-                .onMove { model.schemaItems.move(fromOffsets: $0, toOffset: $1) }
-                .moveDisabled(!editable)
-                Menu("添加方案") {
-                    ForEach(model.catalog.filter { schema in !model.schemaItems.contains { $0.schemaID == schema.id } }) { schema in
-                        Button("\(schema.name)（\(schema.id)）") { model.addSchema(schema.id) }
-                    }
-                }
-                .fixedSize()
-                .disabled(!editable)
-            } header: {
-                Text("已选的方案")
-            } footer: {
-                Text("拖动调整顺序，排在第一个的是默认方案。至少要留一个。")
-                    .foregroundStyle(.secondary)
-            }
-
-            if let plum = model.plum {
-                plumSection(plum)
-            }
-
-            Section("候选") {
-                Stepper(value: $model.pageSize, in: 1...10) {
-                    Text(verbatim: "每页候选数：\(model.pageSize)")
-                }
-                .disabled(!editable)
-                ForEach(pageSizeNotes, id: \.self) { note in
-                    Label(note, systemImage: "info.circle")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    /// plum's rime-install, which ships with Scribe, and the command that
-    /// installs a recipe into Scribe's user directory.
-    private func plumSection(_ plum: PlumCommand) -> some View {
-        Section {
-            LabeledContent("rime-install") {
-                Text(verbatim: plum.tool.path(percentEncoded: false))
-                    .font(.caption)
-                    .textSelection(.enabled)
-            }
-            TextField("配方", text: $recipe, prompt: Text(verbatim: "比如 iDvel/rime-ice:others/recipes/full"))
-            HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: plum.command(recipe: recipe))
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                Spacer()
-                Button("拷贝命令") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(plum.command(recipe: recipe), forType: .string)
-                }
-            }
-        } header: {
-            Text("用东风破（plum）安装方案")
-        } footer: {
-            Text("在终端里粘贴运行。装好后在输入法菜单里选「重新部署」，新方案就会出现在上面的「添加方案」里。")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func row(_ item: DefaultsModel.SchemaItem) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: model.name(ofSchema: item.schemaID))
-                Text(verbatim: item.schemaID)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if item.id == model.schemaItems.first?.id {
-                badge("默认")
-            }
-            if item.schemaID == model.activeSchema {
-                badge("当前")
-            }
-            Spacer()
-            Button {
-                model.removeSchema(item)
+    private func row(_ item: DefaultsModel.SchemaItem, index: Int) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "line.3.horizontal").font(.system(size: 11)).foregroundStyle(.tertiary)
+                .frame(width: 18).accessibilityLabel("拖动调整方案顺序")
+            Text(model.name(ofSchema: item.schemaID)).font(.system(size: 13, weight: .medium))
+                .help(item.schemaID)
+            if index == 0 { SettingsBadge(title: "默认", accent: true) }
+            if item.schemaID == model.activeSchema { SettingsBadge(title: "当前使用") }
+            Spacer(minLength: 4)
+            Menu {
+                Button("设为默认") { move(index, to: 0) }.disabled(index == 0)
+                Button("上移") { move(index, to: index - 1) }.disabled(index == 0)
+                Button("下移") { move(index, to: index + 1) }.disabled(index == model.schemaItems.count - 1)
+                Divider()
+                Text(item.schemaID)
+                Button("从常用方案中移除", role: .destructive) { model.removeSchema(item) }
+                    .disabled(model.schemaItems.count <= 1)
             } label: {
-                Image(systemName: "minus.circle")
+                Image(systemName: "ellipsis").frame(width: 20, height: 20)
             }
-            .buttonStyle(.borderless)
-            .help("移除")
-            .disabled(!editable || model.schemaItems.count <= 1)
+            .menuIndicator(.hidden).menuStyle(.borderlessButton).fixedSize()
+            .accessibilityLabel("\(model.name(ofSchema: item.schemaID))的操作")
+            .disabled(!editable)
         }
+        .padding(.vertical, 13).contentShape(Rectangle())
     }
 
-    private func badge(_ text: String) -> some View {
-        Text(text)
-            .font(.caption)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(.quaternary, in: Capsule())
+    private func move(_ from: Int, to: Int) {
+        guard editable, model.schemaItems.indices.contains(to) else { return }
+        model.schemaItems.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
     }
 
     private var pageSizeNotes: [String] {
         model.overrides.compactMap { override in
-            guard let size = override.pageSize, model.schemaItems.contains(where: { $0.schemaID == override.schemaID })
-            else { return nil }
-            return "\(model.name(ofSchema: override.schemaID)) 自己设了每页 \(size) 个"
+            guard let size = override.pageSize, model.schemaItems.contains(where: { $0.schemaID == override.schemaID }) else { return nil }
+            return "\(model.name(ofSchema: override.schemaID))：每页 \(size) 个"
         }
+    }
+}
+
+private struct AddSchemaSheet: View {
+    var model: DefaultsModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    private var available: [SchemaInfo] {
+        model.catalog.filter { schema in
+            !model.schemaItems.contains { $0.schemaID == schema.id }
+                && (query.isEmpty || schema.name.localizedCaseInsensitiveContains(query)
+                    || schema.id.localizedCaseInsensitiveContains(query))
+        }
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("添加输入方案").font(.title2.bold())
+                Spacer()
+                Button("完成") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            TextField("搜索已安装的方案", text: $query).textFieldStyle(.roundedBorder)
+            if available.isEmpty {
+                ContentUnavailableView("没有可添加的方案", systemImage: "magnifyingglass", description: Text("试试其他名称，或在“安装更多方案”中安装。"))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(available) { schema in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(schema.name)
+                            Text(schema.id).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("添加") { model.addSchema(schema.id) }
+                    }.padding(.vertical, 6).accessibilityElement(children: .contain)
+                }.listStyle(.plain)
+            }
+        }.padding(24).frame(width: 470, height: 430).tint(SettingsStyle.accent)
     }
 }

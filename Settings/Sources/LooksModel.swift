@@ -48,13 +48,14 @@ final class LooksModel {
             loadError = nil
             readOnlyReason = settings.editProblem.map { DefaultsModel.message(for: $0, file: "scribe.custom.yaml") }
             let appearance = settings.appearance()
-            emit("Appearance loaded: \(settings.themes.count) themes; light \(appearance.light.colorSchemeID ?? "native")"
-                 + "; dark \(appearance.dark?.colorSchemeID ?? "none"); diagnostics \(settings.diagnostics.count)"
-                 + "; schema \(activeSchema ?? "none")\(settings.schemaStyle == nil ? "" : " with style")"
-                 + "; scribe.custom.yaml \(settings.customText == nil ? "absent" : "\(settings.customKeys.count) entries")"
-                 + "; conversion \(settings.conversion.map { $0.isEmpty ? "none" : "\($0.entries.count) entries" } ?? "unavailable")"
-                 + (readOnlyReason.map { "; read-only: \($0)" } ?? "")
-                 + "; live \(directories.isLive)")
+            emit(
+                "Appearance loaded: \(settings.themes.count) themes; light \(appearance.light.colorSchemeID ?? "native")"
+                    + "; dark \(appearance.dark?.colorSchemeID ?? "none"); diagnostics \(settings.diagnostics.count)"
+                    + "; schema \(activeSchema ?? "none")\(settings.schemaStyle == nil ? "" : " with style")"
+                    + "; scribe.custom.yaml \(settings.customText == nil ? "absent" : "\(settings.customKeys.count) entries")"
+                    + "; conversion \(settings.conversion.map { $0.isEmpty ? "none" : "\($0.entries.count) entries" } ?? "unavailable")"
+                    + (readOnlyReason.map { "; read-only: \($0)" } ?? "")
+                    + "; live \(directories.isLive)")
         } catch {
             settings = nil
             loadError = DefaultsModel.message(for: error, file: "scribe.custom.yaml")
@@ -67,19 +68,24 @@ final class LooksModel {
 
     func set(_ path: String, _ value: ConfigNode) {
         guard let settings, readOnlyReason == nil else { return }
-        edits.set(path, to: value, loaded: settings)
-        status = nil
+        let previous = edits
+        for target in settings.editableStylePaths(for: path, with: edits.pending) {
+            edits.set(target, to: value, loaded: settings)
+        }
+        if edits != previous { status = nil }
     }
 
     /// 恢复默认, or 跟随浅色主题 for the dark theme.
     func reset(_ path: String) {
         guard let settings, readOnlyReason == nil else { return }
-        edits.reset(path, loaded: settings)
+        for target in settings.editableStylePaths(for: path, with: edits.pending) {
+            edits.reset(target, loaded: settings)
+        }
         status = nil
     }
 
     func isEdited(_ path: String) -> Bool {
-        edits.pending.keys.contains(path)
+        settings?.editableStylePaths(for: path, with: edits.pending).contains { edits.pending.keys.contains($0) } ?? false
     }
 
     /// The raw value at a Scribe path, edits included, such as a theme ID.
@@ -95,6 +101,8 @@ final class LooksModel {
         if case .insideEntry(let entry) = settings.provenance(of: path) {
             notes.append("在 scribe.custom.yaml 的 \(entry) 里设置")
         }
+        let targets = settings.editableStylePaths(for: path, with: edits.pending)
+        if targets != [path] { return notes }
         if settings.isOverriddenBySchema(path) {
             notes.append("当前方案（\(schemaName ?? schemaID ?? "")）自带这一项，修改不会在这个方案里生效")
         }
@@ -111,7 +119,34 @@ final class LooksModel {
 
     /// Whether 恢复默认 applies: scribe.custom.yaml has exactly this entry.
     func canReset(_ path: String) -> Bool {
-        settings?.provenance(of: path) == .ownEntry && readOnlyReason == nil
+        guard let settings, readOnlyReason == nil else { return false }
+        return settings.editableStylePaths(for: path, with: edits.pending).contains {
+            settings.provenance(of: $0) == .ownEntry || edits.pending.keys.contains($0)
+        }
+    }
+
+    var availableThemes: [ThemeInfo] {
+        guard let settings else { return [] }
+        return AppearanceSettings(squirrel: settings.squirrel, scribe: settings.scribe(with: edits.pending)).themes
+    }
+
+    var canPersonalize: Bool {
+        guard let settings, readOnlyReason == nil else { return false }
+        return !settings.personalThemeChanges(with: edits.pending).isEmpty
+    }
+
+    var isPersonalized: Bool {
+        guard let settings, let preview else { return false }
+        return settings.isPersonalTheme(preview.light.colorSchemeID, with: edits.pending)
+            || settings.isPersonalTheme(preview.dark?.colorSchemeID, with: edits.pending)
+    }
+
+    func personalize() {
+        guard let settings, readOnlyReason == nil else { return }
+        for change in settings.personalThemeChanges(with: edits.pending) {
+            if case .set(let path, let value) = change { edits.set(path, to: value, loaded: settings) }
+        }
+        status = nil
     }
 
     // MARK: - Saving
@@ -133,13 +168,16 @@ final class LooksModel {
                 case .remove(let key): "remove \(key)"
                 }
             }
-            emit("Appearance saved scribe.custom.yaml: \(summary.joined(separator: ", ")); file \(result.file.path(percentEncoded: false)); posted reload \(posted)")
+            emit(
+                "Appearance saved scribe.custom.yaml: \(summary.joined(separator: ", ")); file \(result.file.path(percentEncoded: false)); posted reload \(posted)"
+            )
             load(activeSchema: schemaID, schemaName: schemaName)
             status = SaveStatus(message: message, isError: false)
         } catch {
             emit("Appearance save failed: \(error)")
-            status = SaveStatus(message: DefaultsModel.message(for: error, file: "scribe.custom.yaml"), isError: true,
-                                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
+            status = SaveStatus(
+                message: DefaultsModel.message(for: error, file: "scribe.custom.yaml"), isError: true,
+                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
         }
     }
 
@@ -167,12 +205,14 @@ final class LooksModel {
         else { return }
         let writer = CustomPatchWriter(userDirectory: directories.user, sharedDirectory: shared)
         do {
-            let result = try writer.save("scribe", changes: offer.conversion.entries.map { .set($0.key, $0.value) },
-                                         expectedOriginal: settings.customText)
+            let result = try writer.save(
+                "scribe", changes: offer.conversion.entries.map { .set($0.key, $0.value) },
+                expectedOriginal: settings.customText)
             let (message, posted) = directories.announce(result)
-            emit("Appearance converted scribe.custom.yaml: \(offer.conversion.entries.count) entries"
-                 + " (global \(offer.count(.general)), appearance \(offer.count(.appearance)), apps \(offer.count(.apps)), themes \(offer.count(.themes)))"
-                 + "; unconverted \(offer.unconverted.count); file \(result.file.path(percentEncoded: false)); posted reload \(posted)")
+            emit(
+                "Appearance converted scribe.custom.yaml: \(offer.conversion.entries.count) entries"
+                    + " (global \(offer.count(.general)), appearance \(offer.count(.appearance)), apps \(offer.count(.apps)), themes \(offer.count(.themes)))"
+                    + "; unconverted \(offer.unconverted.count); file \(result.file.path(percentEncoded: false)); posted reload \(posted)")
             load(activeSchema: schemaID, schemaName: schemaName)
             status = SaveStatus(message: message, isError: false)
         } catch {
@@ -182,8 +222,9 @@ final class LooksModel {
                 message = "scribe.custom.yaml 在读取之后被改过了，没有转换。请重新打开外观页再试。"
                 needsReload = true
             }
-            status = SaveStatus(message: message, isError: true,
-                                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
+            status = SaveStatus(
+                message: message, isError: true,
+                file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
         }
     }
 

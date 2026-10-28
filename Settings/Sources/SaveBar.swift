@@ -32,24 +32,34 @@ struct SaveBar: View {
             } else if let readOnlyReason {
                 Label(readOnlyReason, systemImage: "lock")
                     .foregroundStyle(.secondary)
+            } else if hasEdits {
+                Label("有未保存的修改", systemImage: "circle.fill")
+                    .font(.callout).foregroundStyle(SettingsStyle.accent)
+            } else {
+                Text("修改后保存生效").font(.callout).foregroundStyle(.tertiary)
             }
-            Spacer()
-            Button("还原", action: revert)
+            Spacer(minLength: 12)
+            Button("撤销修改", action: revert)
                 .disabled(!hasEdits)
-            Button("保存", action: save)
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut("s")
-                .disabled(!hasEdits || readOnlyReason != nil)
+            Button("保存") {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+                save()
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut("s")
+            .disabled(!hasEdits || readOnlyReason != nil)
         }
-        .padding(12)
-        .background(.bar)
+        .controlSize(.large)
+        .padding(.horizontal, 24).padding(.vertical, 14)
+        .background(SettingsStyle.card)
     }
 }
 
 extension SaveBar {
     init(model: DefaultsModel, page: DefaultsModel.Page) {
-        self.init(status: model.statuses[page], readOnlyReason: model.readOnlyReason, hasEdits: model.hasEdits(page),
-                  revert: { model.revert(page) }, save: { model.save(page) })
+        self.init(
+            status: model.statuses[page], readOnlyReason: model.readOnlyReason, hasEdits: model.hasEdits(page),
+            revert: { model.revert(page) }, save: { model.save(page) })
     }
 }
 
