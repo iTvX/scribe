@@ -79,4 +79,3 @@ final class AuditTextInput: NSObject, IMKTextInput {
         observed = nil
     }
 }
-
