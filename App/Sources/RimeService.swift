@@ -326,6 +326,15 @@ final class RimeService {
     static let settingsApp = Bundle.main.bundleURL.appending(path: "Contents/Helpers/ScribeSettings.app", directoryHint: .isDirectory)
 
     func openSettings() {
+        // The one-time upgrade from a legacy Settings version preserves its
+        // window for unsaved edits. Subsequent menu actions choose the newest
+        // instance instead of allowing LaunchServices to reopen the legacy UI.
+        if let newest = NSWorkspace.shared.runningApplications.filter({
+            $0.bundleURL?.standardizedFileURL == Self.settingsApp.standardizedFileURL && !$0.isTerminated
+        }).max(by: { ($0.launchDate ?? .distantPast) < ($1.launchDate ?? .distantPast) }) {
+            newest.activate(options: [.activateAllWindows])
+            return
+        }
         NSWorkspace.shared.openApplication(at: Self.settingsApp, configuration: NSWorkspace.OpenConfiguration()) { _, error in
             if let error {
                 Log.app.error("Could not open Scribe Settings: \(error.localizedDescription, privacy: .public)")

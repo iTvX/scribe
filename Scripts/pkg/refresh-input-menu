@@ -21,6 +21,12 @@ for _ in {1..30}; do
     else
       /usr/bin/logger -t ScribeInstaller 'Input-source list refresh did not complete; see Scribe installer logs'
     fi
+    settings="$(/usr/bin/dirname "${executable}")/../Helpers/ScribeSettings.app/Contents/MacOS/ScribeSettings"
+    if [[ -x "${settings}" ]]; then
+      if ! "${settings}" --installation-finished; then
+        /usr/bin/logger -t ScribeInstaller 'Settings refresh could not launch; existing drafts remain in the old window'
+      fi
+    fi
     exit 0
   fi
   /bin/sleep 1

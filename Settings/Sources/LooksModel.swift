@@ -16,6 +16,7 @@ final class LooksModel {
     private(set) var schemaName: String?
     private(set) var status: SaveStatus?
     private(set) var edits = AppearanceEdits()
+    private(set) var fieldDrafts: [String: SettingsFieldDraft] = [:]
     /// Set when a conversion found the file changed: the page reloads when it opens again.
     private(set) var needsReload = false
 
@@ -28,13 +29,15 @@ final class LooksModel {
         settings?.appearance(with: edits.pending)
     }
 
-    var hasEdits: Bool { !edits.isEmpty }
+    var hasEdits: Bool { !edits.isEmpty || !fieldDrafts.isEmpty }
+    var hasInvalidFields: Bool { fieldDrafts.values.contains { !$0.isValid } }
 
     func load(activeSchema: String?, schemaName: String?) {
         schemaID = activeSchema
         self.schemaName = schemaName
         status = nil
         edits.discard()
+        fieldDrafts = [:]
         guard let shared = directories.shared else {
             settings = nil
             loadError = "找不到中书，没法读取和校验外观"
@@ -77,6 +80,7 @@ final class LooksModel {
 
     /// 恢复默认, or 跟随浅色主题 for the dark theme.
     func reset(_ path: String) {
+        fieldDrafts.removeValue(forKey: path)
         guard let settings, readOnlyReason == nil else { return }
         for target in settings.editableStylePaths(for: path, with: edits.pending) {
             edits.reset(target, loaded: settings)
@@ -157,7 +161,12 @@ final class LooksModel {
 
     func save() {
         guard let settings, let shared = directories.shared, readOnlyReason == nil, hasEdits else { return }
+        guard !hasInvalidFields else {
+            status = SaveStatus(message: "请先补全数字输入，修改仍保留在这里。", isError: true)
+            return
+        }
         let changes = edits.changes
+        guard !changes.isEmpty else { revert(); return }
         let writer = CustomPatchWriter(userDirectory: directories.user, sharedDirectory: shared)
         do {
             let result = try writer.save("scribe", changes: changes, expectedOriginal: settings.customText)
@@ -179,6 +188,31 @@ final class LooksModel {
                 message: DefaultsModel.message(for: error, file: "scribe.custom.yaml"), isError: true,
                 file: directories.user.appending(path: "scribe.custom.yaml").resolvingSymlinksInPath())
         }
+    }
+
+    func setField(_ path: String, text: String, range: ClosedRange<Double>? = nil) {
+        fieldDrafts[path] = SettingsFieldDraft(text: text, minimum: range?.lowerBound, maximum: range?.upperBound)
+        status = nil
+        if let range {
+            if let number = SettingsFieldDraft.parseNumber(text), range.contains(number) {
+                set(path, AppearanceEdits.number(number))
+            }
+        } else {
+            let value = path == "appearance/font/face" ? FontFace.squirrelString(FontFace.list(squirrel: text)) : text
+            set(path, .scalar(value))
+        }
+    }
+
+    func draft() -> LooksDraft? {
+        guard hasEdits, let settings else { return nil }
+        return LooksDraft(original: settings.customText, edits: edits, fields: fieldDrafts)
+    }
+
+    func restore(_ draft: LooksDraft) throws {
+        guard settings != nil else { throw SettingsHandoffError.cannotRestore }
+        settings?.customText = draft.original
+        edits = draft.edits
+        fieldDrafts = draft.fields
     }
 
     // MARK: - Converting

@@ -2,7 +2,7 @@
 
 中书是 macOS 上的 [Rime](https://rime.im) 输入法前端：引擎是原样使用的 [librime](https://github.com/rime/librime)，前端用 Swift 重新实现，可以替代鼠须管（Squirrel）。按键、行内显示、`app_options`、皮肤等行为都和鼠须管一致，鼠须管的 `squirrel.yaml` / `squirrel.custom.yaml` 照常生效。中书用自己的用户目录 `~/Library/Scribe`，和鼠须管可以同时装着，互不影响。
 
-- **当前版本**：0.2.0，改动见 [更新记录](CHANGELOG.md)
+- **当前版本**：0.2.1，改动见 [更新记录](CHANGELOG.md)
 - **系统要求**：macOS 14 及以上
 
 ## 安装

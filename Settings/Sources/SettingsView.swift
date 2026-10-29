@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-enum SettingsPage: String, CaseIterable, Identifiable {
+enum SettingsPage: String, CaseIterable, Identifiable, Codable {
     case schemas, looks, shortcuts, importing
     var id: Self { self }
     var title: String {
@@ -26,17 +26,33 @@ struct SettingsView: View {
     var importModel: ImportModel
     var defaults: DefaultsModel
     var looks: LooksModel
-    @State private var selection: SettingsPage = .schemas
+    @Bindable var session: SettingsSession
+    var updates: SettingsUpdateCoordinator
 
     var body: some View {
+        VStack(spacing: 0) {
+            if let message = session.updateMessage {
+                HStack(spacing: 12) {
+                    Text(message).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                    if session.canRetryUpdate { Button("重试", action: updates.retry) }
+                    if !session.legacyPIDs.isEmpty { Button("查看旧窗口", action: updates.showLegacy) }
+                }.padding(14).background(SettingsStyle.accent.opacity(0.08))
+            }
+            content.disabled(session.isFrozen)
+        }
+        .tint(SettingsStyle.accent)
+        .frame(minWidth: 850, minHeight: 620)
+    }
+
+    private var content: some View {
         HStack(spacing: 0) {
             sidebar
             Rectangle().fill(SettingsStyle.line).frame(width: 1)
             Group {
-                switch selection {
-                case .schemas: SchemasView(model: defaults)
+                switch session.selection {
+                case .schemas: SchemasView(model: defaults, session: session)
                 case .looks: LooksView(model: looks)
-                case .shortcuts: ShortcutsView(model: defaults)
+                case .shortcuts: ShortcutsView(model: defaults, session: session)
                 case .importing: ImportView(model: importModel)
                 }
             }
@@ -63,27 +79,27 @@ struct SettingsView: View {
             VStack(spacing: 5) {
                 ForEach(SettingsPage.allCases) { page in
                     Button {
-                        selection = page
+                        session.selection = page
                     } label: {
                         HStack(spacing: 11) {
                             Image(systemName: page.systemImage).font(.system(size: 15)).frame(width: 22)
-                            Text(page.title).font(.system(size: 13, weight: selection == page ? .semibold : .regular))
+                            Text(page.title).font(.system(size: 13, weight: session.selection == page ? .semibold : .regular))
                             Spacer(minLength: 0)
                             if hasEdits(page) {
                                 Circle().fill(SettingsStyle.accent).frame(width: 5, height: 5)
                                     .accessibilityLabel("有未保存的修改")
                             }
                         }
-                        .foregroundStyle(selection == page ? SettingsStyle.accent : Color.primary.opacity(0.8))
+                        .foregroundStyle(session.selection == page ? SettingsStyle.accent : Color.primary.opacity(0.8))
                         .padding(.horizontal, 12).padding(.vertical, 12)
                         .background(
-                            selection == page ? SettingsStyle.accent.opacity(0.085) : .clear,
+                            session.selection == page ? SettingsStyle.accent.opacity(0.085) : .clear,
                             in: RoundedRectangle(cornerRadius: 9)
                         )
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityAddTraits(selection == page ? .isSelected : [])
+                    .accessibilityAddTraits(session.selection == page ? .isSelected : [])
                     .accessibilityIdentifier("settings.page.\(page.rawValue)")
                 }
             }.padding(.horizontal, 12)

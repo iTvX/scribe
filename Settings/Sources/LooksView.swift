@@ -327,24 +327,20 @@ private struct TextSection: View {
     var body: some View {
         SettingsCard(title: "字体与文字", icon: "textformat") {
             SettingRow(model: model, path: "appearance/font/face") {
-                CommitField(title: "候选字体", value: FontFace.squirrelString(theme.candidateFont.faces), prompt: "系统字体") { text in
-                    model.set("appearance/font/face", .scalar(FontFace.squirrelString(FontFace.list(squirrel: text))))
-                }
+                CommitField(model: model, path: "appearance/font/face", title: "候选字体", value: FontFace.squirrelString(theme.candidateFont.faces), prompt: "系统字体")
             }
             sizeRow("候选字号", "appearance/font/size", theme.candidateFont.pointSize)
             sizeRow("序号字号", "appearance/label_font/size", theme.labelFont.pointSize)
             sizeRow("注释字号", "appearance/comment_font/size", theme.commentFont.pointSize)
             SettingRow(model: model, path: "appearance/candidate_format") {
-                CommitField(title: "候选格式", value: theme.candidateFormat.template, prompt: "[label]. [candidate] [comment]") { text in
-                    model.set("appearance/candidate_format", .scalar(text))
-                }
+                CommitField(model: model, path: "appearance/candidate_format", title: "候选格式", value: theme.candidateFormat.template, prompt: "[label]. [candidate] [comment]")
             }
         }
     }
 
     private func sizeRow(_ title: String, _ path: String, _ size: Double?) -> some View {
         SettingRow(model: model, path: path) {
-            NumberField(title: title, value: size ?? NSFont.systemFontSize, range: 1...200) { model.set(path, AppearanceEdits.number($0)) }
+            NumberField(model: model, path: path, title: title, value: size ?? NSFont.systemFontSize, range: 1...200)
         }
     }
 }
@@ -382,54 +378,55 @@ private struct SizeSection: View {
 
     private func row(_ title: String, _ path: String, _ value: Double, range: ClosedRange<Double> = 0...100) -> some View {
         SettingRow(model: model, path: path) {
-            NumberField(title: title, value: value, range: range) { model.set(path, AppearanceEdits.number($0)) }
+            NumberField(model: model, path: path, title: title, value: value, range: range)
         }
     }
 }
 
-/// A number with a text field and a stepper; the text field commits on Return.
+/// Raw text is kept in the model, including incomplete or invalid input.
 private struct NumberField: View {
+    var model: LooksModel
+    var path: String
     var title: String
     var value: Double
     var range: ClosedRange<Double>
-    var commit: (Double) -> Void
 
     var body: some View {
         SettingsFieldRow(title: title) {
             HStack(spacing: 4) {
-                TextField(
-                    title, value: Binding(get: { value }, set: { commit(min(max($0, range.lowerBound), range.upperBound)) }),
-                    format: .number.precision(.fractionLength(0...2))
-                )
-                .labelsHidden().accessibilityLabel(title)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 70)
-                Stepper(title, value: Binding(get: { value }, set: { commit($0) }), in: range, step: 1)
+                TextField(title, text: Binding(
+                    get: { model.fieldDrafts[path]?.text ?? value.formatted(.number.precision(.fractionLength(0...2))) },
+                    set: { text in
+                        let displayed = model.fieldDrafts[path]?.text ?? value.formatted(.number.precision(.fractionLength(0...2)))
+                        if text != displayed { model.setField(path, text: text, range: range) }
+                    }))
+                    .labelsHidden().accessibilityLabel(title)
+                    .multilineTextAlignment(.trailing).frame(width: 70)
+                    .help(model.fieldDrafts[path]?.isValid == false ? "请输入范围内的完整数字" : "")
+                Stepper(title, value: Binding(get: { value }, set: {
+                    model.setField(path, text: $0.formatted(.number), range: range)
+                }), in: range, step: 1)
                     .labelsHidden().accessibilityLabel("调整\(title)")
             }.accessibilityElement(children: .contain)
         }
     }
 }
 
-/// Text edits enter the draft immediately; external changes do not replace focused typing.
 private struct CommitField: View {
+    var model: LooksModel
+    var path: String
     var title: String
     var value: String
     var prompt: String
-    var commit: (String) -> Void
-    @State private var draft = ""
-    @FocusState private var focused: Bool
 
     var body: some View {
         SettingsFieldRow(title: title) {
-            TextField(title, text: $draft, prompt: Text(verbatim: prompt))
-                .textFieldStyle(.roundedBorder)
-                .focused($focused)
-                .onSubmit { commit(draft) }
-                .onAppear { draft = value }
-                .onChange(of: draft) { if draft != value { commit(draft) } }
-                .onChange(of: value) { if !focused { draft = value } }
-                .labelsHidden().frame(width: 220)
+            TextField(title, text: Binding(
+                get: { model.fieldDrafts[path]?.text ?? value },
+                set: { text in
+                    if text != (model.fieldDrafts[path]?.text ?? value) { model.setField(path, text: text) }
+                }), prompt: Text(verbatim: prompt))
+                .textFieldStyle(.roundedBorder).labelsHidden().frame(width: 220)
                 .accessibilityLabel(title)
         }
     }

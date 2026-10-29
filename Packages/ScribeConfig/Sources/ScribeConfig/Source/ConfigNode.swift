@@ -5,7 +5,7 @@ import Foundation
 ///
 /// `.null` stands for a YAML null: as a map value, the key exists (it is in
 /// `mapKeys`) but every getter returns nil.
-public indirect enum ConfigNode: Equatable, Sendable {
+public indirect enum ConfigNode: Equatable, Sendable, Codable {
     case null
     case scalar(String)
     case list([ConfigNode])

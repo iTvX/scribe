@@ -209,6 +209,30 @@ final class DefaultsModel {
         }
     }
 
+    /// Capture only dirty pages; the other page is reloaded from disk by the receiver.
+    func draft() -> DefaultsDraft? {
+        guard let loaded, hasEdits(.schemas) || hasEdits(.shortcuts) else { return nil }
+        return DefaultsDraft(
+            original: loaded.customText,
+            schemas: hasEdits(.schemas) ? .init(nodes: schemaItems.map(\.node), pageSize: pageSize) : nil,
+            shortcuts: hasEdits(.shortcuts) ? .init(hotkeys: hotkeys, switchKey: switchKey) : nil)
+    }
+
+    func restore(_ draft: DefaultsDraft) throws {
+        guard loaded != nil else { throw SettingsHandoffError.cannotRestore }
+        // Keep the pre-update conflict baseline. Reloading it here would silently
+        // authorize overwriting edits made by another program during installation.
+        loaded?.customText = draft.original
+        if let schemas = draft.schemas {
+            schemaItems = schemas.nodes.map { SchemaItem(node: $0) }
+            pageSize = schemas.pageSize
+        }
+        if let shortcuts = draft.shortcuts {
+            hotkeys = shortcuts.hotkeys
+            switchKey = shortcuts.switchKey
+        }
+    }
+
     // MARK: - Messages
 
     static func message(for error: PatchSaveError, file: String = "default.custom.yaml") -> String {
