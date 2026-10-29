@@ -35,7 +35,7 @@ jobs:
   build:
     name: Build, sign and notarize
     if: github.repository == 'iTvX/scribe'
-    runs-on: [self-hosted, macOS, ARM64, scribe-local]
+    runs-on: [self-hosted, macOS, ARM64, scribe-release]
     timeout-minutes: 60
     outputs:
       publish: ${{ steps.release.outputs.publish }}
