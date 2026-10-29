@@ -1,8 +1,10 @@
 # 中书隐私说明
 
-适用于本仓库发布的中书 Scribe 0.1.5，更新日期：2026-10-28。
+适用于本仓库发布的中书 Scribe 0.2.1，更新日期：2026-10-28。
 
 中书在本机把按键交给 librime 生成候选和提交文字。本项目没有接入输入内容上传、广告、账号系统或第三方统计 SDK。配置、用户词库和学习结果保存在 `~/Library/Scribe`；卸载应用不会自动删除它们。
+
+更新设置窗口时，未保存的修改会暂存在 `~/Library/Application Support/io.github.itvx.inputmethod.Scribe.Settings/SettingsHandoff`，供新版接续和异常退出后的恢复。内容包括设置草稿、原始配置文本、页面和所选导入路径，只保存在本机，不上传、不放入 Rime 同步目录。目录和文件仅当前用户可读写；全部保存或撤销后清除对应草稿。
 
 ## 网络访问
 
@@ -18,4 +20,4 @@ librime 日志在 `~/Library/Logs/Scribe`，应用日志使用 macOS 的统一�
 
 ## 删除与备份
 
-输入法停止运行后，可自行备份或删除 `~/Library/Scribe` 和 `~/Library/Logs/Scribe`。迁移生成的 `Scribe backup ...` 目录由用户保留和管理。卸载步骤见 [README](https://github.com/iTvX/scribe#卸载)。
+输入法和设置窗口停止运行后，可自行备份或删除 `~/Library/Scribe` 和 `~/Library/Logs/Scribe`。上述 `SettingsHandoff` 目录也可一并备份或删除。迁移生成的 `Scribe backup ...` 目录由用户保留和管理。卸载步骤见 [README](https://github.com/iTvX/scribe#卸载)。

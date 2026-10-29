@@ -21,6 +21,8 @@ final class ImportModel {
         case failed(String)
     }
 
+    private(set) var isWorking = false
+
     var source: URL
     var destination: URL
     private(set) var phase: Phase = .ready
@@ -90,12 +92,14 @@ final class ImportModel {
     }
 
     func startImport() {
-        guard !isImporting else { return }
+        guard !isWorking else { return }
+        isWorking = true
         let importer = RimeDirectoryImporter(source: source, destination: destination)
         phase = .importing("正在复制文件…")
         userWords = UserWordsOutcome()
         Log.importer.notice("Importing \(importer.source.path(percentEncoded: false), privacy: .public) into \(importer.destination.path(percentEncoded: false), privacy: .public)")
         Task {
+            defer { isWorking = false }
             let result = await Task.detached(priority: .userInitiated) {
                 Result { try importer.run() }
             }.value
@@ -108,6 +112,20 @@ final class ImportModel {
                 emit("Import failed: \(String(describing: error))")
             }
         }
+    }
+
+    var handoffBlocked: Bool {
+        if isWorking || isConfirmingBackup { return true }
+        if case .finished = phase { return true } // Keep the report until Done.
+        return false
+    }
+
+    var failureMessage: String? {
+        if case .failed(let message) = phase { message } else { nil }
+    }
+
+    func restoreFailure(_ message: String?) {
+        if let message { phase = .failed(message) }
     }
 
     /// Back to the import screen after a report or an error.

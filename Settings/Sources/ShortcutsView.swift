@@ -6,6 +6,7 @@ import SwiftUI
 /// between Chinese and English, saved to default.custom.yaml.
 struct ShortcutsView: View {
     @Bindable var model: DefaultsModel
+    var session: SettingsSession
     @State private var monitor: Any?
     @State private var recordingMessage: String?
 
@@ -110,6 +111,7 @@ struct ShortcutsView: View {
 
     private func startRecording() {
         recordingMessage = nil
+        session.isRecordingShortcut = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             MainActor.assumeIsolated {
                 record(event)
@@ -141,5 +143,6 @@ struct ShortcutsView: View {
             NSEvent.removeMonitor(monitor)
         }
         monitor = nil
+        session.isRecordingShortcut = false
     }
 }

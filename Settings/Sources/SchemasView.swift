@@ -4,7 +4,7 @@ import SwiftUI
 
 struct SchemasView: View {
     @Bindable var model: DefaultsModel
-    @State private var recipe = ""
+    @Bindable var session: SettingsSession
     @State private var adding = false
     @State private var copied = false
 
@@ -56,16 +56,16 @@ struct SchemasView: View {
                         SettingsDisclosure(title: "安装更多方案", subtitle: "使用东风破（plum）安装社区方案") {
                             Text("输入配方，拷贝命令到终端运行。完成后重新部署中书，再添加新方案。")
                                 .font(.callout).foregroundStyle(.secondary)
-                            TextField("安装配方", text: $recipe, prompt: Text("例如 iDvel/rime-ice:others/recipes/full"))
+                            TextField("安装配方", text: $session.recipe, prompt: Text("例如 iDvel/rime-ice:others/recipes/full"))
                                 .textFieldStyle(.roundedBorder)
                             HStack(alignment: .top) {
-                                Text(plum.command(recipe: recipe)).font(.caption.monospaced()).textSelection(.enabled)
+                                Text(plum.command(recipe: session.recipe)).font(.caption.monospaced()).textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 Button(copied ? "已拷贝" : "拷贝命令") {
                                     NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(plum.command(recipe: recipe), forType: .string)
+                                    NSPasteboard.general.setString(plum.command(recipe: session.recipe), forType: .string)
                                     copied = true
-                                }.disabled(recipe.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }.disabled(session.recipe.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }.padding(12).background(SettingsStyle.canvas, in: RoundedRectangle(cornerRadius: 8))
                             DisclosureGroup("工具位置") { Text(plum.tool.path).font(.caption).textSelection(.enabled) }
                         }
@@ -75,7 +75,7 @@ struct SchemasView: View {
             Divider()
             SaveBar(model: model, page: .schemas)
         }
-        .onChange(of: recipe) { copied = false }
+        .onChange(of: session.recipe) { copied = false }
         .sheet(isPresented: $adding) { AddSchemaSheet(model: model) }
     }
 

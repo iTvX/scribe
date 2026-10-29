@@ -139,6 +139,14 @@ iconutil --convert iconset --output "${WORK}/settings.iconset" "${SETTINGS}/Cont
 [[ -n "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "${SETTINGS}/Contents/Info.plist" 2>/dev/null || true)" ]] ||
   fail "Scribe Settings has no display name"
 pass "Scribe Settings declares an embedded, decodable Dock icon and a display name"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :ScribeSettingsHandoffVersion' "${SETTINGS}/Contents/Info.plist")" == 1 ]] ||
+  fail "Scribe Settings has no supported draft handoff protocol"
+settings_refresh="$("${SETTINGS}/Contents/MacOS/ScribeSettings" --installation-finished)" || fail "staging settings refresh failed"
+grep -qF 'Settings installation refresh ignored: not the installed application' <<< "${settings_refresh}" ||
+  fail "a staging settings helper attempted a live refresh"
+grep -qF -- '--installation-finished' "${APP}/Contents/MacOS/scribe-refresh-input-menu" ||
+  fail "the completed-install job does not refresh Settings"
+pass "Settings handoff is wired after installation; staging helpers cannot affect live windows"
 
 # Software updates (docs/decisions/0011-releases-and-updates.md).
 SPARKLE="${APP}/Contents/Frameworks/Sparkle.framework"

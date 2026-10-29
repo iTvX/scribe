@@ -10,7 +10,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: 0.2.0
+    MARKETING_VERSION: 0.2.1
     CURRENT_PROJECT_VERSION: 1
     # CI and packaging override this: Xcode registers macOS build products
     # with LaunchServices even when Spotlight indexing is disabled.
@@ -202,6 +202,23 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.scribe.ServiceTests
         GENERATE_INFOPLIST_FILE: YES
 
+  ScribeSettingsTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Settings/Sources
+        excludes: [ScribeSettingsApp.swift]
+      - path: Settings/Tests
+    dependencies:
+      - package: ScribeUI
+      - package: ScribeConfig
+      - package: ScribeCore
+      - package: RimeKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.itvx.scribe.SettingsTests
+        GENERATE_INFOPLIST_FILE: YES
+
   ScribeSettings:
     type: application
     platform: macOS
@@ -239,10 +256,12 @@ schemes:
         Scribe: all
         ScribeTests: [test]
         ScribeServiceTests: [test]
+        ScribeSettingsTests: [test]
     test:
       targets:
         - ScribeTests
         - ScribeServiceTests
+        - ScribeSettingsTests
     run:
       config: Debug
     archive:

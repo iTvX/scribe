@@ -181,8 +181,8 @@ public struct AppearanceSettings: Equatable, Sendable {
 }
 
 /// Edits to scribe.custom.yaml waiting to be saved, by Scribe path.
-public struct AppearanceEdits: Equatable, Sendable {
-    private enum Edit: Equatable, Sendable {
+public struct AppearanceEdits: Equatable, Sendable, Codable {
+    private enum Edit: Equatable, Sendable, Codable {
         case set(ConfigNode)
         case remove
     }
